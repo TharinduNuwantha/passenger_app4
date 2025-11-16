@@ -35,7 +35,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   String _completePhoneNumber = '';
-  bool _isValid = false;
+  bool _isValid = true;
 
   @override
   void dispose() {
@@ -124,7 +124,9 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
                                         blurRadius: 16,
                                         offset: const Offset(0, 8),
                                       ),
@@ -192,11 +194,11 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                   ),
                                 ),
                                 initialCountryCode: AppConstants.countryISOCode,
-                                disableLengthCheck: false,
+                                disableLengthCheck: true,
                                 onChanged: (phone) {
                                   setState(() {
                                     _completePhoneNumber = phone.completeNumber;
-                                    _isValid = phone.isValidNumber();
+                                    // _isValid = phone.isValidNumber();
                                   });
                                 },
                                 validator: (phone) {
@@ -225,7 +227,9 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                   color: AppColors.info.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: AppColors.info.withValues(alpha: 0.3),
+                                    color: AppColors.info.withValues(
+                                      alpha: 0.3,
+                                    ),
                                     width: 1,
                                   ),
                                 ),
