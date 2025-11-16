@@ -15,6 +15,12 @@ class ApiConfig {
   static const String updateProfileEndpoint = '/api/v1/user/profile';
   static const String logoutEndpoint = '/api/v1/auth/logout';
 
+  // Search Endpoints
+  static const String searchTripsEndpoint = '/api/v1/search';
+  static const String popularRoutesEndpoint = '/api/v1/search/popular';
+  static const String autocompleteEndpoint = '/api/v1/search/autocomplete';
+  static const String searchHealthEndpoint = '/api/v1/search/health';
+
   // Full URLs
   static String get sendOtpUrl => '$baseUrl$sendOtpEndpoint';
   static String get verifyOtpUrl => '$baseUrl$verifyOtpEndpoint';
