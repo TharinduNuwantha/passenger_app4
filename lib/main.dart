@@ -57,12 +57,10 @@ class MyApp extends StatelessWidget {
                   );
 
                 case AppConstants.homeRoute:
-                  return MaterialPageRoute(builder: (_) => const HomeScreen());
+                  return MaterialPageRoute(builder: (_) => const DashBoard());
 
                 case AppConstants.profileRoute:
-                  return MaterialPageRoute(
-                    builder: (_) => const ProfileScreen(),
-                  );
+                  return MaterialPageRoute(builder: (_) => ProfileScreen());
 
                 case AppConstants.editProfileRoute:
                   return MaterialPageRoute(

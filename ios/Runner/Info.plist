@@ -45,5 +45,17 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+    
+	<!-- Google Maps API Key -->
+	<key>GMSAPIKey</key>
+	<string>AIzaSyCs7dOTJ-9GlNB1T29k5Bexz8XOY1IuaA4</string>
+
+	<!-- Location permission messages -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app uses your location to let you pick pickup and drop points on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app may use your location to provide location-based services even when the app is in the background.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app uses your location to provide improved location features.</string>
 </dict>
 </plist>

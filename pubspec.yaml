@@ -60,6 +60,10 @@ dependencies:
   device_info_plus: ^10.1.0
   package_info_plus: ^8.0.0
   uuid: ^4.5.1
+  google_maps_flutter: ^2.13.1
+  geolocator: ^14.0.2
+  supabase_flutter: ^2.10.3
+  carousel_slider: ^5.1.1
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +93,12 @@ flutter:
     - assets/images/lior_logo.png
     - assets/images/lior_logo_no_bg.png
     - assets/images/lior_app_icon.png
+    - assets/images/johns_photo.png
+    - assets/images/bus1.png
+    - assets/images/bus2.png
+    - assets/images/bus3.png
+    - assets/images/lounge_background_1.jpg
+    - assets/images/lounge_background_2.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
