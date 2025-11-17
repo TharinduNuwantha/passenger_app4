@@ -38,9 +38,18 @@ class SearchService {
         limit: limit,
       );
 
+      final jsonPayload = request.toJson();
+      _logger.i('🔍 REQUEST PAYLOAD: $jsonPayload');
+      _logger.i('🔍 FROM: "${jsonPayload['from']}"');
+      _logger.i('🔍 TO: "${jsonPayload['to']}"');
+      _logger.i('🔍 DATETIME: ${jsonPayload['datetime']}');
+      _logger.i('🔍 LIMIT: ${jsonPayload['limit']}');
+      _logger.i('🔍 ENDPOINT: ${ApiConfig.searchTripsEndpoint}');
+      _logger.i('🔍 BASE URL: ${ApiConfig.baseUrl}');
+
       final response = await _apiService.post(
-        '/search',
-        data: request.toJson(),
+        ApiConfig.searchTripsEndpoint,
+        data: jsonPayload,
       );
 
       _logger.d('Search response: ${response.data}');
@@ -71,7 +80,7 @@ class SearchService {
       _logger.i('Fetching popular routes');
 
       final response = await _apiService.get(
-        '/search/popular',
+        ApiConfig.popularRoutesEndpoint,
         queryParameters: {'limit': limit},
       );
 
@@ -110,7 +119,7 @@ class SearchService {
       _logger.d('Getting autocomplete for: $searchTerm');
 
       final response = await _apiService.get(
-        '/search/autocomplete',
+        ApiConfig.autocompleteEndpoint,
         queryParameters: {
           'q': searchTerm,
           'limit': limit,
@@ -140,7 +149,7 @@ class SearchService {
   /// Returns true if service is operational
   Future<bool> checkHealth() async {
     try {
-      final response = await _apiService.get('/search/health');
+      final response = await _apiService.get(ApiConfig.searchHealthEndpoint);
       return response.data['status'] == 'healthy';
     } catch (e) {
       _logger.e('Search health check failed: $e');

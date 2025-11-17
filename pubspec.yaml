@@ -64,6 +64,7 @@ dependencies:
   geolocator: ^14.0.2
   supabase_flutter: ^2.10.3
   carousel_slider: ^5.1.1
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -90,6 +91,7 @@ flutter:
 
   # Assets for LIOR Passenger App
   assets:
+    - .env
     - assets/images/lior_logo.png
     - assets/images/lior_logo_no_bg.png
     - assets/images/lior_app_icon.png

@@ -15,10 +15,21 @@ class SearchRequest {
   });
 
   Map<String, dynamic> toJson() {
+    // Format datetime to RFC3339 with timezone (required by Go backend)
+    String? formattedDatetime;
+    if (datetime != null) {
+      // Ensure datetime is in UTC and formatted with 'Z' suffix
+      formattedDatetime = datetime!.toUtc().toIso8601String();
+      // toIso8601String() on UTC datetime should include 'Z', but ensure it
+      if (!formattedDatetime.endsWith('Z') && !formattedDatetime.contains('+')) {
+        formattedDatetime = '${formattedDatetime}Z';
+      }
+    }
+
     return {
       'from': from,
       'to': to,
-      if (datetime != null) 'datetime': datetime!.toIso8601String(),
+      if (formattedDatetime != null) 'datetime': formattedDatetime,
       if (limit != null) 'limit': limit,
     };
   }
@@ -109,7 +120,6 @@ class TripResult {
   final DateTime departureTime;
   final DateTime estimatedArrival;
   final int durationMinutes;
-  final int availableSeats;
   final int totalSeats;
   final double fare;
   final String boardingPoint;
@@ -125,7 +135,6 @@ class TripResult {
     required this.departureTime,
     required this.estimatedArrival,
     required this.durationMinutes,
-    required this.availableSeats,
     required this.totalSeats,
     required this.fare,
     required this.boardingPoint,
@@ -143,7 +152,6 @@ class TripResult {
       departureTime: DateTime.parse(json['departure_time'] as String),
       estimatedArrival: DateTime.parse(json['estimated_arrival'] as String),
       durationMinutes: json['duration_minutes'] as int? ?? 0,
-      availableSeats: json['available_seats'] as int? ?? 0,
       totalSeats: json['total_seats'] as int? ?? 0,
       fare: (json['fare'] as num?)?.toDouble() ?? 0.0,
       boardingPoint: json['boarding_point'] as String? ?? '',
@@ -167,9 +175,9 @@ class TripResult {
     return 'LKR ${fare.toStringAsFixed(2)}';
   }
 
-  double get occupancyPercentage {
-    if (totalSeats == 0) return 0;
-    return ((totalSeats - availableSeats) / totalSeats) * 100;
+  // Seats display - booking feature not implemented yet
+  String get seatsDisplay {
+    return '$totalSeats seats';
   }
 
   String get busTypeDisplay {

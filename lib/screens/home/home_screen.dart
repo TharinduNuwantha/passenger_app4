@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../theme/app_colors.dart';
+import '../../providers/search_provider.dart';
+import '../../services/search_service.dart';
 import '../bus_booking/booking_conform.dart' hide AppColors;
 import '../bus_booking/bus_booking_screen.dart';
 import '../bus_booking/nav_booking_screen.dart';
@@ -38,6 +41,9 @@ class _DashBoardState extends State<DashBoard> {
 
   final List<Map<String, String>> nearbyLocations = [];
 
+  // Search service for fuzzy matching
+  final SearchService _searchService = SearchService();
+
   String? firstName;
 
   @override
@@ -64,10 +70,11 @@ class _DashBoardState extends State<DashBoard> {
     });
   }
 
-  // Listen to pickup field changes and fetch autocomplete
+  // Listen to pickup field changes and fetch Google Maps autocomplete
   void _onPickupTextChanged() {
     final text = pickupController.text;
-    if (text.length > 2) {
+    if (text.length >= 2) {
+      // Use Google Maps autocomplete for better UX
       _fetchAutocompleteSuggestions(text, isPickup: true);
     } else {
       setState(() {
@@ -77,10 +84,11 @@ class _DashBoardState extends State<DashBoard> {
     }
   }
 
-  // Listen to drop field changes and fetch autocomplete
+  // Listen to drop field changes and fetch Google Maps autocomplete
   void _onDropTextChanged() {
     final text = dropController.text;
-    if (text.length > 2) {
+    if (text.length >= 2) {
+      // Use Google Maps autocomplete for better UX
       _fetchAutocompleteSuggestions(text, isPickup: false);
     } else {
       setState(() {
@@ -210,18 +218,91 @@ class _DashBoardState extends State<DashBoard> {
     }
   }
 
-  // Auto navigate to booking screen
-  void _autoNavigateToBooking() {
-    if (pickupController.text.isNotEmpty &&
-        dropController.text.isNotEmpty &&
-        selectedDate != null) {
+  // Extract keywords from Google Maps location for fuzzy matching
+  // Example: "Colombo Fort Railway Station, Colombo, Western Province, Sri Lanka" → "Colombo Fort"
+  String _extractKeywords(String googleLocation) {
+    // Split by comma and take the first part (usually the main location name)
+    final parts = googleLocation.split(',');
+    if (parts.isEmpty) return googleLocation;
+
+    // Take first part and clean it up
+    String keyword = parts[0].trim();
+
+    // Remove common suffixes like "Railway Station", "Bus Stand", etc.
+    keyword = keyword
+        .replaceAll(RegExp(r'\s+(Railway|Bus|Train)\s+Station', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+Bus\s+Stand', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+Terminal', caseSensitive: false), '')
+        .trim();
+
+    return keyword;
+  }
+
+  // Fuzzy match Google location to backend bus stop
+  Future<String?> _fuzzyMatchToStop(String googleLocation) async {
+    try {
+      // Extract keywords from the Google location
+      final keywords = _extractKeywords(googleLocation);
+
+      // Call backend autocomplete API with extracted keywords
+      final suggestions = await _searchService.getStopAutocomplete(
+        searchTerm: keywords,
+        limit: 5,
+      );
+
+      // If we have matches, use the first one (highest relevance)
+      if (suggestions.isNotEmpty) {
+        print('Fuzzy matched "$googleLocation" → "${suggestions.first.stopName}"');
+        return suggestions.first.stopName;
+      }
+
+      // If no match, return the extracted keywords
+      print('No fuzzy match for "$googleLocation", using keywords: "$keywords"');
+      return keywords;
+    } catch (e) {
+      print('Error fuzzy matching: $e');
+      // Fallback to extracted keywords
+      return _extractKeywords(googleLocation);
+    }
+  }
+
+  // Auto navigate to booking screen (triggers search)
+  Future<void> _autoNavigateToBooking() async {
+    if (pickupController.text.isEmpty || dropController.text.isEmpty) {
+      return;
+    }
+
+    // Fuzzy match pickup location to bus stop
+    final fromStop = await _fuzzyMatchToStop(pickupController.text);
+
+    // Fuzzy match drop location to bus stop
+    final toStop = await _fuzzyMatchToStop(dropController.text);
+
+    if (fromStop == null || toStop == null) {
+      // Show error if fuzzy matching failed completely
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not find bus stops for selected locations'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Use selected date or default to next 7 days
+    final searchDate = selectedDate ?? DateTime.now();
+
+    // Navigate to bus list screen with search
+    if (mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => BusListScreen(
-            date: selectedDate,
-            pickup: pickupController.text,
-            drop: dropController.text,
+            date: searchDate,
+            pickup: fromStop,
+            drop: toStop,
           ),
         ),
       );
