@@ -22,7 +22,10 @@ class AuthService {
 
       final response = await _apiService.post(
         ApiConfig.sendOtpEndpoint,
-        data: {'phone_number': formattedPhone},
+        data: {
+          'phone_number': formattedPhone,
+          'app_type': 'passenger',
+        },
       );
 
       if (response.statusCode == 200) {
