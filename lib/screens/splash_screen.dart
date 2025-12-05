@@ -32,7 +32,17 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // Navigate based on auth status
     if (authProvider.isAuthenticated) {
-      Navigator.of(context).pushReplacementNamed(AppConstants.homeRoute);
+      // Check if profile is complete
+      final user = authProvider.user;
+      if (user != null && !user.profileCompleted) {
+        // Profile not complete - go to complete profile screen
+        Navigator.of(
+          context,
+        ).pushReplacementNamed(AppConstants.completeProfileRoute);
+      } else {
+        // Profile complete - go to home
+        Navigator.of(context).pushReplacementNamed(AppConstants.homeRoute);
+      }
     } else {
       Navigator.of(context).pushReplacementNamed(AppConstants.phoneInputRoute);
     }
@@ -42,9 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppGradients.primaryGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppGradients.primaryGradient),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

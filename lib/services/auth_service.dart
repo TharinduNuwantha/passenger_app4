@@ -19,13 +19,11 @@ class AuthService {
 
       // Format phone number for API
       final formattedPhone = PhoneFormatter.formatForApi(phoneNumber);
+      _logger.i('Formatted phone for API: $formattedPhone'); // Debug log
 
       final response = await _apiService.post(
         ApiConfig.sendOtpEndpoint,
-        data: {
-          'phone_number': formattedPhone,
-          'app_type': 'passenger',
-        },
+        data: {'phone_number': formattedPhone, 'app_type': 'passenger'},
       );
 
       if (response.statusCode == 200) {
@@ -224,6 +222,39 @@ class AuthService {
       await _storage.clearAll();
 
       return true; // Return true since local logout succeeded
+    }
+  }
+
+  // Complete basic profile (first_name + last_name only) - for new passengers
+  Future<Map<String, dynamic>> completeBasicProfile(
+    String firstName,
+    String lastName,
+  ) async {
+    try {
+      _logger.i('Completing basic profile: $firstName $lastName');
+
+      final response = await _apiService.post(
+        ApiConfig.completeBasicProfileEndpoint,
+        data: {'first_name': firstName, 'last_name': lastName},
+      );
+
+      if (response.statusCode == 200) {
+        _logger.i('Basic profile completed successfully');
+
+        final data = response.data as Map<String, dynamic>;
+        final profileData = data['profile'] as Map<String, dynamic>;
+
+        // Update stored user data
+        final user = UserModel.fromJson(profileData);
+        await _storage.saveUserData(user);
+
+        return {'success': true, 'user': user};
+      }
+
+      throw 'Failed to complete profile';
+    } catch (e) {
+      _logger.e('Complete basic profile error: $e');
+      throw ErrorHandler.handleError(e);
     }
   }
 

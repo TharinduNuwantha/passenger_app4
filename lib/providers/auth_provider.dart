@@ -203,6 +203,38 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Complete basic profile (first_name + last_name only) - for new passengers
+  Future<bool> completeBasicProfile(String firstName, String lastName) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      _logger.i('Completing basic profile');
+
+      final result = await _authService.completeBasicProfile(
+        firstName,
+        lastName,
+      );
+
+      if (result['success'] == true) {
+        _user = result['user'] as UserModel;
+        _logger.i('Basic profile completed - User: ${_user?.name}');
+        return true;
+      }
+
+      _error = 'Failed to complete profile';
+      return false;
+    } catch (e) {
+      _logger.e('Complete basic profile error: $e');
+      _error = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _tokenRefreshService.stopAutoRefresh();

@@ -7,6 +7,7 @@ import 'providers/auth_provider.dart';
 import 'providers/search_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
+import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/otp_verification_screen.dart';
 import 'screens/auth/phone_input_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -60,6 +61,11 @@ class MyApp extends StatelessWidget {
                     builder: (_) => OtpVerificationScreen(
                       phoneNumber: args?['phoneNumber'] as String? ?? '',
                     ),
+                  );
+
+                case AppConstants.completeProfileRoute:
+                  return MaterialPageRoute(
+                    builder: (_) => const CompleteProfileScreen(),
                   );
 
                 case AppConstants.homeRoute:

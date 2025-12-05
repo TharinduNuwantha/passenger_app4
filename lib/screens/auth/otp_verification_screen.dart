@@ -131,10 +131,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     if (!mounted) return;
 
     if (success) {
-      // Navigate to home
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(AppConstants.homeRoute, (route) => false);
+      // Check if profile is complete
+      final user = authProvider.user;
+      if (user != null && !user.profileCompleted) {
+        // New user - navigate to complete profile screen
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppConstants.completeProfileRoute,
+          (route) => false,
+        );
+      } else {
+        // Existing user with complete profile - navigate to home
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppConstants.homeRoute, (route) => false);
+      }
     } else {
       // Reset flag on error
       setState(() {

@@ -12,8 +12,7 @@ class ApiConfig {
       'https://a9a9815d-fed9-4f0e-bf6f-706f789df0f3-dev.e1-us-east-azure.choreoapis.dev/default/backend/v1.0';
 
   // Google Maps API Key (for location autocomplete - will be replaced with backend autocomplete)
-  static String get googleMapsApiKey =>
-      dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+  static String get googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
   // API Endpoints
   static const String sendOtpEndpoint = '/api/v1/auth/send-otp';
@@ -21,6 +20,8 @@ class ApiConfig {
   static const String refreshTokenEndpoint = '/api/v1/auth/refresh';
   static const String profileEndpoint = '/api/v1/user/profile';
   static const String updateProfileEndpoint = '/api/v1/user/profile';
+  static const String completeBasicProfileEndpoint =
+      '/api/v1/user/complete-basic-profile';
   static const String logoutEndpoint = '/api/v1/auth/logout';
 
   // Search Endpoints

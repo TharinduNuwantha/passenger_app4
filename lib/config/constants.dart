@@ -64,6 +64,7 @@ class AppConstants {
   static const String splashRoute = '/';
   static const String phoneInputRoute = '/phone-input';
   static const String otpVerificationRoute = '/otp-verification';
+  static const String completeProfileRoute = '/complete-profile';
   static const String homeRoute = '/home';
   static const String profileRoute = '/profile';
   static const String editProfileRoute = '/edit-profile';
