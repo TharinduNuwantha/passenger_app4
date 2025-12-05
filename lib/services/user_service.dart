@@ -37,22 +37,26 @@ class UserService {
   }
 
   // Update user profile
-  Future<UserModel> updateProfile({String? name, String? email}) async {
+  Future<UserModel> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String email,
+    String? address,
+    String? city,
+    String? postalCode,
+  }) async {
     try {
       _logger.i('Updating user profile');
 
-      // Prepare update data
-      final Map<String, dynamic> updateData = {};
-      if (name != null && name.isNotEmpty) {
-        updateData['name'] = name;
-      }
-      if (email != null && email.isNotEmpty) {
-        updateData['email'] = email;
-      }
-
-      if (updateData.isEmpty) {
-        throw 'No data to update';
-      }
+      // Prepare update data - backend requires first_name, last_name, email, address
+      final Map<String, dynamic> updateData = {
+        'first_name': firstName,
+        'last_name': lastName,
+        'email': email,
+        'address': address ?? '',
+        'city': city ?? '',
+        'postal_code': postalCode ?? '',
+      };
 
       final response = await _apiService.put(
         ApiConfig.updateProfileEndpoint,

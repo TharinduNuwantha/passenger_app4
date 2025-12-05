@@ -45,7 +45,10 @@ class ApiConfig {
   static String get searchHealthUrl => '$baseUrl$searchHealthEndpoint';
 
   // Timeouts
-  static const Duration connectTimeout = Duration(seconds: 10);
-  static const Duration receiveTimeout = Duration(seconds: 10);
-  static const Duration sendTimeout = Duration(seconds: 10);
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
+  static const Duration sendTimeout = Duration(seconds: 30);
+
+  // Extended timeout for slow operations (SMS sending)
+  static const Duration smsTimeout = Duration(seconds: 60);
 }

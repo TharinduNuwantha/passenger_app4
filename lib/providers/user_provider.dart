@@ -38,7 +38,7 @@ class UserProvider extends ChangeNotifier {
   }
 
   // Update user profile
-  Future<bool> updateProfile({String? name, String? email}) async {
+  Future<bool> updateProfile({String? firstName, String? lastName, String? email}) async {
     try {
       _isLoading = true;
       _error = null;
@@ -46,7 +46,11 @@ class UserProvider extends ChangeNotifier {
 
       _logger.i('Updating user profile');
 
-      _user = await _userService.updateProfile(name: name, email: email);
+      _user = await _userService.updateProfile(
+        firstName: firstName ?? '',
+        lastName: lastName ?? '',
+        email: email ?? '',
+      );
 
       _logger.i('Profile updated successfully');
       return true;

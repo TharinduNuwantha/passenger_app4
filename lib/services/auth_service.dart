@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../config/api_config.dart';
 import '../models/auth_tokens_model.dart';
@@ -21,9 +22,14 @@ class AuthService {
       final formattedPhone = PhoneFormatter.formatForApi(phoneNumber);
       _logger.i('Formatted phone for API: $formattedPhone'); // Debug log
 
+      // Use extended timeout for SMS operations (Dialog gateway can be slow)
       final response = await _apiService.post(
         ApiConfig.sendOtpEndpoint,
         data: {'phone_number': formattedPhone, 'app_type': 'passenger'},
+        options: Options(
+          receiveTimeout: ApiConfig.smsTimeout,
+          sendTimeout: ApiConfig.smsTimeout,
+        ),
       );
 
       if (response.statusCode == 200) {

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/user_service.dart';
+import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'contact_us.dart';
 
@@ -13,11 +16,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String firstName = '';
-  String lastName = '';
-  String email = '';
-  String passport = '';
+  final UserService _userService = UserService();
+  UserModel? _user;
   bool isLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -26,14 +28,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      firstName = prefs.getString('firstName') ?? 'User';
-      lastName = prefs.getString('lastName') ?? '';
-      email = prefs.getString('email') ?? 'email@example.com';
-      passport = prefs.getString('passport') ?? 'N/A';
-      isLoading = false;
-    });
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      final user = await _userService.getProfile();
+      setState(() {
+        _user = user;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = e.toString();
+        isLoading = false;
+      });
+    }
+  }
+
+  String _formatPhoneNumber(String phone) {
+    // Format +94XXXXXXXXX to 0XX XXX XXXX
+    if (phone.startsWith('+94')) {
+      final local = '0${phone.substring(3)}';
+      if (local.length == 10) {
+        return '${local.substring(0, 3)} ${local.substring(3, 6)} ${local.substring(6)}';
+      }
+      return local;
+    }
+    return phone;
   }
 
   @override
@@ -47,6 +70,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
+    if (errorMessage != null) {
+      return Scaffold(
+        backgroundColor: AppColors.primary,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load profile',
+                style: AppTextStyles.h2.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  errorMessage!,
+                  style: AppTextStyles.small.copyWith(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _loadUserData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final displayName = _user?.fullName.isNotEmpty == true
+        ? _user!.fullName
+        : 'Passenger';
+    final displayPhone = _user != null
+        ? _formatPhoneNumber(_user!.phoneNumber)
+        : '';
+
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: SafeArea(
@@ -54,17 +120,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             children: [
               const SizedBox(height: 40),
-              const CircleAvatar(
+              // User avatar with initials
+              CircleAvatar(
                 radius: 50,
-                backgroundImage: NetworkImage('https://picsum.photos/200'),
+                backgroundColor: AppColors.secondary,
+                child: Text(
+                  _getInitials(displayName),
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
-              Text('$firstName $lastName', style: AppTextStyles.h2),
+              Text(displayName, style: AppTextStyles.h2),
               const SizedBox(height: 8),
-              Text(email, style: AppTextStyles.small),
-              const SizedBox(height: 4),
-              if (passport.isNotEmpty && passport != 'N/A')
-                Text('NIC: $passport', style: AppTextStyles.small),
+              // Phone number
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.phone, size: 16, color: AppColors.secondary),
+                  const SizedBox(width: 8),
+                  Text(displayPhone, style: AppTextStyles.small),
+                ],
+              ),
+              // Email if available
+              if (_user?.email != null && _user!.email!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.email, size: 16, color: AppColors.secondary),
+                    const SizedBox(width: 8),
+                    Text(_user!.email!, style: AppTextStyles.small),
+                  ],
+                ),
+              ],
               const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -96,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Navigator.pushNamed(
                           context,
                           '/privacy-policy',
-                        ); // ✅ route added
+                        );
                       },
                     ),
 
@@ -136,9 +228,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    // Clear user data and navigate to login
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.clear();
+                    // Logout using AuthProvider
+                    final authProvider = Provider.of<AuthProvider>(
+                      context,
+                      listen: false,
+                    );
+                    await authProvider.logout();
                     if (context.mounted) {
                       Navigator.pushNamedAndRemoveUntil(
                         context,
@@ -156,6 +251,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'P';
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name[0].toUpperCase();
   }
 
   Widget _buildSettingsTile(

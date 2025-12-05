@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/user_service.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_text_style.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -14,9 +15,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passportController = TextEditingController();
+  final UserService _userService = UserService();
 
   bool isLoading = true;
+  bool isSaving = false;
 
   @override
   void initState() {
@@ -29,22 +31,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
-    _passportController.dispose();
     super.dispose();
   }
 
   Future<void> _loadUserData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+      
       setState(() {
-        _firstNameController.text = prefs.getString('firstName') ?? '';
-        _lastNameController.text = prefs.getString('lastName') ?? '';
-        _emailController.text = prefs.getString('email') ?? '';
-        _passportController.text = prefs.getString('passport') ?? '';
+        _firstNameController.text = user?.firstName ?? '';
+        _lastNameController.text = user?.lastName ?? '';
+        _emailController.text = user?.email ?? '';
         isLoading = false;
       });
     } catch (e) {
-      print('Error loading user data: $e');
+      debugPrint('Error loading user data: $e');
       setState(() {
         isLoading = false;
       });
@@ -52,12 +54,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveUserData() async {
+    setState(() {
+      isSaving = true;
+    });
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('firstName', _firstNameController.text.trim());
-      await prefs.setString('lastName', _lastNameController.text.trim());
-      await prefs.setString('email', _emailController.text.trim());
-      await prefs.setString('passport', _passportController.text.trim());
+      // Call API to update profile
+      final updatedUser = await _userService.updateProfile(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: _emailController.text.trim(),
+      );
+
+      // Update auth provider with new user data
+      if (mounted) {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        authProvider.updateUser(updatedUser);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -69,15 +82,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       }
     } catch (e) {
-      print('Error saving user data: $e');
+      debugPrint('Error saving user data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save profile. Please try again.'),
+          SnackBar(
+            content: Text('Failed to save profile: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 3),
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
       }
     }
   }
@@ -172,11 +191,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Icons.email,
               keyboardType: TextInputType.emailAddress,
             ),
-            _buildInputField(
-              'NIC / Passport',
-              _passportController,
-              Icons.badge,
-            ),
 
             const SizedBox(height: 40),
 
@@ -184,7 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
+                onPressed: isSaving ? null : () async {
                   // Validate fields
                   if (_firstNameController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -222,14 +236,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   elevation: 5,
                 ),
-                child: const Text(
-                  'Save Changes',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isSaving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Save Changes',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
 
