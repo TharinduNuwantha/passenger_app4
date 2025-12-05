@@ -38,7 +38,11 @@ class UserProvider extends ChangeNotifier {
   }
 
   // Update user profile
-  Future<bool> updateProfile({String? firstName, String? lastName, String? email}) async {
+  Future<bool> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) async {
     try {
       _isLoading = true;
       _error = null;

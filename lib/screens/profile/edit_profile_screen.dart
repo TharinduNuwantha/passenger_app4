@@ -38,7 +38,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.user;
-      
+
       setState(() {
         _firstNameController.text = user?.firstName ?? '';
         _lastNameController.text = user?.lastName ?? '';
@@ -198,36 +198,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isSaving ? null : () async {
-                  // Validate fields
-                  if (_firstNameController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter your first name'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                    return;
-                  }
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        // Validate fields
+                        if (_firstNameController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter your first name'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
 
-                  if (_emailController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter your email'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                    return;
-                  }
+                        if (_emailController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter your email'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
 
-                  // Save data
-                  await _saveUserData();
+                        // Save data
+                        await _saveUserData();
 
-                  // Return to previous screen
-                  if (mounted) {
-                    Navigator.pop(context, true); // Return true to refresh
-                  }
-                },
+                        // Return to previous screen
+                        if (mounted) {
+                          Navigator.pop(
+                            context,
+                            true,
+                          ); // Return true to refresh
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(

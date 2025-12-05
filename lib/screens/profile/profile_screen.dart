@@ -151,7 +151,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.email, size: 16, color: AppColors.secondary),
+                    const Icon(
+                      Icons.email,
+                      size: 16,
+                      color: AppColors.secondary,
+                    ),
                     const SizedBox(width: 8),
                     Text(_user!.email!, style: AppTextStyles.small),
                   ],
@@ -185,10 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Icons.privacy_tip_outlined,
                       'Privacy Policy',
                       onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/privacy-policy',
-                        );
+                        Navigator.pushNamed(context, '/privacy-policy');
                       },
                     ),
 
