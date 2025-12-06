@@ -38,11 +38,25 @@ class ApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // Add access token to headers if available
-          final token = await _storage.getAccessToken();
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
-            _logger.d('Added auth token to request: ${options.path}');
+          // Skip adding auth token for public auth endpoints
+          final isPublicAuthEndpoint =
+              options.path.contains('/auth/refresh') ||
+              options.path.contains('/auth/send-otp') ||
+              options.path.contains('/auth/verify-otp');
+
+          // Add access token to headers if available (except for public auth endpoints)
+          if (!isPublicAuthEndpoint) {
+            final token = await _storage.getAccessToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+              _logger.d('Added auth token to request: ${options.path}');
+            }
+          } else {
+            // Ensure no Authorization header for public endpoints
+            options.headers.remove('Authorization');
+            _logger.d(
+              'Skipping auth token for public endpoint: ${options.path}',
+            );
           }
 
           // Add device information headers

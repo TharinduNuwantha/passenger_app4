@@ -5,7 +5,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../providers/search_provider.dart';
 import '../../models/search_models.dart';
-import 'seat_booking_screen.dart' hide AppColors, AppTextStyles;
+import 'seat_booking_screen_v2.dart';
 
 class BusListScreen extends StatefulWidget {
   final DateTime? date;
@@ -73,9 +73,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   trips.length,
                   searchProvider.isSearching,
                 ),
-                Expanded(
-                  child: _buildBody(searchProvider, trips),
-                ),
+                Expanded(child: _buildBody(searchProvider, trips)),
               ],
             );
           },
@@ -149,11 +147,7 @@ class _BusListScreenState extends State<BusListScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.search_off,
-                color: AppColors.white70,
-                size: 64,
-              ),
+              const Icon(Icons.search_off, color: AppColors.white70, size: 64),
               const SizedBox(height: 16),
               Text(
                 'No Trips Found',
@@ -273,10 +267,7 @@ class _BusListScreenState extends State<BusListScreen> {
                 const Spacer(),
                 Text(
                   trip.formattedDuration,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
               ],
             ),
@@ -334,13 +325,22 @@ class _BusListScreenState extends State<BusListScreen> {
                     ElevatedButton(
                       onPressed: trip.isBookable
                           ? () {
-                              // Navigate to seat selection
+                              // Get stop IDs from search provider
+                              final searchProvider = context
+                                  .read<SearchProvider>();
+                              final searchDetails =
+                                  searchProvider.searchResponse?.searchDetails;
+
+                              // Navigate to seat selection (V2 with real API)
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => SeatBookingScreen(
-                                    busNumber: trip.routeNumber ?? trip.routeName,
-                                    price: trip.fare,
+                                  builder: (context) => SeatBookingScreenV2(
+                                    trip: trip,
+                                    boardingPoint: trip.boardingPoint,
+                                    alightingPoint: trip.droppingPoint,
+                                    boardingStopId: searchDetails?.fromStop.id,
+                                    alightingStopId: searchDetails?.toStop.id,
                                   ),
                                 ),
                               );
@@ -520,7 +520,7 @@ class _BusListScreenState extends State<BusListScreen> {
       'September',
       'October',
       'November',
-      'December'
+      'December',
     ];
     return months[month - 1];
   }
