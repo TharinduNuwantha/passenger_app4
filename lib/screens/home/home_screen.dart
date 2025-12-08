@@ -230,7 +230,10 @@ class _DashBoardState extends State<DashBoard> {
 
     // Remove common suffixes like "Railway Station", "Bus Stand", etc.
     keyword = keyword
-        .replaceAll(RegExp(r'\s+(Railway|Bus|Train)\s+Station', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(r'\s+(Railway|Bus|Train)\s+Station', caseSensitive: false),
+          '',
+        )
         .replaceAll(RegExp(r'\s+Bus\s+Stand', caseSensitive: false), '')
         .replaceAll(RegExp(r'\s+Terminal', caseSensitive: false), '')
         .trim();
@@ -252,12 +255,16 @@ class _DashBoardState extends State<DashBoard> {
 
       // If we have matches, use the first one (highest relevance)
       if (suggestions.isNotEmpty) {
-        print('Fuzzy matched "$googleLocation" → "${suggestions.first.stopName}"');
+        print(
+          'Fuzzy matched "$googleLocation" → "${suggestions.first.stopName}"',
+        );
         return suggestions.first.stopName;
       }
 
       // If no match, return the extracted keywords
-      print('No fuzzy match for "$googleLocation", using keywords: "$keywords"');
+      print(
+        'No fuzzy match for "$googleLocation", using keywords: "$keywords"',
+      );
       return keywords;
     } catch (e) {
       print('Error fuzzy matching: $e');
@@ -299,11 +306,8 @@ class _DashBoardState extends State<DashBoard> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => BusListScreen(
-            date: searchDate,
-            pickup: fromStop,
-            drop: toStop,
-          ),
+          builder: (context) =>
+              BusListScreen(date: searchDate, pickup: fromStop, drop: toStop),
         ),
       );
     }
@@ -1222,12 +1226,16 @@ class _GradientGlowVersionState extends State<GradientGlowVersion>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFD4AF37).withOpacity(0.3 + (_controller.value * 0.4)),
+                color: const Color(
+                  0xFFD4AF37,
+                ).withOpacity(0.3 + (_controller.value * 0.4)),
                 blurRadius: 10 + (_controller.value * 8),
                 spreadRadius: 1 + (_controller.value * 3),
               ),
               BoxShadow(
-                color: const Color(0xFFC5A028).withOpacity(0.2 + (_controller.value * 0.3)),
+                color: const Color(
+                  0xFFC5A028,
+                ).withOpacity(0.2 + (_controller.value * 0.3)),
                 blurRadius: 15 + (_controller.value * 5),
                 spreadRadius: 0,
                 offset: const Offset(3, 3),
