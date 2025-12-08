@@ -332,16 +332,22 @@ class _DashBoardState extends State<DashBoard> {
                 ),
                 backgroundColor: AppColors.white70.withOpacity(0.3),
               ),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.notifications,
-                  color: AppColors.primary,
-                ),
+              Row(
+                children: [
+                  const GradientGlowVersion(version: '2.0.0'),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.notifications,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1162,6 +1168,90 @@ class profile extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: Center(child: Text('Tours Page', style: AppTextStyles.h2)),
+    );
+  }
+}
+
+// =============================================================================
+// GRADIENT GLOW VERSION BADGE - Gold gradient with animated glow
+// =============================================================================
+
+class GradientGlowVersion extends StatefulWidget {
+  final String version;
+  const GradientGlowVersion({super.key, required this.version});
+
+  @override
+  State<GradientGlowVersion> createState() => _GradientGlowVersionState();
+}
+
+class _GradientGlowVersionState extends State<GradientGlowVersion>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 750),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFFD4AF37), // Liora Gold
+                Color(0xFFC5A028), // Subtle Gold Shift
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD4AF37).withOpacity(0.3 + (_controller.value * 0.4)),
+                blurRadius: 10 + (_controller.value * 8),
+                spreadRadius: 1 + (_controller.value * 3),
+              ),
+              BoxShadow(
+                color: const Color(0xFFC5A028).withOpacity(0.2 + (_controller.value * 0.3)),
+                blurRadius: 15 + (_controller.value * 5),
+                spreadRadius: 0,
+                offset: const Offset(3, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.star, color: Colors.white, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                'v${widget.version}',
+                style: const TextStyle(
+                  color: Color(0xFF111C2E), // Royal Navy
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

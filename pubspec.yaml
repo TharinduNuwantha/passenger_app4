@@ -95,9 +95,10 @@ flutter:
   # Assets for LIOR Passenger App
   assets:
     - .env
-    - assets/images/lior_logo.png
-    - assets/images/lior_logo_no_bg.png
-    - assets/images/lior_app_icon.png
+    - assets/images/logo_bus.png
+    - assets/images/logo_with_text.png
+    - assets/images/only_bus.png
+    - assets/images/only_text.png
     - assets/images/johns_photo.png
     - assets/images/bus1.png
     - assets/images/bus2.png
@@ -135,4 +136,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/images/lior_app_icon.png"
+  image_path: "assets/images/logo_with_text.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo_with_text.png"

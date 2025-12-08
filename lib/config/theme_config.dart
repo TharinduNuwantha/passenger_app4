@@ -1,70 +1,81 @@
 import 'package:flutter/material.dart';
 
-/// Lior Mobile App Color Theme
-/// Premium, calming palette for SmartTransit Passenger App
+/// Liora Mobile App Color Theme
+/// Luxury, Minimalist, Trustworthy, Elegant Design System
 class AppColors {
   // ============================================================================
-  // Primary Colors - Actions & Core Elements
+  // Brand Colors
   // ============================================================================
-  static const Color primary = Color(
-    0xFF3A88C8,
-  ); // Deep Sky Blue - Main buttons, headers
-  static const Color secondary = Color(
-    0xFF88C9A1,
-  ); // Soft Teal - Secondary actions, highlights
+  static const Color lioraGold = Color(0xFFD4AF37); // Primary Brand Color
+  static const Color royalNavy = Color(0xFF111C2E); // Secondary Brand Color
 
   // ============================================================================
-  // Accent / Premium Colors
+  // Dark Theme Colors
   // ============================================================================
-  static const Color accent = Color(
-    0xFFD4B27A,
-  ); // Champagne Gold - Icons, badges, premium feel
+  static const Color midnightBlack = Color(
+    0xFF0B0B0D,
+  ); // Main Background (Dark Mode)
+  static const Color onyxSurface = Color(
+    0xFF1E1E21,
+  ); // Card/Container Background (Dark Mode)
+  static const Color pureWhite = Color(0xFFFFFFFF); // Primary Text (Dark Mode)
+  static const Color mistGray = Color(0xFFA0A0A0); // Secondary Text (Dark Mode)
 
-  // Gradient colors for splash screens and CTAs
-  static const Color gradientStart = Color(0xFF3A88C8); // Deep Sky Blue
-  static const Color gradientEnd = Color(0xFF88C9A1); // Soft Teal
+  // ============================================================================
+  // Light Theme Colors
+  // ============================================================================
+  static const Color crispWhite = Color(
+    0xFFFFFFFF,
+  ); // Main Background (Light Mode)
+  static const Color softCloud = Color(0xFFF8F9FA); // Secondary Backgrounds
+  static const Color deepCharcoal = Color(0xFF1A1A1A); // Body Text (Light Mode)
+  static const Color bodyText = Color(
+    0xFF4A4A4A,
+  ); // Paragraph Text (Light Mode)
+
+  // ============================================================================
+  // Legacy Aliases (for compatibility)
+  // ============================================================================
+  static const Color primary = lioraGold;
+  static const Color secondary = royalNavy;
+  static const Color accent = lioraGold;
+
+  // Gradient colors
+  static const Color gradientStart = lioraGold;
+  static const Color gradientEnd = Color(0xFFC5A028); // Subtle Gold Shift
 
   // ============================================================================
   // Status & Feedback Colors
   // ============================================================================
-  static const Color success = Color(
-    0xFFB8D8C2,
-  ); // Calm Sage - Success messages, confirmations
-  static const Color error = Color(0xFFF44336); // Red - Errors
-  static const Color warning = Color(
-    0xFFF4B9A8,
-  ); // Soft Coral - Warnings, gentle alerts
-  static const Color info = Color(0xFF3A88C8); // Deep Sky Blue - Info messages
+  static const Color success = Color(0xFFB8D8C2);
+  static const Color error = Color(0xFFF44336);
+  static const Color warning = Color(0xFFF4B9A8);
+  static const Color info = lioraGold;
 
   // ============================================================================
   // Background Colors
   // ============================================================================
-  static const Color background = Color(
-    0xFFF5F7FA,
-  ); // Off-White - Main background
-  static const Color surface = Colors.white; // Cards, containers
-  static const Color surfaceDark = Color(
-    0xFF1F2B3A,
-  ); // Dark Charcoal - Dark mode
+  static const Color background = crispWhite;
+  static const Color surface = crispWhite;
+  static const Color surfaceDark = onyxSurface;
 
   // ============================================================================
   // Text Colors
   // ============================================================================
-  static const Color textPrimary = Color(
-    0xFF1F2B3A,
-  ); // Dark Charcoal - Main text
-  static const Color textSecondary = Color(0xFF757575); // Gray - Secondary text
-  static const Color textLight = Colors.white; // White text on dark backgrounds
+  static const Color textPrimary = royalNavy;
+  static const Color textSecondary = deepCharcoal;
+  static const Color textLight = pureWhite;
+  static const Color textBodyLight = bodyText;
 
   // ============================================================================
   // Border & Divider Colors
   // ============================================================================
-  static const Color border = Color(0xFFDADBDC); // Soft Gray - Borders
-  static const Color divider = Color(0xFFDADBDC);
+  static const Color border = lioraGold;
+  static const Color divider = Color(0xFFE0E0E0);
+  static const Color borderDark = Color(0xFF333333);
 
-  static Color? white;
-
-  static Color? white70; // Soft Gray - Dividers
+  static Color? white = pureWhite;
+  static Color? white70;
 }
 
 class AppSpacing {
@@ -74,18 +85,25 @@ class AppSpacing {
   static const double xLarge = 32.0;
 }
 
-/// Lior Premium Gradients
+/// Liora Premium Gradients
 class AppGradients {
-  // Blue to Teal gradient for logo, splash, CTAs
+  // Gold gradient for luxury feel
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [AppColors.gradientStart, AppColors.gradientEnd],
+    colors: [AppColors.lioraGold, Color(0xFFC5A028)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // Subtle background gradient
+  // Dark gradient for depth
+  static const LinearGradient darkGradient = LinearGradient(
+    colors: [AppColors.midnightBlack, AppColors.royalNavy],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  // Subtle background gradient for light mode
   static const LinearGradient backgroundGradient = LinearGradient(
-    colors: [AppColors.background, Color(0xFFFFFFFF)],
+    colors: [AppColors.crispWhite, AppColors.softCloud],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -96,70 +114,102 @@ class AppTheme {
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+      seedColor: AppColors.lioraGold,
       brightness: Brightness.light,
+      primary: AppColors.lioraGold,
+      secondary: AppColors.royalNavy,
+      surface: AppColors.crispWhite,
+      background: AppColors.crispWhite,
     ),
-    scaffoldBackgroundColor: AppColors.background,
+    scaffoldBackgroundColor: AppColors.crispWhite,
     appBarTheme: const AppBarTheme(
       elevation: 0,
       centerTitle: true,
-      backgroundColor: AppColors.primary,
-      foregroundColor: AppColors.textLight,
-      iconTheme: IconThemeData(color: AppColors.textLight),
+      backgroundColor: AppColors.crispWhite,
+      foregroundColor: AppColors.royalNavy,
+      iconTheme: IconThemeData(color: AppColors.lioraGold),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textLight,
+        backgroundColor: AppColors.lioraGold,
+        foregroundColor: AppColors.royalNavy,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.large,
           vertical: AppSpacing.medium,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primary,
+        foregroundColor: AppColors.lioraGold,
+        backgroundColor: AppColors.royalNavy,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.large,
           vertical: AppSpacing.medium,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        side: const BorderSide(color: AppColors.primary, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        side: const BorderSide(color: AppColors.lioraGold, width: 1),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.surface,
+      fillColor: AppColors.softCloud,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.lioraGold),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.divider),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.lioraGold, width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.medium,
         vertical: AppSpacing.medium,
       ),
+      labelStyle: const TextStyle(color: AppColors.bodyText),
+      hintStyle: const TextStyle(color: Color(0xFF999999)),
     ),
-    cardTheme: const CardThemeData(
-      elevation: 2,
+    cardTheme: CardThemeData(
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(16)),
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: AppColors.lioraGold, width: 1),
       ),
-      color: AppColors.surface,
+      color: AppColors.crispWhite,
+      shadowColor: AppColors.royalNavy.withOpacity(0.1),
+    ),
+    textTheme: const TextTheme(
+      headlineLarge: TextStyle(
+        color: AppColors.royalNavy,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineMedium: TextStyle(
+        color: AppColors.royalNavy,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineSmall: TextStyle(
+        color: AppColors.royalNavy,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: TextStyle(color: AppColors.bodyText),
+      bodyMedium: TextStyle(color: AppColors.bodyText),
+      bodySmall: TextStyle(color: AppColors.deepCharcoal),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.crispWhite,
+      selectedItemColor: AppColors.lioraGold,
+      unselectedItemColor: Color(0xFF8FA3BF),
+      elevation: 8,
     ),
   );
 
@@ -167,48 +217,98 @@ class AppTheme {
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+      seedColor: AppColors.lioraGold,
       brightness: Brightness.dark,
+      primary: AppColors.lioraGold,
+      secondary: AppColors.royalNavy,
+      surface: AppColors.onyxSurface,
+      background: AppColors.midnightBlack,
     ),
-    scaffoldBackgroundColor: AppColors.surfaceDark,
+    scaffoldBackgroundColor: AppColors.midnightBlack,
     appBarTheme: const AppBarTheme(
       elevation: 0,
       centerTitle: true,
-      backgroundColor: AppColors.surfaceDark,
-      foregroundColor: AppColors.textLight,
-      iconTheme: IconThemeData(color: AppColors.textLight),
+      backgroundColor: AppColors.midnightBlack,
+      foregroundColor: AppColors.pureWhite,
+      iconTheme: IconThemeData(color: AppColors.lioraGold),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textLight,
+        backgroundColor: AppColors.lioraGold,
+        foregroundColor: AppColors.royalNavy,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.large,
           vertical: AppSpacing.medium,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.lioraGold,
+        backgroundColor: AppColors.royalNavy,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.large,
+          vertical: AppSpacing.medium,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        side: const BorderSide(color: AppColors.lioraGold, width: 1),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.grey[850],
+      fillColor: AppColors.onyxSurface,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[700]!),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.lioraGold),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[700]!),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.borderDark),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.lioraGold, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.medium,
         vertical: AppSpacing.medium,
       ),
+      labelStyle: const TextStyle(color: AppColors.mistGray),
+      hintStyle: const TextStyle(color: Color(0xFF666666)),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: AppColors.lioraGold, width: 1),
+      ),
+      color: AppColors.onyxSurface,
+      shadowColor: Colors.black.withOpacity(0.4),
+    ),
+    textTheme: const TextTheme(
+      headlineLarge: TextStyle(
+        color: AppColors.pureWhite,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineMedium: TextStyle(
+        color: AppColors.pureWhite,
+        fontWeight: FontWeight.bold,
+      ),
+      headlineSmall: TextStyle(
+        color: AppColors.pureWhite,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: TextStyle(color: AppColors.mistGray),
+      bodyMedium: TextStyle(color: AppColors.mistGray),
+      bodySmall: TextStyle(color: AppColors.mistGray),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Colors.black,
+      selectedItemColor: AppColors.lioraGold,
+      unselectedItemColor: Color(0xFF555555),
+      elevation: 8,
     ),
   );
 }
