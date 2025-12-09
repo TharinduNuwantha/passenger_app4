@@ -11,7 +11,8 @@ import '../../services/search_service.dart';
 import '../bus_booking/booking_conform.dart' hide AppColors;
 import '../bus_booking/bus_booking_screen.dart';
 import '../bus_booking/nav_booking_screen.dart';
-import '../lounge/lounge_details.dart';
+import '../lounge/lounge_list_screen.dart';
+import '../lounge/my_lounge_bookings_screen.dart';
 import '../profile/profile_screen.dart';
 
 class DashBoard extends StatefulWidget {
@@ -935,7 +936,7 @@ class _DashBoardState extends State<DashBoard> {
 
       const BookingScreen(),
       const LocationPage(),
-      const LoungeDetailsScreen(),
+      const LoungeListScreen(),
       const ProfileScreen(),
     ];
 
