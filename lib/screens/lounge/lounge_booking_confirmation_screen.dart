@@ -9,10 +9,18 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
   final LoungeBooking booking;
   final Lounge lounge;
 
+  /// Bus booking reference if linked to bus trip
+  final String? busBookingReference;
+
+  /// Whether this lounge booking is linked to a bus trip
+  final bool isLinkedToBus;
+
   const LoungeBookingConfirmationScreen({
     super.key,
     required this.booking,
     required this.lounge,
+    this.busBookingReference,
+    this.isLinkedToBus = false,
   });
 
   @override
@@ -28,7 +36,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    
+
                     // Success icon
                     Container(
                       width: 100,
@@ -44,7 +52,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Title
                     Text(
                       'Booking Confirmed!',
@@ -55,14 +63,11 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       'Your lounge booking has been confirmed',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Booking reference
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -74,10 +79,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                         children: [
                           const Text(
                             'Booking Reference',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -93,7 +95,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // QR Code
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -129,15 +131,18 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Booking details
                     _buildDetailsCard(context),
                     const SizedBox(height: 16),
-                    
+
+                    // Bus booking link (if linked)
+                    if (isLinkedToBus && busBookingReference != null)
+                      _buildBusLinkCard(),
+
                     // Guests
-                    if (booking.guests.isNotEmpty)
-                      _buildGuestsCard(),
-                    
+                    if (booking.guests.isNotEmpty) _buildGuestsCard(),
+
                     // Pre-orders
                     if (booking.preOrders.isNotEmpty) ...[
                       const SizedBox(height: 16),
@@ -147,7 +152,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Bottom button
             _buildBottomButton(context),
           ],
@@ -217,10 +222,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
               ),
               const SizedBox(height: 4),
               Text(
@@ -254,10 +256,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
               const SizedBox(width: 8),
               const Text(
                 'Guests',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),
@@ -280,9 +279,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(guest.guestName),
-                  ),
+                  Expanded(child: Text(guest.guestName)),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -311,6 +308,59 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildBusLinkCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.1),
+            AppColors.primary.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.link, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Linked to Bus Trip',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Bus Booking: $busBookingReference',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.check_circle, color: Colors.green, size: 24),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPreOrdersCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -327,10 +377,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
               const SizedBox(width: 8),
               const Text(
                 'Pre-Orders',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),
@@ -359,9 +406,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(item.productName),
-                  ),
+                  Expanded(child: Text(item.productName)),
                   Text(
                     'LKR ${item.subtotal.toStringAsFixed(0)}',
                     style: const TextStyle(fontWeight: FontWeight.w500),
@@ -410,10 +455,7 @@ class LoungeBookingConfirmationScreen extends StatelessWidget {
           ),
           child: const Text(
             'Done',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
       ),

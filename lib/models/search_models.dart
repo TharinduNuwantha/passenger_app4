@@ -21,7 +21,8 @@ class SearchRequest {
       // Ensure datetime is in UTC and formatted with 'Z' suffix
       formattedDatetime = datetime!.toUtc().toIso8601String();
       // toIso8601String() on UTC datetime should include 'Z', but ensure it
-      if (!formattedDatetime.endsWith('Z') && !formattedDatetime.contains('+')) {
+      if (!formattedDatetime.endsWith('Z') &&
+          !formattedDatetime.contains('+')) {
         formattedDatetime = '${formattedDatetime}Z';
       }
     }
@@ -55,7 +56,8 @@ class SearchResponse {
       status: json['status'] as String? ?? 'error',
       message: json['message'] as String? ?? 'Unknown error',
       searchDetails: SearchDetails.fromJson(json['search_details'] ?? {}),
-      results: (json['results'] as List<dynamic>?)
+      results:
+          (json['results'] as List<dynamic>?)
               ?.map((e) => TripResult.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -126,6 +128,9 @@ class TripResult {
   final String droppingPoint;
   final BusFeatures busFeatures;
   final bool isBookable;
+  final List<RouteStop> routeStops;
+  /// Master route ID for lounge lookup
+  final String? masterRouteId;
 
   TripResult({
     required this.tripId,
@@ -141,6 +146,8 @@ class TripResult {
     required this.droppingPoint,
     required this.busFeatures,
     required this.isBookable,
+    this.routeStops = const [],
+    this.masterRouteId,
   });
 
   factory TripResult.fromJson(Map<String, dynamic> json) {
@@ -158,6 +165,12 @@ class TripResult {
       droppingPoint: json['dropping_point'] as String? ?? '',
       busFeatures: BusFeatures.fromJson(json['bus_features'] ?? {}),
       isBookable: json['is_bookable'] as bool? ?? false,
+      routeStops:
+          (json['route_stops'] as List<dynamic>?)
+              ?.map((e) => RouteStop.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      masterRouteId: json['master_route_id'] as String?,
     );
   }
 
@@ -231,7 +244,11 @@ class BusFeatures {
   }
 
   bool get hasAnyFeatures =>
-      hasWifi || hasAc || hasChargingPorts || hasEntertainment || hasRefreshments;
+      hasWifi ||
+      hasAc ||
+      hasChargingPorts ||
+      hasEntertainment ||
+      hasRefreshments;
 }
 
 class PopularRoute {
@@ -275,4 +292,45 @@ class StopAutocomplete {
       routeCount: json['route_count'] as int? ?? 0,
     );
   }
+}
+
+class RouteStop {
+  final String id;
+  final String stopName;
+  final int stopOrder;
+  final double? latitude;
+  final double? longitude;
+  final int? arrivalTimeOffsetMinutes;
+  final bool isMajorStop;
+
+  RouteStop({
+    required this.id,
+    required this.stopName,
+    required this.stopOrder,
+    this.latitude,
+    this.longitude,
+    this.arrivalTimeOffsetMinutes,
+    required this.isMajorStop,
+  });
+
+  factory RouteStop.fromJson(Map<String, dynamic> json) {
+    return RouteStop(
+      id: json['id'] as String,
+      stopName: json['stop_name'] as String,
+      stopOrder: json['stop_order'] as int? ?? 0,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      arrivalTimeOffsetMinutes: json['arrival_time_offset_minutes'] as int?,
+      isMajorStop: json['is_major_stop'] as bool? ?? false,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is RouteStop && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

@@ -184,11 +184,14 @@ class AuthService {
 
         final data = response.data as Map<String, dynamic>;
 
+        // Get expires_in - backend returns 'expires_in_seconds'
+        final expiresIn = (data['expires_in_seconds'] ?? data['expires_in'] ?? 3600) as int;
+
         // Save new tokens
         await _storage.saveTokens(
           accessToken: data['access_token'] as String,
-          refreshToken: refreshToken, // Keep the same refresh token
-          expiresIn: data['expires_in'] as int,
+          refreshToken: data['refresh_token'] as String? ?? refreshToken, // Use new or keep old
+          expiresIn: expiresIn,
         );
 
         return true;

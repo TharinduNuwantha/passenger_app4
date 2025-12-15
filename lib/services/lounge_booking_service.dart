@@ -6,7 +6,8 @@ import 'api_service.dart';
 
 /// Service for handling lounge booking operations
 class LoungeBookingService {
-  static final LoungeBookingService _instance = LoungeBookingService._internal();
+  static final LoungeBookingService _instance =
+      LoungeBookingService._internal();
   factory LoungeBookingService() => _instance;
   LoungeBookingService._internal();
 
@@ -30,7 +31,8 @@ class LoungeBookingService {
 
       _logger.d('Categories response: ${response.data}');
 
-      final categories = (response.data['categories'] as List<dynamic>?)
+      final categories =
+          (response.data['categories'] as List<dynamic>?)
               ?.map((e) => LoungeCategory.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
@@ -72,7 +74,8 @@ class LoungeBookingService {
 
       _logger.d('Products response: ${response.data}');
 
-      final products = (response.data['products'] as List<dynamic>?)
+      final products =
+          (response.data['products'] as List<dynamic>?)
               ?.map((e) => LoungeProduct.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
@@ -102,7 +105,9 @@ class LoungeBookingService {
 
       _logger.d('Lounge response: ${response.data}');
 
-      final lounge = Lounge.fromJson(response.data['lounge'] as Map<String, dynamic>);
+      final lounge = Lounge.fromJson(
+        response.data['lounge'] as Map<String, dynamic>,
+      );
 
       _logger.i('Fetched lounge: ${lounge.loungeName}');
 
@@ -136,7 +141,9 @@ class LoungeBookingService {
     String? city,
   }) async {
     try {
-      _logger.i('Searching lounges (state: $state, limit: $limit, route: $routeId, city: $city)');
+      _logger.i(
+        'Searching lounges (state: $state, limit: $limit, route: $routeId, city: $city)',
+      );
 
       final queryParams = <String, dynamic>{};
       if (state != null && state.isNotEmpty) {
@@ -159,7 +166,8 @@ class LoungeBookingService {
 
       _logger.d('Lounges response: ${response.data}');
 
-      final lounges = (response.data['lounges'] as List<dynamic>?)
+      final lounges =
+          (response.data['lounges'] as List<dynamic>?)
               ?.map((e) => Lounge.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
@@ -187,7 +195,8 @@ class LoungeBookingService {
 
       _logger.d('States response: ${response.data}');
 
-      final states = (response.data['states'] as List<dynamic>?)
+      final states =
+          (response.data['states'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [];
@@ -205,6 +214,113 @@ class LoungeBookingService {
     }
   }
 
+  /// Get lounges that serve a specific bus stop
+  ///
+  /// [stopId] - The stop ID (boarding or alighting stop)
+  ///
+  /// Returns list of [Lounge] that serve this stop
+  Future<List<Lounge>> getLoungesByStop(String stopId) async {
+    try {
+      _logger.i('Fetching lounges for stop: $stopId');
+
+      final response = await _apiService.get('/api/v1/lounges/by-stop/$stopId');
+
+      _logger.d('Lounges by stop response: ${response.data}');
+
+      final lounges =
+          (response.data['lounges'] as List<dynamic>?)
+              ?.map((e) => Lounge.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      _logger.i('Found ${lounges.length} lounges for stop $stopId');
+
+      return lounges;
+    } on DioException catch (e) {
+      _logger.e('Failed to get lounges by stop: ${e.message}');
+      // Return empty list instead of throwing - no lounges is valid
+      return [];
+    } catch (e) {
+      _logger.e('Unexpected error getting lounges by stop: $e');
+      return [];
+    }
+  }
+
+  /// Get lounges near a passenger's selected stop (within 2 stops distance)
+  ///
+  /// [routeId] - The master route ID
+  /// [stopId] - The passenger's selected stop ID (boarding or alighting)
+  /// [maxDistance] - Max stop distance (default 2)
+  ///
+  /// Returns list of [Lounge] near the passenger's stop
+  Future<List<Lounge>> getLoungesNearStop(
+    String routeId,
+    String stopId, {
+    int maxDistance = 2,
+  }) async {
+    try {
+      _logger.i(
+        'Fetching lounges near stop: $stopId on route: $routeId (max distance: $maxDistance)',
+      );
+
+      final response = await _apiService.get(
+        '/api/v1/lounges/near-stop/$routeId/$stopId?distance=$maxDistance',
+      );
+
+      _logger.d('Lounges near stop response: ${response.data}');
+
+      final lounges =
+          (response.data['lounges'] as List<dynamic>?)
+              ?.map((e) => Lounge.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      _logger.i('Found ${lounges.length} lounges near stop $stopId');
+
+      return lounges;
+    } on DioException catch (e) {
+      _logger.e('Failed to get lounges near stop: ${e.message}');
+      return [];
+    } catch (e) {
+      _logger.e('Unexpected error getting lounges near stop: $e');
+      return [];
+    }
+  }
+
+  /// Get lounges that serve a specific route
+  ///
+  /// [routeId] - The master route ID
+  ///
+  /// Returns list of [Lounge] that serve this route
+  Future<List<Lounge>> getLoungesByRoute(String routeId) async {
+    try {
+      _logger.i('Fetching lounges for route: $routeId');
+
+      final response = await _apiService.get(
+        '/api/v1/lounges/by-route/$routeId',
+      );
+
+      _logger.d('Lounges by route response: ${response.data}');
+
+      final lounges =
+          (response.data['lounges'] as List<dynamic>?)
+              ?.map((e) => Lounge.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      _logger.i('Found ${lounges.length} lounges for route $routeId');
+
+      return lounges;
+    } on DioException catch (e) {
+      _logger.e('Failed to get lounges by route: ${e.message}');
+      // Return empty list instead of throwing - no lounges is valid
+      return [];
+    } catch (e) {
+      _logger.e('Unexpected error getting lounges by route: $e');
+      return [];
+    }
+  }
+
   // ============================================================================
   // LOUNGE BOOKINGS
   // ============================================================================
@@ -214,10 +330,14 @@ class LoungeBookingService {
   /// [request] - The booking request with lounge, pricing, and guest details
   ///
   /// Returns [LoungeBooking] with booking details
-  Future<LoungeBooking> createBooking(CreateLoungeBookingRequest request) async {
+  Future<LoungeBooking> createBooking(
+    CreateLoungeBookingRequest request,
+  ) async {
     try {
       _logger.i('Creating lounge booking for lounge: ${request.loungeId}');
-      _logger.i('Guests: ${request.numberOfGuests}, Type: ${request.pricingType.toJson()}');
+      _logger.i(
+        'Guests: ${request.numberOfGuests}, Type: ${request.pricingType.toJson()}',
+      );
 
       final response = await _apiService.post(
         '/api/v1/lounge-bookings',
@@ -272,7 +392,8 @@ class LoungeBookingService {
 
       _logger.d('Get bookings response: ${response.data}');
 
-      final bookings = (response.data['bookings'] as List<dynamic>?)
+      final bookings =
+          (response.data['bookings'] as List<dynamic>?)
               ?.map((e) => LoungeBooking.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
@@ -296,11 +417,14 @@ class LoungeBookingService {
     try {
       _logger.i('Fetching upcoming lounge bookings');
 
-      final response = await _apiService.get('/api/v1/lounge-bookings/upcoming');
+      final response = await _apiService.get(
+        '/api/v1/lounge-bookings/upcoming',
+      );
 
       _logger.d('Upcoming bookings response: ${response.data}');
 
-      final bookings = (response.data['bookings'] as List<dynamic>?)
+      final bookings =
+          (response.data['bookings'] as List<dynamic>?)
               ?.map((e) => LoungeBooking.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
@@ -326,11 +450,15 @@ class LoungeBookingService {
     try {
       _logger.i('Fetching lounge booking: $bookingId');
 
-      final response = await _apiService.get('/api/v1/lounge-bookings/$bookingId');
+      final response = await _apiService.get(
+        '/api/v1/lounge-bookings/$bookingId',
+      );
 
       _logger.d('Get booking response: ${response.data}');
 
-      final booking = LoungeBooking.fromJson(response.data as Map<String, dynamic>);
+      final booking = LoungeBooking.fromJson(
+        response.data as Map<String, dynamic>,
+      );
 
       _logger.i('Fetched booking: ${booking.bookingReference}');
 
@@ -364,7 +492,9 @@ class LoungeBookingService {
 
       _logger.d('Get booking response: ${response.data}');
 
-      final booking = LoungeBooking.fromJson(response.data as Map<String, dynamic>);
+      final booking = LoungeBooking.fromJson(
+        response.data as Map<String, dynamic>,
+      );
 
       _logger.i('Fetched booking: ${booking.bookingReference}');
 
@@ -406,7 +536,8 @@ class LoungeBookingService {
       _logger.e('Failed to cancel lounge booking: ${e.message}');
 
       if (e.response?.statusCode == 400) {
-        final error = e.response?.data?['error'] ?? 'Cannot cancel this booking';
+        final error =
+            e.response?.data?['error'] ?? 'Cannot cancel this booking';
         throw Exception(error);
       }
       if (e.response?.statusCode == 404) {
@@ -481,7 +612,8 @@ class LoungeBookingService {
 
       _logger.d('Get orders response: ${response.data}');
 
-      final orders = (response.data['orders'] as List<dynamic>?)
+      final orders =
+          (response.data['orders'] as List<dynamic>?)
               ?.map((e) => LoungeOrder.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];

@@ -44,16 +44,31 @@ class ApiService {
               options.path.contains('/auth/send-otp') ||
               options.path.contains('/auth/verify-otp');
 
+          print('🔐 [API] Request to: ${options.path}');
+          print('🔐 [API] Is public: $isPublicAuthEndpoint');
+
           // Add access token to headers if available (except for public auth endpoints)
           if (!isPublicAuthEndpoint) {
             final token = await _storage.getAccessToken();
+            print('🔐 [API] Token check: ${token != null ? "EXISTS (${token.length} chars)" : "NULL"}');
+            _logger.i('🔑 TOKEN CHECK for ${options.path}: token=${token != null ? "EXISTS (${token.length} chars)" : "NULL"}');
             if (token != null && token.isNotEmpty) {
               options.headers['Authorization'] = 'Bearer $token';
-              _logger.d('Added auth token to request: ${options.path}');
+              print('🔐 [API] ✅ Authorization header added');
+              _logger.i('✅ Added auth token to request: ${options.path}');
+            } else {
+              print('🔐 [API] ❌ NO TOKEN - Protected endpoint without auth!');
+              _logger.e('❌ NO ACCESS TOKEN for protected endpoint: ${options.path}');
+              // Also check what's in storage
+              final refreshToken = await _storage.getRefreshToken();
+              final hasValidTokens = await _storage.hasValidTokens();
+              print('🔐 [API] Storage: refresh=${refreshToken != null ? "EXISTS" : "NULL"}, valid=$hasValidTokens');
+              _logger.e('❌ Storage state: refreshToken=${refreshToken != null ? "EXISTS" : "NULL"}, hasValidTokens=$hasValidTokens');
             }
           } else {
             // Ensure no Authorization header for public endpoints
             options.headers.remove('Authorization');
+            print('🔐 [API] Skipping auth for public endpoint');
             _logger.d(
               'Skipping auth token for public endpoint: ${options.path}',
             );
@@ -73,29 +88,38 @@ class ApiService {
         },
         onError: (error, handler) async {
           _logger.e('Error [${error.response?.statusCode}]: ${error.message}');
+          print('🔐 [API] ❌ Error ${error.response?.statusCode} for ${error.requestOptions.path}');
+          print('🔐 [API] Error response: ${error.response?.data}');
 
           // If 401 Unauthorized, try to refresh token
           if (error.response?.statusCode == 401 && !_isRefreshing) {
+            print('🔐 [API] Got 401 - will try to refresh token');
             _isRefreshing = true;
 
             try {
               // Try to refresh token
               final refreshed = await _refreshToken();
+              print('🔐 [API] Token refresh result: $refreshed');
 
               if (refreshed) {
                 // Retry the original request
                 _logger.i('Token refreshed, retrying request');
+                print('🔐 [API] Retrying original request');
                 final response = await _retry(error.requestOptions);
                 _isRefreshing = false;
                 return handler.resolve(response);
               } else {
+                print('🔐 [API] Token refresh FAILED');
                 _logger.w('Token refresh failed');
               }
             } catch (e) {
+              print('🔐 [API] Token refresh EXCEPTION: $e');
               _logger.e('Error during token refresh: $e');
             } finally {
               _isRefreshing = false;
             }
+          } else if (error.response?.statusCode == 401) {
+            print('🔐 [API] Got 401 but _isRefreshing=$_isRefreshing (skipping refresh)');
           }
 
           return handler.next(error);
@@ -118,13 +142,17 @@ class ApiService {
   Future<bool> _refreshToken() async {
     try {
       final refreshToken = await _storage.getRefreshToken();
+      print('🔐 [REFRESH] Starting refresh, token=${refreshToken != null ? "EXISTS (${refreshToken.length} chars)" : "NULL"}');
 
       if (refreshToken == null || refreshToken.isEmpty) {
+        print('🔐 [REFRESH] No refresh token available!');
         _logger.w('No refresh token available');
+        await _clearTokensOnAuthFailure();
         return false;
       }
 
       _logger.i('Attempting to refresh token');
+      print('🔐 [REFRESH] Calling ${ApiConfig.refreshTokenEndpoint}');
 
       final response = await _dio.post(
         ApiConfig.refreshTokenEndpoint,
@@ -133,27 +161,55 @@ class ApiService {
           headers: {
             'Authorization': null, // Don't use old token
           },
+          // Don't throw on 401 for refresh - we handle it manually
+          validateStatus: (status) => status != null && status < 500,
         ),
       );
+
+      print('🔐 [REFRESH] Response: ${response.statusCode} - ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data;
 
+        // Get expires_in - backend may return as expires_in_seconds or expires_in
+        final expiresIn = (data['expires_in_seconds'] ?? data['expires_in'] ?? 3600) as int;
+
         // Save new tokens
         await _storage.saveTokens(
           accessToken: data['access_token'] as String,
-          refreshToken: refreshToken, // Keep the same refresh token
-          expiresIn: data['expires_in'] as int,
+          refreshToken: data['refresh_token'] as String? ?? refreshToken, // Use new or keep old
+          expiresIn: expiresIn,
         );
 
+        print('🔐 [REFRESH] ✅ Token refreshed and saved!');
         _logger.i('Token refreshed successfully');
         return true;
       }
 
+      // If 401 on refresh, clear tokens - refresh token is invalid
+      if (response.statusCode == 401) {
+        print('🔐 [REFRESH] ❌ 401 on refresh - clearing tokens');
+        _logger.w('Refresh token rejected (401) - clearing tokens');
+        await _clearTokensOnAuthFailure();
+      }
+
       return false;
     } catch (e) {
+      print('🔐 [REFRESH] ❌ Exception: $e');
       _logger.e('Token refresh error: $e');
+      // On any error, clear tokens to force re-login
+      await _clearTokensOnAuthFailure();
       return false;
+    }
+  }
+
+  // Clear tokens when authentication fails
+  Future<void> _clearTokensOnAuthFailure() async {
+    try {
+      await _storage.clearTokens();
+      _logger.w('Tokens cleared due to authentication failure');
+    } catch (e) {
+      _logger.e('Error clearing tokens: $e');
     }
   }
 

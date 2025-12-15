@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../theme/app_colors.dart';
+import '../../theme/app_text_style.dart';
 import '../../providers/search_provider.dart';
 import '../../services/search_service.dart';
 import '../bus_booking/booking_conform.dart' hide AppColors;

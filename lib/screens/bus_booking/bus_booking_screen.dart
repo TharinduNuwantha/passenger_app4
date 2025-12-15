@@ -189,6 +189,26 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   Widget _buildTripCard(BuildContext context, TripResult trip) {
+    // Check if the trip is today
+    final now = DateTime.now();
+    final tripDate = trip.departureTime;
+    final isToday = tripDate.year == now.year && 
+                    tripDate.month == now.month && 
+                    tripDate.day == now.day;
+    final isTomorrow = tripDate.year == now.year && 
+                       tripDate.month == now.month && 
+                       tripDate.day == now.day + 1;
+    
+    // Format the date display
+    String dateLabel;
+    if (isToday) {
+      dateLabel = 'Today';
+    } else if (isTomorrow) {
+      dateLabel = 'Tomorrow';
+    } else {
+      dateLabel = DateFormat('EEE, MMM d').format(tripDate); // e.g., "Sun, Dec 15"
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -207,6 +227,53 @@ class _BusListScreenState extends State<BusListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Date banner - clearly shows when the trip is
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isToday 
+                    ? Colors.green.withOpacity(0.15) 
+                    : AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: isToday ? Colors.green[700] : AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    dateLabel,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isToday ? Colors.green[700] : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '•',
+                    style: TextStyle(
+                      color: isToday ? Colors.green[700] : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Departs ${DateFormat('h:mm a').format(trip.departureTime)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isToday ? Colors.green[700] : AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
             // Route name & bus type
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -242,32 +309,113 @@ class _BusListScreenState extends State<BusListScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Time & duration
+            // Time journey visualization
             Row(
               children: [
-                const Icon(Icons.access_time, size: 18, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat('h:mm a').format(trip.departureTime),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                // Departure time column
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('h:mm a').format(trip.departureTime),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Text(
+                      trip.boardingPoint.isNotEmpty 
+                          ? trip.boardingPoint 
+                          : 'Departure',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                // Journey line with duration
+                Expanded(
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 2,
+                              color: AppColors.primary.withOpacity(0.3),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.directions_bus,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 2,
+                              color: AppColors.primary.withOpacity(0.3),
+                            ),
+                          ),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        trip.formattedDuration,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Text('—', style: TextStyle(color: Colors.grey)),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat('h:mm a').format(trip.estimatedArrival),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  trip.formattedDuration,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                const SizedBox(width: 12),
+                // Arrival time column
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      DateFormat('h:mm a').format(trip.estimatedArrival),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Text(
+                      trip.droppingPoint.isNotEmpty 
+                          ? trip.droppingPoint 
+                          : 'Arrival',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -324,27 +472,7 @@ class _BusListScreenState extends State<BusListScreen> {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: trip.isBookable
-                          ? () {
-                              // Get stop IDs from search provider
-                              final searchProvider = context
-                                  .read<SearchProvider>();
-                              final searchDetails =
-                                  searchProvider.searchResponse?.searchDetails;
-
-                              // Navigate to seat selection (V2 with real API)
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => SeatBookingScreenV2(
-                                    trip: trip,
-                                    boardingPoint: trip.boardingPoint,
-                                    alightingPoint: trip.droppingPoint,
-                                    boardingStopId: searchDetails?.fromStop.id,
-                                    alightingStopId: searchDetails?.toStop.id,
-                                  ),
-                                ),
-                              );
-                            }
+                          ? () => _showStopSelectionSheet(context, trip)
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
@@ -393,6 +521,278 @@ class _BusListScreenState extends State<BusListScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showStopSelectionSheet(BuildContext context, TripResult trip) {
+    final searchProvider = context.read<SearchProvider>();
+    final searchDetails = searchProvider.searchResponse?.searchDetails;
+
+    if (trip.routeStops.isEmpty) {
+      _navigateToSeatBooking(
+        context,
+        trip,
+        searchDetails?.fromStop.id,
+        trip.boardingPoint,
+        searchDetails?.toStop.id,
+        trip.droppingPoint,
+      );
+      return;
+    }
+
+    RouteStop? selectedBoarding;
+    RouteStop? selectedAlighting;
+
+    if (searchDetails?.fromStop.id != null) {
+      selectedBoarding = trip.routeStops.cast<RouteStop?>().firstWhere(
+        (s) => s?.id == searchDetails?.fromStop.id,
+        orElse: () => trip.routeStops.first,
+      );
+    } else {
+      selectedBoarding = trip.routeStops.first;
+    }
+
+    if (searchDetails?.toStop.id != null) {
+      selectedAlighting = trip.routeStops.cast<RouteStop?>().firstWhere(
+        (s) => s?.id == searchDetails?.toStop.id,
+        orElse: () => trip.routeStops.last,
+      );
+    } else {
+      selectedAlighting = trip.routeStops.last;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final validAlightingStops = trip.routeStops
+                .where(
+                  (s) =>
+                      selectedBoarding == null ||
+                      s.stopOrder > selectedBoarding!.stopOrder,
+                )
+                .toList();
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Select Stops',
+                        style: AppTextStyles.h2.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    trip.routeName,
+                    style: AppTextStyles.body.copyWith(color: Colors.grey[600]),
+                  ),
+                  const Divider(height: 24),
+                  Text(
+                    'Boarding Point',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<RouteStop>(
+                        value: selectedBoarding,
+                        isExpanded: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        borderRadius: BorderRadius.circular(12),
+                        items: trip.routeStops
+                            .where(
+                              (s) =>
+                                  selectedAlighting == null ||
+                                  s.stopOrder < selectedAlighting!.stopOrder,
+                            )
+                            .map((stop) {
+                              return DropdownMenuItem<RouteStop>(
+                                value: stop,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      stop.isMajorStop
+                                          ? Icons.location_city
+                                          : Icons.location_on_outlined,
+                                      size: 18,
+                                      color: stop.isMajorStop
+                                          ? AppColors.primary
+                                          : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        stop.stopName,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            })
+                            .toList(),
+                        onChanged: (value) {
+                          setSheetState(() {
+                            selectedBoarding = value;
+                            if (selectedAlighting != null &&
+                                selectedAlighting!.stopOrder <=
+                                    value!.stopOrder) {
+                              selectedAlighting = validAlightingStops.isNotEmpty
+                                  ? validAlightingStops.first
+                                  : null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Alighting Point',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<RouteStop>(
+                        value: selectedAlighting,
+                        isExpanded: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        borderRadius: BorderRadius.circular(12),
+                        items: validAlightingStops.map((stop) {
+                          return DropdownMenuItem<RouteStop>(
+                            value: stop,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  stop.isMajorStop
+                                      ? Icons.location_city
+                                      : Icons.location_on_outlined,
+                                  size: 18,
+                                  color: stop.isMajorStop
+                                      ? AppColors.primary
+                                      : Colors.grey,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    stop.stopName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setSheetState(() {
+                            selectedAlighting = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed:
+                          selectedBoarding != null && selectedAlighting != null
+                          ? () {
+                              Navigator.pop(context);
+                              _navigateToSeatBooking(
+                                context,
+                                trip,
+                                selectedBoarding!.id,
+                                selectedBoarding!.stopName,
+                                selectedAlighting!.id,
+                                selectedAlighting!.stopName,
+                              );
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Continue to Seat Selection',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _navigateToSeatBooking(
+    BuildContext context,
+    TripResult trip,
+    String? boardingStopId,
+    String boardingPoint,
+    String? alightingStopId,
+    String alightingPoint,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SeatBookingScreenV2(
+          trip: trip,
+          boardingPoint: boardingPoint,
+          alightingPoint: alightingPoint,
+          boardingStopId: boardingStopId,
+          alightingStopId: alightingStopId,
+          masterRouteId: trip.masterRouteId,
+        ),
       ),
     );
   }

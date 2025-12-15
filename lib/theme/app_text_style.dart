@@ -21,6 +21,9 @@ class AppTextStyles {
   );
 
   static const TextStyle body = TextStyle(fontSize: 14, color: AppColors.white);
+  
+  static const TextStyle bodyText1 = TextStyle(fontSize: 16, color: AppColors.white);
+  
   static const TextStyle buttonText = TextStyle(
     color: AppColors.white,
     fontSize: 18,
@@ -31,6 +34,4 @@ class AppTextStyles {
     color: AppColors.white70,
     fontSize: 14,
   );
-
-  static var bodyText1;
 }

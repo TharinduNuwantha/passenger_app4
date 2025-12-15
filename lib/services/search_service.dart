@@ -53,6 +53,15 @@ class SearchService {
       );
 
       _logger.d('Search response: ${response.data}');
+      
+      // Debug: Log master_route_id from raw results
+      final rawResults = response.data['results'] as List<dynamic>?;
+      if (rawResults != null && rawResults.isNotEmpty) {
+        for (int i = 0; i < rawResults.length; i++) {
+          final trip = rawResults[i] as Map<String, dynamic>;
+          _logger.i('🔍 Trip $i master_route_id: ${trip['master_route_id']}');
+        }
+      }
 
       final searchResponse = SearchResponse.fromJson(response.data);
 

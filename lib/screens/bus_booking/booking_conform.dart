@@ -1,25 +1,8 @@
 import 'package:flutter/material.dart';
-import '../lounge/LoungesDetailsScreen.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_text_style.dart';
+import '../lounge/lounge_selection_screen.dart';
 import 'booking_success.dart';
-
-class AppColors {
-  static const Color primary = Color(0xFF031A4B);
-  static const Color white = Colors.white;
-  static const Color white70 = Colors.white70;
-  static const Color secondary = Color(0xFFFFC300);
-}
-
-class AppTextStyles {
-  static const TextStyle h2 = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-  );
-  static const TextStyle bodyText1 = TextStyle(fontSize: 16);
-  static const TextStyle buttonText = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-  );
-}
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -27,7 +10,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           'Dashboard (Home)',
@@ -60,6 +43,24 @@ class BookingConfirmedScreen extends StatelessWidget {
   final String pickup;
   final String drop;
 
+  /// Bus booking ID for linking lounge bookings
+  final String? busBookingId;
+
+  /// Boarding stop ID for finding nearby lounges
+  final String? boardingStopId;
+
+  /// Alighting stop ID for finding nearby lounges
+  final String? alightingStopId;
+
+  /// Master route ID for fallback lounge search
+  final String? masterRouteId;
+
+  /// Bus departure time
+  final DateTime? busDepartureTime;
+
+  /// Bus arrival time
+  final DateTime? busArrivalTime;
+
   const BookingConfirmedScreen({
     super.key,
     required this.referenceNo,
@@ -71,6 +72,12 @@ class BookingConfirmedScreen extends StatelessWidget {
     required this.price,
     this.pickup = '',
     this.drop = '',
+    this.busBookingId,
+    this.boardingStopId,
+    this.alightingStopId,
+    this.masterRouteId,
+    this.busDepartureTime,
+    this.busArrivalTime,
   });
 
   Widget _buildSummaryLine(String title, String value) {
@@ -166,7 +173,7 @@ class BookingConfirmedScreen extends StatelessWidget {
                     ),
                     const Divider(color: Colors.black26, height: 20),
                     const SizedBox(height: 8),
-                    
+
                     // Booking Details
                     _buildSummaryLine('Reference No', referenceNo),
                     const Divider(height: 16),
@@ -222,10 +229,36 @@ class BookingConfirmedScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    // Navigate to LoungeSelectionScreen with bus booking info
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const LoungesDetailsScreen(),
+                        builder: (context) => LoungeSelectionScreen(
+                          busBookingReference: referenceNo,
+                          busBookingId: busBookingId,
+                          busDepartureTime:
+                              busDepartureTime ??
+                              DateTime.now().add(const Duration(hours: 1)),
+                          busArrivalTime:
+                              busArrivalTime ??
+                              DateTime.now().add(const Duration(hours: 3)),
+                          boardingStopId: boardingStopId,
+                          alightingStopId: alightingStopId,
+                          boardingStopName: pickup.isNotEmpty
+                              ? pickup
+                              : route.split('→').first.trim(),
+                          alightingStopName: drop.isNotEmpty
+                              ? drop
+                              : route.split('→').last.trim(),
+                          routeName: route,
+                          masterRouteId: masterRouteId,
+                          busFare:
+                              double.tryParse(
+                                price.replaceAll(RegExp(r'[^0-9.]'), ''),
+                              ) ??
+                              0,
+                          selectedSeats: seatNo,
+                        ),
                       ),
                     );
                   },

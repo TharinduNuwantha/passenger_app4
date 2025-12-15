@@ -15,6 +15,7 @@ class BookingConfirmScreen extends StatefulWidget {
   final String alightingPoint;
   final String? boardingStopId;
   final String? alightingStopId;
+  final String? masterRouteId;
   final double totalPrice;
   final String userName;
   final String userPhone;
@@ -28,6 +29,7 @@ class BookingConfirmScreen extends StatefulWidget {
     required this.alightingPoint,
     this.boardingStopId,
     this.alightingStopId,
+    this.masterRouteId,
     required this.totalPrice,
     required this.userName,
     required this.userPhone,
@@ -193,6 +195,13 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> {
               price: response.booking.totalAmount.toStringAsFixed(0),
               pickup: widget.boardingPoint,
               drop: widget.alightingPoint,
+              // Pass additional info for lounge selection
+              busBookingId: response.booking.id,
+              boardingStopId: widget.boardingStopId,
+              alightingStopId: widget.alightingStopId,
+              masterRouteId: widget.masterRouteId,
+              busDepartureTime: widget.trip.departureTime,
+              busArrivalTime: widget.trip.estimatedArrival,
             ),
           ),
         );

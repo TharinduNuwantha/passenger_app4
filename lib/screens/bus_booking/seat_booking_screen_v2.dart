@@ -6,6 +6,7 @@ import '../../services/booking_service.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import 'booking_confirm_screen.dart';
+import 'booking_intent_flow_screen.dart';
 
 /// Enhanced seat booking screen that fetches real seat data from API
 class SeatBookingScreenV2 extends StatefulWidget {
@@ -24,6 +25,12 @@ class SeatBookingScreenV2 extends StatefulWidget {
   /// Alighting stop ID (from search details)
   final String? alightingStopId;
 
+  /// Master route ID (for lounge lookup)
+  final String? masterRouteId;
+
+  /// Use new intent-based booking flow (with TTL seat holding)
+  final bool useIntentFlow;
+
   const SeatBookingScreenV2({
     super.key,
     required this.trip,
@@ -31,6 +38,8 @@ class SeatBookingScreenV2 extends StatefulWidget {
     required this.alightingPoint,
     this.boardingStopId,
     this.alightingStopId,
+    this.masterRouteId,
+    this.useIntentFlow = true, // Default to new flow
   });
 
   @override
@@ -131,28 +140,67 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   void _proceedToConfirm() async {
     if (_selectedSeats.isEmpty) return;
 
+    // Check if user is authenticated
+    final isAuthenticated = await _authService.isAuthenticated();
+    if (!isAuthenticated) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login to continue with booking'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Navigate to login screen
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      return;
+    }
+
     // Get current user info
     final user = await _authService.getCurrentUser();
 
     if (!mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookingConfirmScreen(
-          trip: widget.trip,
-          selectedSeats: _selectedSeats,
-          boardingPoint: widget.boardingPoint,
-          alightingPoint: widget.alightingPoint,
-          boardingStopId: widget.boardingStopId,
-          alightingStopId: widget.alightingStopId,
-          totalPrice: _totalPrice,
-          userName: user?.fullName ?? '',
-          userPhone: user?.phoneNumber ?? '',
-          userEmail: user?.email,
+    // Use intent flow (new) or direct booking (old)
+    if (widget.useIntentFlow) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingIntentFlowScreen(
+            trip: widget.trip,
+            selectedSeats: _selectedSeats,
+            boardingPoint: widget.boardingPoint,
+            alightingPoint: widget.alightingPoint,
+            boardingStopId: widget.boardingStopId,
+            alightingStopId: widget.alightingStopId,
+            masterRouteId: widget.masterRouteId ?? widget.trip.masterRouteId,
+            totalPrice: _totalPrice,
+            userName: user?.fullName ?? '',
+            userPhone: user?.phoneNumber ?? '',
+            userEmail: user?.email,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Legacy flow - direct booking without seat holding
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingConfirmScreen(
+            trip: widget.trip,
+            selectedSeats: _selectedSeats,
+            boardingPoint: widget.boardingPoint,
+            alightingPoint: widget.alightingPoint,
+            boardingStopId: widget.boardingStopId,
+            alightingStopId: widget.alightingStopId,
+            masterRouteId: widget.masterRouteId ?? widget.trip.masterRouteId,
+            totalPrice: _totalPrice,
+            userName: user?.fullName ?? '',
+            userPhone: user?.phoneNumber ?? '',
+            userEmail: user?.email,
+          ),
+        ),
+      );
+    }
   }
 
   @override
