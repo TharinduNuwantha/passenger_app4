@@ -56,10 +56,207 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   List<TripSeat> _seats = [];
   final Set<String> _selectedSeatIds = {};
 
+  // Existing bookings for this trip
+  List<BookingListItem> _existingBookings = [];
+  bool _hasExistingBooking = false;
+
   @override
   void initState() {
     super.initState();
     _loadSeats();
+    _checkExistingBookings();
+  }
+
+  /// Check if user has existing bookings on this trip
+  Future<void> _checkExistingBookings() async {
+    try {
+      final isAuthenticated = await _authService.isAuthenticated();
+      if (!isAuthenticated) return;
+
+      final bookings = await _bookingService.getUpcomingBookings(limit: 50);
+
+      // Filter for bookings on this specific trip
+      final tripBookings = bookings.where((b) {
+        // Match by scheduled_trip_id if available in the response
+        // Otherwise match by route name and departure date
+        if (b.departureDatetime != null) {
+          final sameDay =
+              b.departureDatetime!.year == widget.trip.departureTime.year &&
+              b.departureDatetime!.month == widget.trip.departureTime.month &&
+              b.departureDatetime!.day == widget.trip.departureTime.day;
+          final sameRoute =
+              b.routeName?.toLowerCase() == widget.trip.routeName.toLowerCase();
+          return sameDay && sameRoute == true;
+        }
+        return false;
+      }).toList();
+
+      if (tripBookings.isNotEmpty && mounted) {
+        setState(() {
+          _existingBookings = tripBookings;
+          _hasExistingBooking = true;
+        });
+        _logger.i(
+          'Found ${tripBookings.length} existing booking(s) on this trip',
+        );
+      }
+    } catch (e) {
+      _logger.e('Failed to check existing bookings: $e');
+      // Non-critical, don't block the UI
+    }
+  }
+
+  /// Show bottom sheet with existing bookings
+  void _showExistingBookingsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bookmark, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Your Bookings on This Trip',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _existingBookings.length,
+                  itemBuilder: (context, index) {
+                    final booking = _existingBookings[index];
+                    return _buildExistingBookingCard(booking);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExistingBookingCard(BookingListItem booking) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Ref: ${booking.bookingReference}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                _buildStatusBadge(booking.bookingStatus),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (booking.numberOfSeats != null)
+              Text(
+                '${booking.numberOfSeats} seat(s) • ${booking.formattedTotal}',
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              ),
+            if (booking.departureDatetime != null)
+              Text(
+                'Departure: ${_formatDateTime(booking.departureDatetime!)}',
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(MasterBookingStatus status) {
+    Color bgColor;
+    Color textColor;
+    String text;
+
+    switch (status) {
+      case MasterBookingStatus.confirmed:
+        bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
+        textColor = const Color(0xFF4CAF50);
+        text = 'Confirmed';
+        break;
+      case MasterBookingStatus.pending:
+        bgColor = Colors.orange.withOpacity(0.1);
+        textColor = Colors.orange;
+        text = 'Pending';
+        break;
+      default:
+        bgColor = Colors.grey.withOpacity(0.1);
+        textColor = Colors.grey;
+        text = status.displayName;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          color: textColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '${dt.day}/${dt.month}/${dt.year} ${hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} $period';
   }
 
   Future<void> _loadSeats() async {
@@ -234,6 +431,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             : Column(
                 children: [
                   _buildTripInfo(),
+                  if (_hasExistingBooking) _buildExistingBookingsBanner(),
                   _buildLegend(),
                   Expanded(
                     child: Container(
@@ -288,6 +486,47 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               child: const Text('Try Again'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExistingBookingsBanner() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      child: GestureDetector(
+        onTap: _showExistingBookingsSheet,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFC300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.info_outline,
+                color: AppColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'You have ${_existingBookings.length} booking(s) on this trip',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );

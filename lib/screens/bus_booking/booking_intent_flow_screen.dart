@@ -127,8 +127,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
 
     try {
       // Use phone number as fallback if userName is empty
-      final seatPassengerName = widget.userName.trim().isNotEmpty 
-          ? widget.userName 
+      final seatPassengerName = widget.userName.trim().isNotEmpty
+          ? widget.userName
           : 'Passenger';
 
       // Build seat requests
@@ -142,8 +142,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
       }).toList();
 
       // Use phone number as fallback if userName is empty
-      final effectiveName = widget.userName.trim().isNotEmpty 
-          ? widget.userName 
+      final effectiveName = widget.userName.trim().isNotEmpty
+          ? widget.userName
           : 'Passenger ${widget.userPhone}';
 
       final success = await provider.createBusIntent(
@@ -206,10 +206,12 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              ...error.unavailable.bus!.takenSeats!.map((seat) => Padding(
-                    padding: const EdgeInsets.only(left: 8, top: 2),
-                    child: Text('• Seat $seat'),
-                  )),
+              ...error.unavailable.bus!.takenSeats!.map(
+                (seat) => Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 2),
+                  child: Text('• Seat $seat'),
+                ),
+              ),
             ],
           ],
         ),
@@ -267,7 +269,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         await _confirmBooking(paymentResult.paymentReference);
       } else if (paymentResult != null && !paymentResult.success) {
         _showErrorSnackBar(
-            paymentResult.errorMessage ?? 'Payment was not completed');
+          paymentResult.errorMessage ?? 'Payment was not completed',
+        );
       }
     } else if (provider.hasError) {
       _showErrorSnackBar(provider.errorMessage ?? 'Failed to initiate payment');
@@ -290,18 +293,18 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           builder: (context) => BookingSuccessScreen(
             masterReference: confirmedBooking.masterReference,
             busReference: confirmedBooking.busBooking?.reference,
-            totalAmount: confirmedBooking.busBooking?.totalAmount ?? 0,
+            totalAmount: confirmedBooking.effectiveTotalAmount,
             trip: widget.trip,
             boardingPoint: widget.boardingPoint,
             alightingPoint: widget.alightingPoint,
-            seatNumbers:
-                widget.selectedSeats.map((s) => s.seatNumber).join(', '),
+            seatNumbers: widget.selectedSeats
+                .map((s) => s.seatNumber)
+                .join(', '),
           ),
         ),
       );
     } else if (provider.hasError) {
-      _showErrorSnackBar(
-          provider.errorMessage ?? 'Failed to confirm booking');
+      _showErrorSnackBar(provider.errorMessage ?? 'Failed to confirm booking');
     }
   }
 
@@ -371,10 +374,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -460,7 +460,10 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           const SizedBox(height: 8),
           Text(
             'Please wait while we reserve your selection',
-            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -521,8 +524,10 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
               ),
               if (isLow)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(4),
@@ -586,7 +591,11 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             ],
           ),
           const Divider(height: 20),
-          _buildInfoRow(Icons.location_on_outlined, 'From', widget.boardingPoint),
+          _buildInfoRow(
+            Icons.location_on_outlined,
+            'From',
+            widget.boardingPoint,
+          ),
           const SizedBox(height: 8),
           _buildInfoRow(Icons.location_on, 'To', widget.alightingPoint),
           const SizedBox(height: 8),
@@ -764,8 +773,10 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
               Row(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -783,7 +794,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFC300),
                         borderRadius: BorderRadius.circular(8),
@@ -814,10 +827,11 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                 ),
                 validator: index == 0
                     ? null
-                    : (v) => !_sameForAllPassengers &&
-                            (v == null || v.trim().isEmpty)
-                        ? 'Enter name'
-                        : null,
+                    : (v) =>
+                          !_sameForAllPassengers &&
+                              (v == null || v.trim().isEmpty)
+                          ? 'Enter name'
+                          : null,
               ),
             ],
           ),
@@ -852,8 +866,10 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   Text(
                     pricing?.formattedBusFare ??
                         'LKR ${widget.totalPrice.toStringAsFixed(2)}',
-                    style:
-                        const TextStyle(fontSize: 14, color: AppColors.primary),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
@@ -911,8 +927,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             child: ElevatedButton(
               onPressed: isLoading || isExpired ? null : _proceedToPayment,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isExpired ? Colors.grey : const Color(0xFFFFC300),
+                backgroundColor: isExpired
+                    ? Colors.grey
+                    : const Color(0xFFFFC300),
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),

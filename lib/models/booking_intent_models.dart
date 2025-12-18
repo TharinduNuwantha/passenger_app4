@@ -323,10 +323,7 @@ class LoungeGuestRequest {
   final String guestName;
   final String? guestPhone;
 
-  LoungeGuestRequest({
-    required this.guestName,
-    this.guestPhone,
-  });
+  LoungeGuestRequest({required this.guestName, this.guestPhone});
 
   Map<String, dynamic> toJson() {
     return {
@@ -342,11 +339,7 @@ class PreOrderItem {
   final int quantity;
   final String? notes;
 
-  PreOrderItem({
-    required this.productId,
-    required this.quantity,
-    this.notes,
-  });
+  PreOrderItem({required this.productId, required this.quantity, this.notes});
 
   Map<String, dynamic> toJson() {
     return {
@@ -368,10 +361,7 @@ class ConfirmIntentRequest {
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'intent_id': intentId,
-      'payment_reference': paymentReference,
-    };
+    return {'intent_id': intentId, 'payment_reference': paymentReference};
   }
 }
 
@@ -405,7 +395,7 @@ class BookingIntentResponse {
     return BookingIntentResponse(
       intentId: json['intent_id'] as String? ?? '',
       status: BookingIntentStatus.fromJson(json['status'] as String?),
-      expiresAt: json['expires_at'] != null 
+      expiresAt: json['expires_at'] != null
           ? DateTime.parse(json['expires_at'] as String)
           : DateTime.now().add(const Duration(minutes: 10)),
       pricing: pricingData != null
@@ -416,11 +406,13 @@ class BookingIntentResponse {
           : null,
       preTripLounge: json['pre_trip_lounge'] != null
           ? LoungeIntentSummary.fromJson(
-              json['pre_trip_lounge'] as Map<String, dynamic>)
+              json['pre_trip_lounge'] as Map<String, dynamic>,
+            )
           : null,
       postTripLounge: json['post_trip_lounge'] != null
           ? LoungeIntentSummary.fromJson(
-              json['post_trip_lounge'] as Map<String, dynamic>)
+              json['post_trip_lounge'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -517,9 +509,11 @@ class BusIntentSummary {
       boardingStop: json['boarding_stop'] as String?,
       alightingStop: json['alighting_stop'] as String?,
       seatCount: _parseInt(json['seat_count']),
-      seats: (json['seats'] as List<dynamic>?)
-              ?.map((e) =>
-                  IntentSeatSummary.fromJson(e as Map<String, dynamic>))
+      seats:
+          (json['seats'] as List<dynamic>?)
+              ?.map(
+                (e) => IntentSeatSummary.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -588,7 +582,7 @@ class InitiatePaymentResponse {
   final double amount;
   final String currency;
   final DateTime expiresAt;
-  final String? uid;             // PAYable unique transaction ID
+  final String? uid; // PAYable unique transaction ID
   final String? statusIndicator; // PAYable status check token
 
   InitiatePaymentResponse({
@@ -612,12 +606,15 @@ class InitiatePaymentResponse {
     } else if (amountValue is String) {
       parsedAmount = double.tryParse(amountValue) ?? 0.0;
     }
-    
+
     return InitiatePaymentResponse(
       // Backend may return 'intent_id' or it may not be present
       intentId: json['intent_id'] as String? ?? '',
-      // Backend uses 'invoice_id', Flutter uses 'paymentReference'  
-      paymentReference: json['payment_reference'] as String? ?? json['invoice_id'] as String? ?? '',
+      // Backend uses 'invoice_id', Flutter uses 'paymentReference'
+      paymentReference:
+          json['payment_reference'] as String? ??
+          json['invoice_id'] as String? ??
+          '',
       paymentGateway: json['payment_gateway'] as String? ?? 'PAYable',
       paymentUrl: json['payment_url'] as String?,
       amount: parsedAmount,
@@ -659,7 +656,9 @@ class IntentStatusResponse {
     // Backend uses 'price_breakdown', Flutter model uses 'pricing'
     final pricingData = json['price_breakdown'] ?? json['pricing'];
     // Backend uses 'ttl_seconds', model uses 'time_remaining_seconds'
-    final ttl = _parseInt(json['ttl_seconds'] ?? json['time_remaining_seconds']);
+    final ttl = _parseInt(
+      json['ttl_seconds'] ?? json['time_remaining_seconds'],
+    );
     return IntentStatusResponse(
       intentId: json['intent_id'] as String? ?? '',
       status: BookingIntentStatus.fromJson(json['status'] as String?),
@@ -672,15 +671,18 @@ class IntentStatusResponse {
           : IntentPricing.empty(),
       busBooking: json['bus_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
-              json['bus_booking'] as Map<String, dynamic>)
+              json['bus_booking'] as Map<String, dynamic>,
+            )
           : null,
       preLoungeBooking: json['pre_lounge_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
-              json['pre_lounge_booking'] as Map<String, dynamic>)
+              json['pre_lounge_booking'] as Map<String, dynamic>,
+            )
           : null,
       postLoungeBooking: json['post_lounge_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
-              json['post_lounge_booking'] as Map<String, dynamic>)
+              json['post_lounge_booking'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -727,6 +729,8 @@ class ConfirmBookingResponse {
   final String message;
   final String intentId;
   final String masterReference;
+  final double totalPaid;
+  final String currency;
   final ConfirmedBookingInfo? busBooking;
   final ConfirmedBookingInfo? preLoungeBooking;
   final ConfirmedBookingInfo? postLoungeBooking;
@@ -735,6 +739,8 @@ class ConfirmBookingResponse {
     required this.message,
     required this.intentId,
     required this.masterReference,
+    this.totalPaid = 0.0,
+    this.currency = 'LKR',
     this.busBooking,
     this.preLoungeBooking,
     this.postLoungeBooking,
@@ -745,20 +751,37 @@ class ConfirmBookingResponse {
       message: json['message'] as String? ?? 'Booking confirmed',
       intentId: json['intent_id'] as String? ?? '',
       masterReference: json['master_reference'] as String? ?? '',
+      totalPaid: _parseDouble(json['total_paid']),
+      currency: json['currency'] as String? ?? 'LKR',
       busBooking: json['bus_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
-              json['bus_booking'] as Map<String, dynamic>)
+              json['bus_booking'] as Map<String, dynamic>,
+            )
           : null,
       preLoungeBooking: json['pre_lounge_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
-              json['pre_lounge_booking'] as Map<String, dynamic>)
+              json['pre_lounge_booking'] as Map<String, dynamic>,
+            )
           : null,
       postLoungeBooking: json['post_lounge_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
-              json['post_lounge_booking'] as Map<String, dynamic>)
+              json['post_lounge_booking'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
+
+  /// Get the effective total amount (from busBooking or root level)
+  double get effectiveTotalAmount {
+    // Try busBooking.totalAmount first, fallback to root totalPaid
+    if (busBooking != null && busBooking!.totalAmount > 0) {
+      return busBooking!.totalAmount;
+    }
+    return totalPaid;
+  }
+
+  String get formattedTotal =>
+      '$currency ${effectiveTotalAmount.toStringAsFixed(2)}';
 }
 
 // ============================================================================
@@ -783,10 +806,12 @@ class PartialAvailabilityError {
     return PartialAvailabilityError(
       error: json['error'] as String? ?? 'partial_availability',
       message: json['message'] as String? ?? 'Some items are unavailable',
-      available:
-          AvailabilityStatus.fromJson(json['available'] as Map<String, dynamic>?),
-      unavailable:
-          UnavailableItems.fromJson(json['unavailable'] as Map<String, dynamic>?),
+      available: AvailabilityStatus.fromJson(
+        json['available'] as Map<String, dynamic>?,
+      ),
+      unavailable: UnavailableItems.fromJson(
+        json['unavailable'] as Map<String, dynamic>?,
+      ),
     );
   }
 
@@ -832,11 +857,7 @@ class UnavailableItems {
   final UnavailableReason? preLounge;
   final UnavailableReason? postLounge;
 
-  UnavailableItems({
-    this.bus,
-    this.preLounge,
-    this.postLounge,
-  });
+  UnavailableItems({this.bus, this.preLounge, this.postLounge});
 
   factory UnavailableItems.fromJson(Map<String, dynamic>? json) {
     if (json == null) return UnavailableItems();
@@ -846,11 +867,13 @@ class UnavailableItems {
           : null,
       preLounge: json['pre_lounge'] != null
           ? UnavailableReason.fromJson(
-              json['pre_lounge'] as Map<String, dynamic>)
+              json['pre_lounge'] as Map<String, dynamic>,
+            )
           : null,
       postLounge: json['post_lounge'] != null
           ? UnavailableReason.fromJson(
-              json['post_lounge'] as Map<String, dynamic>)
+              json['post_lounge'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -861,11 +884,7 @@ class UnavailableReason {
   final String? details;
   final List<String>? takenSeats;
 
-  UnavailableReason({
-    required this.reason,
-    this.details,
-    this.takenSeats,
-  });
+  UnavailableReason({required this.reason, this.details, this.takenSeats});
 
   factory UnavailableReason.fromJson(Map<String, dynamic> json) {
     return UnavailableReason(

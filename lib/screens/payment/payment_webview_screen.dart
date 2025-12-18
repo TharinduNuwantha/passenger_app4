@@ -41,8 +41,13 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   static const _successPatterns = [
     '/payment/success',
     '/payment-success',
+    '/payment-return',
+    '/payments/return',  // PAYable return URL
     'status=success',
     'result=approved',
+    'result=success',
+    'payable.lk/success',
+    'paymentstatus=success',
   ];
 
   static const _failurePatterns = [
