@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/lounge_booking_models.dart';
 import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
+
+final _logger = Logger();
 
 /// Detailed view of a single lounge booking
 class LoungeBookingDetailScreen extends StatefulWidget {

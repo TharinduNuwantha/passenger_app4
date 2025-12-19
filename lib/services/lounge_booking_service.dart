@@ -371,23 +371,34 @@ class LoungeBookingService {
     }
   }
 
-  /// Get user's lounge bookings with optional filter
+  /// Get user's lounge bookings with optional filter and pagination
   ///
   /// [status] - Filter by booking status
+  /// [page] - Page number for pagination (1-indexed)
+  /// [limit] - Items per page
   ///
   /// Returns list of [LoungeBooking]
-  Future<List<LoungeBooking>> getMyBookings({String? status}) async {
+  Future<List<LoungeBooking>> getMyBookings({
+    String? status,
+    int page = 1,
+    int limit = 20,
+  }) async {
     try {
-      _logger.i('Fetching user lounge bookings (status: $status)');
+      _logger.i(
+        'Fetching user lounge bookings (status: $status, page: $page, limit: $limit)',
+      );
 
-      final queryParams = <String, dynamic>{};
+      final queryParams = <String, dynamic>{
+        'page': page,
+        'limit': limit,
+      };
       if (status != null) {
         queryParams['status'] = status;
       }
 
       final response = await _apiService.get(
         '/api/v1/lounge-bookings',
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        queryParameters: queryParams,
       );
 
       _logger.d('Get bookings response: ${response.data}');
@@ -413,12 +424,16 @@ class LoungeBookingService {
   /// Get upcoming lounge bookings
   ///
   /// Returns list of [LoungeBooking] with active status
-  Future<List<LoungeBooking>> getUpcomingBookings() async {
+  Future<List<LoungeBooking>> getUpcomingBookings({
+    int page = 1,
+    int limit = 50,
+  }) async {
     try {
-      _logger.i('Fetching upcoming lounge bookings');
+      _logger.i('Fetching upcoming lounge bookings (page: $page, limit: $limit)');
 
       final response = await _apiService.get(
         '/api/v1/lounge-bookings/upcoming',
+        queryParameters: {'page': page, 'limit': limit},
       );
 
       _logger.d('Upcoming bookings response: ${response.data}');

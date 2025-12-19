@@ -136,8 +136,11 @@ class UnifiedBooking {
       case MasterBookingStatus.completed:
         return UnifiedBookingStatus.completed;
       case MasterBookingStatus.cancelled:
-      case MasterBookingStatus.partialCancel:
         return UnifiedBookingStatus.cancelled;
+      case MasterBookingStatus.partialCancel:
+        // Partial seat cancellations should not classify the whole booking as cancelled
+        // Treat as still active/upcoming for the Activities categorization
+        return UnifiedBookingStatus.upcoming;
     }
   }
 

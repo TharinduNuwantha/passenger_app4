@@ -20,6 +20,28 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   final Logger _logger = Logger();
   late TabController _tabController;
 
+  // Pagination state
+  static const int _pageSize = 20;
+
+  final ScrollController _upcomingController = ScrollController();
+  final ScrollController _completedController = ScrollController();
+  final ScrollController _cancelledController = ScrollController();
+
+  int _upcomingBusPage = 1;
+  int _upcomingLoungePage = 1;
+  bool _hasMoreUpcomingBus = true;
+  bool _hasMoreUpcomingLounge = true;
+
+  int _completedBusPage = 1;
+  int _completedLoungePage = 1;
+  bool _hasMoreCompletedBus = true;
+  bool _hasMoreCompletedLounge = true;
+
+  int _cancelledBusPage = 1;
+  int _cancelledLoungePage = 1;
+  bool _hasMoreCancelledBus = true;
+  bool _hasMoreCancelledLounge = true;
+
   List<UnifiedBooking> _upcomingBookings = [];
   List<UnifiedBooking> _completedBookings = [];
   List<UnifiedBooking> _cancelledBookings = [];
@@ -27,6 +49,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   bool _isLoadingUpcoming = true;
   bool _isLoadingCompleted = false;
   bool _isLoadingCancelled = false;
+
+  bool _isLoadingUpcomingMore = false;
+  bool _isLoadingCompletedMore = false;
+  bool _isLoadingCancelledMore = false;
 
   String? _errorUpcoming;
   String? _errorCompleted;
@@ -37,6 +63,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
+    _upcomingController.addListener(_onUpcomingScroll);
+    _completedController.addListener(_onCompletedScroll);
+    _cancelledController.addListener(_onCancelledScroll);
     _loadUpcomingBookings();
   }
 
@@ -44,6 +73,12 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   void dispose() {
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _upcomingController.removeListener(_onUpcomingScroll);
+    _completedController.removeListener(_onCompletedScroll);
+    _cancelledController.removeListener(_onCancelledScroll);
+    _upcomingController.dispose();
+    _completedController.dispose();
+    _cancelledController.dispose();
     super.dispose();
   }
 
@@ -75,69 +110,223 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
     }
   }
 
-  Future<void> _loadUpcomingBookings() async {
+  bool _canLoadMoreUpcoming() =>
+      (_hasMoreUpcomingBus || _hasMoreUpcomingLounge) &&
+      !_isLoadingUpcomingMore &&
+      !_isLoadingUpcoming;
+
+  bool _canLoadMoreCompleted() =>
+      (_hasMoreCompletedBus || _hasMoreCompletedLounge) &&
+      !_isLoadingCompletedMore &&
+      !_isLoadingCompleted;
+
+  bool _canLoadMoreCancelled() =>
+      (_hasMoreCancelledBus || _hasMoreCancelledLounge) &&
+      !_isLoadingCancelledMore &&
+      !_isLoadingCancelled;
+
+  void _onUpcomingScroll() {
+    if (_upcomingController.position.pixels >=
+            _upcomingController.position.maxScrollExtent -
+                200 &&
+        _canLoadMoreUpcoming()) {
+      _loadUpcomingBookings(loadMore: true);
+    }
+  }
+
+  void _onCompletedScroll() {
+    if (_completedController.position.pixels >=
+            _completedController.position.maxScrollExtent -
+                200 &&
+        _canLoadMoreCompleted()) {
+      _loadCompletedBookings(loadMore: true);
+    }
+  }
+
+  void _onCancelledScroll() {
+    if (_cancelledController.position.pixels >=
+            _cancelledController.position.maxScrollExtent -
+                200 &&
+        _canLoadMoreCancelled()) {
+      _loadCancelledBookings(loadMore: true);
+    }
+  }
+
+  Future<void> _loadUpcomingBookings({bool loadMore = false}) async {
+    if (loadMore && !_canLoadMoreUpcoming()) return;
+
+    if (!loadMore) {
+      _upcomingBusPage = 1;
+      _upcomingLoungePage = 1;
+      _hasMoreUpcomingBus = true;
+      _hasMoreUpcomingLounge = true;
+      _upcomingBookings = [];
+    }
+
     setState(() {
-      _isLoadingUpcoming = true;
-      _errorUpcoming = null;
+      if (loadMore) {
+        _isLoadingUpcomingMore = true;
+      } else {
+        _isLoadingUpcoming = true;
+        _errorUpcoming = null;
+      }
     });
 
     try {
-      final bookings = await _bookingsService.getUpcomingBookings();
+      final result = await _bookingsService.getPagedBookings(
+        status: 'upcoming',
+        busPage: _upcomingBusPage,
+        loungePage: _upcomingLoungePage,
+        limit: _pageSize,
+      );
+
+      final merged = [
+        ..._upcomingBookings,
+        ...result.bookings,
+      ];
+      _sortBookings(merged, 'upcoming');
+
       setState(() {
-        _upcomingBookings = bookings;
+        _upcomingBookings = merged;
         _isLoadingUpcoming = false;
+        _isLoadingUpcomingMore = false;
+        _hasMoreUpcomingBus = result.hasMoreBus;
+        _hasMoreUpcomingLounge = result.hasMoreLounge;
+        if (result.hasMoreBus) _upcomingBusPage += 1;
+        if (result.hasMoreLounge) _upcomingLoungePage += 1;
       });
-      _logger.i('Loaded ${bookings.length} upcoming bookings');
+      _logger.i(
+        'Loaded ${result.bookings.length} upcoming bookings (total ${merged.length})',
+      );
     } catch (e) {
       _logger.e('Failed to load upcoming bookings: $e');
       setState(() {
         _errorUpcoming = e.toString().replaceAll('Exception: ', '');
         _isLoadingUpcoming = false;
+        _isLoadingUpcomingMore = false;
       });
     }
   }
 
-  Future<void> _loadCompletedBookings() async {
+  Future<void> _loadCompletedBookings({bool loadMore = false}) async {
+    if (loadMore && !_canLoadMoreCompleted()) return;
+
+    if (!loadMore) {
+      _completedBusPage = 1;
+      _completedLoungePage = 1;
+      _hasMoreCompletedBus = true;
+      _hasMoreCompletedLounge = true;
+      _completedBookings = [];
+    }
+
     setState(() {
-      _isLoadingCompleted = true;
-      _errorCompleted = null;
+      if (loadMore) {
+        _isLoadingCompletedMore = true;
+      } else {
+        _isLoadingCompleted = true;
+        _errorCompleted = null;
+      }
     });
 
     try {
-      final bookings = await _bookingsService.getCompletedBookings();
+      final result = await _bookingsService.getPagedBookings(
+        status: 'completed',
+        busPage: _completedBusPage,
+        loungePage: _completedLoungePage,
+        limit: _pageSize,
+      );
+
+      final merged = [
+        ..._completedBookings,
+        ...result.bookings,
+      ];
+      _sortBookings(merged, 'completed');
+
       setState(() {
-        _completedBookings = bookings;
+        _completedBookings = merged;
         _isLoadingCompleted = false;
+        _isLoadingCompletedMore = false;
+        _hasMoreCompletedBus = result.hasMoreBus;
+        _hasMoreCompletedLounge = result.hasMoreLounge;
+        if (result.hasMoreBus) _completedBusPage += 1;
+        if (result.hasMoreLounge) _completedLoungePage += 1;
       });
-      _logger.i('Loaded ${bookings.length} completed bookings');
+      _logger.i(
+        'Loaded ${result.bookings.length} completed bookings (total ${merged.length})',
+      );
     } catch (e) {
       _logger.e('Failed to load completed bookings: $e');
       setState(() {
         _errorCompleted = e.toString().replaceAll('Exception: ', '');
         _isLoadingCompleted = false;
+        _isLoadingCompletedMore = false;
       });
     }
   }
 
-  Future<void> _loadCancelledBookings() async {
+  Future<void> _loadCancelledBookings({bool loadMore = false}) async {
+    if (loadMore && !_canLoadMoreCancelled()) return;
+
+    if (!loadMore) {
+      _cancelledBusPage = 1;
+      _cancelledLoungePage = 1;
+      _hasMoreCancelledBus = true;
+      _hasMoreCancelledLounge = true;
+      _cancelledBookings = [];
+    }
+
     setState(() {
-      _isLoadingCancelled = true;
-      _errorCancelled = null;
+      if (loadMore) {
+        _isLoadingCancelledMore = true;
+      } else {
+        _isLoadingCancelled = true;
+        _errorCancelled = null;
+      }
     });
 
     try {
-      final bookings = await _bookingsService.getCancelledBookings();
+      final result = await _bookingsService.getPagedBookings(
+        status: 'cancelled',
+        busPage: _cancelledBusPage,
+        loungePage: _cancelledLoungePage,
+        limit: _pageSize,
+      );
+
+      final merged = [
+        ..._cancelledBookings,
+        ...result.bookings,
+      ];
+      _sortBookings(merged, 'cancelled');
+
       setState(() {
-        _cancelledBookings = bookings;
+        _cancelledBookings = merged;
         _isLoadingCancelled = false;
+        _isLoadingCancelledMore = false;
+        _hasMoreCancelledBus = result.hasMoreBus;
+        _hasMoreCancelledLounge = result.hasMoreLounge;
+        if (result.hasMoreBus) _cancelledBusPage += 1;
+        if (result.hasMoreLounge) _cancelledLoungePage += 1;
       });
-      _logger.i('Loaded ${bookings.length} cancelled bookings');
+      _logger.i(
+        'Loaded ${result.bookings.length} cancelled bookings (total ${merged.length})',
+      );
     } catch (e) {
       _logger.e('Failed to load cancelled bookings: $e');
       setState(() {
         _errorCancelled = e.toString().replaceAll('Exception: ', '');
         _isLoadingCancelled = false;
+        _isLoadingCancelledMore = false;
       });
+    }
+  }
+
+  void _sortBookings(List<UnifiedBooking> bookings, String status) {
+    if (status == 'upcoming') {
+      bookings.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    } else if (status == 'completed') {
+      bookings.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    } else {
+      bookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
   }
 
@@ -254,29 +443,41 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                     _buildBookingsList(
                       bookings: _upcomingBookings,
                       isLoading: _isLoadingUpcoming,
+                      isLoadingMore: _isLoadingUpcomingMore,
                       error: _errorUpcoming,
                       onRefresh: _loadUpcomingBookings,
                       emptyTitle: 'No upcoming trips',
                       emptySubtitle: 'Book a bus or lounge to see it here',
                       emptyIcon: Icons.calendar_today_outlined,
+                      controller: _upcomingController,
+                      canLoadMore:
+                          _hasMoreUpcomingBus || _hasMoreUpcomingLounge,
                     ),
                     _buildBookingsList(
                       bookings: _completedBookings,
                       isLoading: _isLoadingCompleted,
+                      isLoadingMore: _isLoadingCompletedMore,
                       error: _errorCompleted,
                       onRefresh: _loadCompletedBookings,
                       emptyTitle: 'No completed trips',
                       emptySubtitle: 'Your travel history will appear here',
                       emptyIcon: Icons.history,
+                      controller: _completedController,
+                      canLoadMore:
+                          _hasMoreCompletedBus || _hasMoreCompletedLounge,
                     ),
                     _buildBookingsList(
                       bookings: _cancelledBookings,
                       isLoading: _isLoadingCancelled,
+                      isLoadingMore: _isLoadingCancelledMore,
                       error: _errorCancelled,
                       onRefresh: _loadCancelledBookings,
                       emptyTitle: 'No cancelled bookings',
                       emptySubtitle: 'Cancelled trips will appear here',
                       emptyIcon: Icons.cancel_outlined,
+                      controller: _cancelledController,
+                      canLoadMore:
+                          _hasMoreCancelledBus || _hasMoreCancelledLounge,
                     ),
                   ],
                 ),
@@ -291,11 +492,14 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   Widget _buildBookingsList({
     required List<UnifiedBooking> bookings,
     required bool isLoading,
+    required bool isLoadingMore,
     required String? error,
     required VoidCallback onRefresh,
     required String emptyTitle,
     required String emptySubtitle,
     required IconData emptyIcon,
+    required ScrollController controller,
+    required bool canLoadMore,
   }) {
     if (isLoading) {
       return Center(
@@ -418,8 +622,22 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
       color: AppColors.primary,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        itemCount: bookings.length,
+        controller: controller,
+        itemCount: bookings.length + (isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
+          if (index >= bookings.length) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: canLoadMore
+                    ? const CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 3,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            );
+          }
           return _buildBookingCard(bookings[index]);
         },
       ),
