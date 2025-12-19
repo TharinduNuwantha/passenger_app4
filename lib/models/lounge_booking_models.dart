@@ -604,17 +604,21 @@ class LoungeBooking {
     final expectedEndTimeStr = json['scheduled_departure'] ?? json['expected_end_time'];
     final actualCheckOutTimeStr = json['actual_departure'] ?? json['actual_check_out_time'];
     final statusStr = json['status'] ?? json['booking_status'];
+    final createdAtStr = json['created_at'];
+    final updatedAtStr = json['updated_at'];
     
     return LoungeBooking(
-      id: json['id'] as String,
-      loungeId: json['lounge_id'] as String,
+      id: json['id'] as String? ?? '',
+      loungeId: json['lounge_id'] as String? ?? '',
       loungeName: json['lounge_name'] as String?,
-      userId: json['user_id'] as String,
+      userId: json['user_id'] as String? ?? '',
       busBookingId: json['bus_booking_id'] as String?,
-      bookingReference: json['booking_reference'] as String,
+      bookingReference: json['booking_reference'] as String? ?? '',
       pricingType: LoungePricingType.fromJson(json['pricing_type'] as String?),
       numberOfGuests: json['number_of_guests'] as int? ?? 1,
-      checkInTime: DateTime.parse(checkInTimeStr as String),
+      checkInTime: checkInTimeStr != null 
+          ? DateTime.parse(checkInTimeStr as String)
+          : DateTime.now(),
       expectedEndTime: expectedEndTimeStr != null
           ? DateTime.parse(expectedEndTimeStr as String)
           : null,
@@ -631,8 +635,12 @@ class LoungeBooking {
       ),
       specialRequests: json['special_requests'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: createdAtStr != null 
+          ? DateTime.parse(createdAtStr as String)
+          : DateTime.now(),
+      updatedAt: updatedAtStr != null 
+          ? DateTime.parse(updatedAtStr as String)
+          : DateTime.now(),
       guests: (json['guests'] as List<dynamic>?)
               ?.map((e) => LoungeBookingGuest.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -724,9 +732,9 @@ class LoungeBookingGuest {
     }
     
     return LoungeBookingGuest(
-      id: json['id'] as String,
-      loungeBookingId: json['lounge_booking_id'] as String,
-      guestName: json['guest_name'] as String,
+      id: json['id'] as String? ?? '',
+      loungeBookingId: json['lounge_booking_id'] as String? ?? '',
+      guestName: json['guest_name'] as String? ?? 'Guest',
       guestPhone: parseGuestPhone(json['guest_phone']),
       isPrimaryGuest: json['is_primary_guest'] as bool? ?? false,
       checkedInAt: parseCheckedInAt(json['checked_in_at']),

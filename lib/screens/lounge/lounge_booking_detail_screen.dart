@@ -43,7 +43,10 @@ class _LoungeBookingDetailScreenState extends State<LoungeBookingDetailScreen> {
         _isLoadingOrders = false;
       });
     } catch (e) {
+      // Silently fail - lounge-only bookings may not have orders endpoint
+      _logger.d('Could not load orders (expected for lounge-only bookings): $e');
       setState(() {
+        _orders = [];
         _isLoadingOrders = false;
       });
     }
@@ -145,23 +148,60 @@ class _LoungeBookingDetailScreenState extends State<LoungeBookingDetailScreen> {
   Widget _buildStatusBanner() {
     final statusColor = _getStatusColor(_booking.status);
     final statusIcon = _getStatusIcon(_booking.status);
+    final paymentColor = _getPaymentStatusColor(_booking.paymentStatus);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       color: statusColor.withOpacity(0.1),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          Icon(statusIcon, color: statusColor, size: 24),
-          const SizedBox(width: 12),
-          Text(
-            _booking.status.displayName.toUpperCase(),
-            style: TextStyle(
-              color: statusColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              letterSpacing: 1,
+          // Booking Status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(statusIcon, color: statusColor, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                _booking.status.displayName.toUpperCase(),
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          // Payment Status Badge
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: paymentColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: paymentColor.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _booking.paymentStatus == LoungePaymentStatus.paid
+                      ? Icons.check_circle
+                      : Icons.pending,
+                  size: 16,
+                  color: paymentColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Payment: ${_booking.paymentStatus.displayName}',
+                  style: TextStyle(
+                    color: paymentColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

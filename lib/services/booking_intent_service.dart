@@ -120,6 +120,76 @@ class BookingIntentService {
   }
 
   // ============================================================================
+  // ADD LOUNGE TO INTENT
+  // ============================================================================
+
+  /// Add lounge bookings to an existing bus-only intent
+  ///
+  /// This is used when the user selects lounges after seats are already held.
+  /// The intent is updated to include lounge data and the hold timer is extended.
+  ///
+  /// [intentId] - The existing intent ID
+  /// [preTripLounge] - Optional pre-trip lounge data
+  /// [postTripLounge] - Optional post-trip lounge data
+  ///
+  /// Returns updated [BookingIntentResponse] with new totals and extended expiry
+  Future<BookingIntentResponse> addLoungeToIntent({
+    required String intentId,
+    LoungeIntentRequest? preTripLounge,
+    LoungeIntentRequest? postTripLounge,
+  }) async {
+    try {
+      _logger.i('Adding lounge to intent: $intentId');
+      if (preTripLounge != null) {
+        _logger.i('Pre-trip lounge: ${preTripLounge.loungeName}');
+      }
+      if (postTripLounge != null) {
+        _logger.i('Post-trip lounge: ${postTripLounge.loungeName}');
+      }
+
+      final data = <String, dynamic>{};
+      if (preTripLounge != null) {
+        data['pre_trip_lounge'] = preTripLounge.toJson();
+      }
+      if (postTripLounge != null) {
+        data['post_trip_lounge'] = postTripLounge.toJson();
+      }
+
+      final response = await _apiService.patch(
+        '/api/v1/booking/intent/$intentId/add-lounge',
+        data: data,
+      );
+
+      _logger.d('Add lounge response: ${response.data}');
+
+      final intentResponse = BookingIntentResponse.fromJson(response.data);
+
+      _logger.i('Lounge added, new total: ${intentResponse.pricing.formattedTotal}');
+      _logger.i('Extended expiry: ${intentResponse.expiresAt}');
+
+      return intentResponse;
+    } on DioException catch (e) {
+      _logger.e('Failed to add lounge: ${e.message}');
+
+      if (e.response?.statusCode == 400) {
+        final error = e.response?.data?['error'] ?? 'Cannot add lounge';
+        throw Exception(error);
+      }
+      if (e.response?.statusCode == 404) {
+        throw Exception('Intent not found');
+      }
+      if (e.response?.statusCode == 409) {
+        throw Exception('Lounge capacity not available');
+      }
+
+      throw ErrorHandler.handleError(e);
+    } catch (e) {
+      _logger.e('Unexpected error adding lounge: $e');
+      throw Exception('Failed to add lounge: $e');
+    }
+  }
+
+  // ============================================================================
   // INITIATE PAYMENT
   // ============================================================================
 
@@ -198,6 +268,15 @@ class BookingIntentService {
       _logger.i('Booking confirmed: ${confirmResponse.masterReference}');
       if (confirmResponse.busBooking != null) {
         _logger.i('Bus booking: ${confirmResponse.busBooking!.reference}');
+      }
+      // Log lounge booking details
+      if (confirmResponse.preLoungeBooking != null) {
+        _logger.i('Pre-lounge booking: ${confirmResponse.preLoungeBooking!.reference}, QR: ${confirmResponse.preLoungeBooking!.qrCode}');
+      } else {
+        _logger.w('No pre-lounge booking in confirm response');
+      }
+      if (confirmResponse.postLoungeBooking != null) {
+        _logger.i('Post-lounge booking: ${confirmResponse.postLoungeBooking!.reference}, QR: ${confirmResponse.postLoungeBooking!.qrCode}');
       }
 
       return confirmResponse;

@@ -107,37 +107,38 @@ enum IntentType {
   busWithPostLounge,
   busWithBothLounges;
 
+  /// Convert to JSON for API request
+  /// Backend only accepts: bus_only, lounge_only, combined
   String toJson() {
     switch (this) {
       case IntentType.busOnly:
         return 'bus_only';
       case IntentType.loungeOnly:
         return 'lounge_only';
+      // All bus+lounge variants map to 'combined' for the API
       case IntentType.busWithLounge:
-        return 'bus_with_lounge';
       case IntentType.busWithPreLounge:
-        return 'bus_with_pre_lounge';
       case IntentType.busWithPostLounge:
-        return 'bus_with_post_lounge';
       case IntentType.busWithBothLounges:
-        return 'bus_with_both_lounges';
+        return 'combined';
     }
   }
 
+  /// Parse from API response
+  /// Backend returns: bus_only, lounge_only, combined
   static IntentType fromJson(String? value) {
     switch (value) {
       case 'bus_only':
         return IntentType.busOnly;
       case 'lounge_only':
         return IntentType.loungeOnly;
+      case 'combined':
       case 'bus_with_lounge':
-        return IntentType.busWithLounge;
       case 'bus_with_pre_lounge':
-        return IntentType.busWithPreLounge;
       case 'bus_with_post_lounge':
-        return IntentType.busWithPostLounge;
       case 'bus_with_both_lounges':
-        return IntentType.busWithBothLounges;
+        // Backend returns 'combined' - we'll use busWithLounge as generic
+        return IntentType.busWithLounge;
       default:
         return IntentType.busOnly;
     }
@@ -218,6 +219,20 @@ class CreateBookingIntentRequest {
       idempotencyKey: idempotencyKey,
     );
   }
+
+  /// Factory for lounge-only intent
+  factory CreateBookingIntentRequest.loungeOnly({
+    LoungeIntentRequest? preTripLounge,
+    LoungeIntentRequest? postTripLounge,
+    String? idempotencyKey,
+  }) {
+    return CreateBookingIntentRequest(
+      intentType: IntentType.loungeOnly,
+      preTripLounge: preTripLounge,
+      postTripLounge: postTripLounge,
+      idempotencyKey: idempotencyKey,
+    );
+  }
 }
 
 /// Bus booking intent request
@@ -292,28 +307,56 @@ class IntentSeatRequest {
 /// Lounge booking intent request
 class LoungeIntentRequest {
   final String loungeId;
-  final int guestCount;
-  final DateTime? scheduledArrival;
+  final String loungeName;
+  final String? loungeAddress;
+  final String pricingType; // '1_hour', '2_hours', '3_hours', 'until_bus'
+  final String date; // 'YYYY-MM-DD'
+  final String checkInTime; // 'HH:mm'
+  final String? checkOutTime;
   final List<LoungeGuestRequest> guests;
   final List<PreOrderItem>? preOrders;
+  
+  // Pricing info
+  final double pricePerGuest;
+  final double basePrice;
+  final double preOrderTotal;
+  final double totalPrice;
 
   LoungeIntentRequest({
     required this.loungeId,
-    required this.guestCount,
-    this.scheduledArrival,
+    required this.loungeName,
+    this.loungeAddress,
+    required this.pricingType,
+    required this.date,
+    required this.checkInTime,
+    this.checkOutTime,
     required this.guests,
     this.preOrders,
+    required this.pricePerGuest,
+    required this.basePrice,
+    this.preOrderTotal = 0.0,
+    required this.totalPrice,
   });
+
+  int get guestCount => guests.length;
 
   Map<String, dynamic> toJson() {
     return {
       'lounge_id': loungeId,
+      'lounge_name': loungeName,
+      if (loungeAddress != null) 'lounge_address': loungeAddress,
+      'pricing_type': pricingType,
+      'date': date,
+      'check_in_time': checkInTime,
+      if (checkOutTime != null) 'check_out_time': checkOutTime,
       'guest_count': guestCount,
-      if (scheduledArrival != null)
-        'scheduled_arrival': scheduledArrival!.toIso8601String(),
       'guests': guests.map((g) => g.toJson()).toList(),
-      if (preOrders != null)
+      if (preOrders != null && preOrders!.isNotEmpty)
         'pre_orders': preOrders!.map((p) => p.toJson()).toList(),
+      'price_per_guest': pricePerGuest,
+      'base_price': basePrice,
+      'pre_order_total': preOrderTotal,
+      'total_price': totalPrice,
     };
   }
 }
@@ -322,13 +365,19 @@ class LoungeIntentRequest {
 class LoungeGuestRequest {
   final String guestName;
   final String? guestPhone;
+  final bool isPrimary;
 
-  LoungeGuestRequest({required this.guestName, this.guestPhone});
+  LoungeGuestRequest({
+    required this.guestName, 
+    this.guestPhone,
+    this.isPrimary = false,
+  });
 
   Map<String, dynamic> toJson() {
     return {
       'guest_name': guestName,
       if (guestPhone != null) 'guest_phone': guestPhone,
+      'is_primary': isPrimary,
     };
   }
 }
@@ -336,15 +385,34 @@ class LoungeGuestRequest {
 /// Pre-order item for lounge
 class PreOrderItem {
   final String productId;
+  final String productName;
+  final String? productType;
+  final String? imageUrl;
   final int quantity;
+  final double unitPrice;
+  final double totalPrice;
   final String? notes;
 
-  PreOrderItem({required this.productId, required this.quantity, this.notes});
+  PreOrderItem({
+    required this.productId,
+    required this.productName,
+    this.productType,
+    this.imageUrl,
+    required this.quantity,
+    required this.unitPrice,
+    required this.totalPrice,
+    this.notes,
+  });
 
   Map<String, dynamic> toJson() {
     return {
       'product_id': productId,
+      'product_name': productName,
+      if (productType != null) 'product_type': productType,
+      if (imageUrl != null) 'image_url': imageUrl,
       'quantity': quantity,
+      'unit_price': unitPrice,
+      'total_price': totalPrice,
       if (notes != null) 'notes': notes,
     };
   }
@@ -419,7 +487,8 @@ class BookingIntentResponse {
 
   /// Calculate remaining time until expiry
   Duration get remainingTime {
-    final now = DateTime.now();
+    // expiresAt is in UTC, so compare with UTC now
+    final now = DateTime.now().toUtc();
     if (expiresAt.isBefore(now)) return Duration.zero;
     return expiresAt.difference(now);
   }

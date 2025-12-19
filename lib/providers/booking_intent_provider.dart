@@ -223,6 +223,78 @@ class BookingIntentProvider with ChangeNotifier {
     return createIntent(request);
   }
 
+  /// Convenience method for lounge-only booking
+  Future<bool> createLoungeOnlyIntent({
+    required LoungeIntentRequest loungeIntent,
+  }) async {
+    final request = CreateBookingIntentRequest.loungeOnly(
+      preTripLounge: loungeIntent,
+    );
+    return createIntent(request);
+  }
+
+  // ============================================================================
+  // ADD LOUNGE TO INTENT
+  // ============================================================================
+
+  /// Add lounge to existing bus-only intent
+  ///
+  /// Use this after creating a bus-only intent when user wants to add lounges.
+  /// This extends the hold timer and updates pricing.
+  Future<bool> addLoungeToIntent({
+    LoungeIntentRequest? preTripLounge,
+    LoungeIntentRequest? postTripLounge,
+  }) async {
+    if (_currentIntent == null) {
+      _errorMessage = 'No active intent to add lounge to';
+      notifyListeners();
+      return false;
+    }
+
+    if (isExpired) {
+      _errorMessage = 'Intent has expired';
+      notifyListeners();
+      return false;
+    }
+
+    if (preTripLounge == null && postTripLounge == null) {
+      _logger.i('No lounges to add, skipping');
+      return true; // Nothing to add, just continue
+    }
+
+    _isCreatingIntent = true; // Reuse loading state
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _logger.i('Adding lounge to intent: ${_currentIntent!.intentId}');
+
+      final response = await _service.addLoungeToIntent(
+        intentId: _currentIntent!.intentId,
+        preTripLounge: preTripLounge,
+        postTripLounge: postTripLounge,
+      );
+
+      // Update current intent with new data
+      _currentIntent = response;
+
+      // Restart countdown with extended expiry
+      _startCountdownTimer(response.expiresAt);
+
+      _isCreatingIntent = false;
+      notifyListeners();
+
+      _logger.i('Lounge added, new total: ${response.pricing.formattedTotal}');
+      return true;
+    } catch (e) {
+      _logger.e('Error adding lounge: $e');
+      _errorMessage = e.toString();
+      _isCreatingIntent = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ============================================================================
   // GET STATUS
   // ============================================================================
@@ -332,6 +404,13 @@ class BookingIntentProvider with ChangeNotifier {
       notifyListeners();
 
       _logger.i('Booking confirmed: ${response.masterReference}');
+      _logger.i('Has bus: ${response.busBooking != null}, Has pre-lounge: ${response.preLoungeBooking != null}, Has post-lounge: ${response.postLoungeBooking != null}');
+      if (response.preLoungeBooking != null) {
+        _logger.i('Pre-lounge in provider: ${response.preLoungeBooking!.reference}');
+      }
+      if (response.postLoungeBooking != null) {
+        _logger.i('Post-lounge in provider: ${response.postLoungeBooking!.reference}');
+      }
       return true;
     } on IntentExpiredException catch (e) {
       _logger.e('Intent expired: $e');
@@ -421,8 +500,8 @@ class BookingIntentProvider with ChangeNotifier {
   void _startCountdownTimer(DateTime expiresAt) {
     _stopCountdownTimer();
 
-    // Calculate initial remaining time
-    _remainingSeconds = expiresAt.difference(DateTime.now()).inSeconds;
+    // Calculate initial remaining time (expiresAt is UTC, so use UTC now)
+    _remainingSeconds = expiresAt.difference(DateTime.now().toUtc()).inSeconds;
     if (_remainingSeconds < 0) _remainingSeconds = 0;
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {

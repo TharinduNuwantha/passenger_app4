@@ -3,7 +3,7 @@ import '../../models/lounge_booking_models.dart';
 import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
-import 'lounge_booking_screen.dart';
+import 'lounge_intent_booking_screen.dart';
 
 /// Detailed view of a single lounge with booking option
 class LoungeDetailScreen extends StatefulWidget {
@@ -760,10 +760,9 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LoungeBookingScreen(
+        builder: (context) => LoungeIntentBookingScreen(
           lounge: _lounge,
           products: _products,
-          busBookingId: widget.busBookingId,
         ),
       ),
     );

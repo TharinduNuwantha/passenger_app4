@@ -11,7 +11,7 @@ import '../../providers/search_provider.dart';
 import '../../services/search_service.dart';
 import '../bus_booking/booking_conform.dart' hide AppColors;
 import '../bus_booking/bus_booking_screen.dart';
-import '../bus_booking/nav_booking_screen.dart';
+import '../bus_booking/activities_screen.dart';
 import '../lounge/lounge_list_screen.dart';
 import '../lounge/my_lounge_bookings_screen.dart';
 import '../profile/profile_screen.dart';
@@ -935,7 +935,7 @@ class _DashBoardState extends State<DashBoard> {
       // Page 0: Your Full Dashboard UI
       SafeArea(child: singleChildScrollView),
 
-      const BookingScreen(),
+      const ActivitiesScreen(),
       const LocationPage(),
       const LoungeListScreen(),
       const ProfileScreen(),

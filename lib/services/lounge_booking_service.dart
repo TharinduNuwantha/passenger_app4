@@ -622,6 +622,11 @@ class LoungeBookingService {
 
       return orders;
     } on DioException catch (e) {
+      // Handle 404 gracefully - lounge-only bookings without pre-orders won't have an orders endpoint
+      if (e.response?.statusCode == 404) {
+        _logger.i('No orders endpoint for booking (404) - returning empty list');
+        return [];
+      }
       _logger.e('Failed to get booking orders: ${e.message}');
       throw ErrorHandler.handleError(e);
     } catch (e) {

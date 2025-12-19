@@ -481,9 +481,9 @@ class MasterBooking {
 
   factory MasterBooking.fromJson(Map<String, dynamic> json) {
     return MasterBooking(
-      id: json['id'] as String,
-      bookingReference: json['booking_reference'] as String,
-      userId: json['user_id'] as String,
+      id: json['id'] as String? ?? '',
+      bookingReference: json['booking_reference'] as String? ?? '',
+      userId: json['user_id'] as String? ?? '',
       bookingType: BookingType.fromJson(json['booking_type'] as String?),
       busTotal: (json['bus_total'] as num?)?.toDouble() ?? 0.0,
       loungeTotal: (json['lounge_total'] as num?)?.toDouble() ?? 0.0,
@@ -530,8 +530,12 @@ class MasterBooking {
       bookingSource: json['booking_source'] as String? ?? 'app',
       deviceInfo: json['device_info'] as Map<String, dynamic>?,
       notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
       busBooking: json['bus_booking'] != null
           ? BusBooking.fromJson(json['bus_booking'] as Map<String, dynamic>)
           : null,
@@ -647,9 +651,9 @@ class BusBooking {
 
   factory BusBooking.fromJson(Map<String, dynamic> json) {
     return BusBooking(
-      id: json['id'] as String,
-      bookingId: json['booking_id'] as String,
-      scheduledTripId: json['scheduled_trip_id'] as String,
+      id: json['id'] as String? ?? '',
+      bookingId: json['booking_id'] as String? ?? '',
+      scheduledTripId: json['scheduled_trip_id'] as String? ?? '',
       routeName: json['route_name'] as String? ?? 'Unknown Route',
       busNumber: json['bus_number'] as String?,
       busType: json['bus_type'] as String?,
@@ -660,7 +664,9 @@ class BusBooking {
       alightingStopId: json['alighting_stop_id'] as String?,
       alightingStopName: json['alighting_stop_name'] as String? ?? '',
       alightingStopOrder: json['alighting_stop_order'] as int?,
-      departureDatetime: DateTime.parse(json['departure_datetime'] as String),
+      departureDatetime: json['departure_datetime'] != null
+          ? DateTime.parse(json['departure_datetime'] as String)
+          : DateTime.now(),
       estimatedArrivalDatetime: json['estimated_arrival_datetime'] != null
           ? DateTime.parse(json['estimated_arrival_datetime'] as String)
           : null,
@@ -694,8 +700,12 @@ class BusBooking {
           ? DateTime.parse(json['qr_generated_at'] as String)
           : null,
       specialRequests: json['special_requests'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
       seats:
           (json['seats'] as List<dynamic>?)
               ?.map((e) => BusBookingSeat.fromJson(e as Map<String, dynamic>))
@@ -791,11 +801,11 @@ class BusBookingSeat {
 
   factory BusBookingSeat.fromJson(Map<String, dynamic> json) {
     return BusBookingSeat(
-      id: json['id'] as String,
-      busBookingId: json['bus_booking_id'] as String,
-      scheduledTripId: json['scheduled_trip_id'] as String,
+      id: json['id'] as String? ?? '',
+      busBookingId: json['bus_booking_id'] as String? ?? '',
+      scheduledTripId: json['scheduled_trip_id'] as String? ?? '',
       tripSeatId: json['trip_seat_id'] as String?,
-      seatNumber: json['seat_number'] as String,
+      seatNumber: json['seat_number'] as String? ?? '',
       seatType: json['seat_type'] as String? ?? 'regular',
       seatPrice: (json['seat_price'] as num?)?.toDouble() ?? 0.0,
       passengerName: json['passenger_name'] as String? ?? '',
@@ -815,8 +825,12 @@ class BusBookingSeat {
       cancelledAt: json['cancelled_at'] != null
           ? DateTime.parse(json['cancelled_at'] as String)
           : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
     );
   }
 
@@ -974,8 +988,14 @@ class BookingResponse {
   });
 
   factory BookingResponse.fromJson(Map<String, dynamic> json) {
+    // API may return booking directly OR wrapped in {"booking": ...}
+    // Check if 'booking' key exists, otherwise treat entire json as MasterBooking
+    final bookingJson = json.containsKey('booking') && json['booking'] != null
+        ? json['booking'] as Map<String, dynamic>
+        : json;
+
     return BookingResponse(
-      booking: MasterBooking.fromJson(json['booking'] as Map<String, dynamic>),
+      booking: MasterBooking.fromJson(bookingJson),
       busBooking: json['bus_booking'] != null
           ? BusBooking.fromJson(json['bus_booking'] as Map<String, dynamic>)
           : null,
@@ -1025,8 +1045,8 @@ class BookingListItem {
 
   factory BookingListItem.fromJson(Map<String, dynamic> json) {
     return BookingListItem(
-      id: json['id'] as String,
-      bookingReference: json['booking_reference'] as String,
+      id: json['id'] as String? ?? '',
+      bookingReference: json['booking_reference'] as String? ?? '',
       bookingType: BookingType.fromJson(json['booking_type'] as String?),
       totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
       paymentStatus: MasterPaymentStatus.fromJson(
@@ -1036,7 +1056,9 @@ class BookingListItem {
         json['booking_status'] as String?,
       ),
       passengerName: json['passenger_name'] as String? ?? '',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
       routeName: json['route_name'] as String?,
       departureDatetime: json['departure_datetime'] != null
           ? DateTime.parse(json['departure_datetime'] as String)

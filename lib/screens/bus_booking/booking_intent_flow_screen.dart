@@ -11,6 +11,7 @@ import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../payment/payment_webview_screen.dart';
 import 'booking_intent_success_screen.dart';
+import 'add_lounge_screen.dart';
 
 /// Booking Intent Flow Screen - Uses the new Intent → Payment → Confirm flow
 ///
@@ -72,6 +73,11 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
   bool _isCreatingIntent = false;
   bool _intentCreated = false;
 
+  // Lounge selections (for combined booking)
+  SelectedLoungeData? _preTripLounge;
+  SelectedLoungeData? _postTripLounge;
+  bool _loungeSelectionDone = false;
+
   @override
   void initState() {
     super.initState();
@@ -91,9 +97,10 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
       );
     }).toList();
 
-    // Create intent after build
+    // Create bus-only intent IMMEDIATELY to hold seats
+    // This prevents race conditions where seats could be taken while user browses lounges
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _createBookingIntent();
+      _createBusOnlyIntent();
     });
   }
 
@@ -110,8 +117,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     super.dispose();
   }
 
-  /// Create booking intent to hold seats
-  Future<void> _createBookingIntent() async {
+  /// Create bus-only intent immediately when entering this screen
+  /// This holds the seats while user can optionally browse lounges
+  Future<void> _createBusOnlyIntent() async {
     // Check authentication first
     final isAuthenticated = await _authService.isAuthenticated();
     if (!isAuthenticated) {
@@ -126,9 +134,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     setState(() => _isCreatingIntent = true);
 
     try {
-      // Use phone number as fallback if userName is empty
-      final seatPassengerName = widget.userName.trim().isNotEmpty
-          ? widget.userName
+      final seatPassengerName = _nameController.text.trim().isNotEmpty
+          ? _nameController.text.trim()
           : 'Passenger';
 
       // Build seat requests
@@ -136,16 +143,17 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         return IntentSeatRequest(
           tripSeatId: p.tripSeatId,
           passengerName: seatPassengerName,
-          passengerPhone: widget.userPhone,
+          passengerPhone: _phoneController.text.trim(),
           passengerGender: _selectedGender,
         );
       }).toList();
 
-      // Use phone number as fallback if userName is empty
-      final effectiveName = widget.userName.trim().isNotEmpty
-          ? widget.userName
-          : 'Passenger ${widget.userPhone}';
+      final effectiveName = _nameController.text.trim().isNotEmpty
+          ? _nameController.text.trim()
+          : 'Passenger ${_phoneController.text.trim()}';
 
+      // Create bus-only intent to hold seats immediately
+      _logger.i('Creating bus-only intent to hold seats immediately');
       final success = await provider.createBusIntent(
         scheduledTripId: widget.trip.tripId,
         seats: seats,
@@ -154,8 +162,10 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         boardingStopName: widget.boardingPoint,
         alightingStopName: widget.alightingPoint,
         passengerName: effectiveName,
-        passengerPhone: widget.userPhone,
-        passengerEmail: widget.userEmail,
+        passengerPhone: _phoneController.text.trim(),
+        passengerEmail: _emailController.text.trim().isNotEmpty
+            ? _emailController.text.trim()
+            : null,
       );
 
       if (success) {
@@ -163,20 +173,23 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           _intentCreated = true;
           _isCreatingIntent = false;
         });
-        _logger.i('Intent created successfully');
+        _logger.i('Seats held successfully: ${provider.currentIntent?.intentId}');
       } else {
         // Handle partial availability
         if (provider.hasPartialAvailability) {
           _showPartialAvailabilityDialog(provider.partialAvailabilityError!);
         } else {
           _showErrorSnackBar(provider.errorMessage ?? 'Failed to hold seats');
+          // Go back since we couldn't hold seats
+          if (mounted) Navigator.pop(context);
         }
         setState(() => _isCreatingIntent = false);
       }
     } catch (e) {
-      _logger.e('Error creating intent: $e');
+      _logger.e('Error creating bus-only intent: $e');
       setState(() => _isCreatingIntent = false);
       _showErrorSnackBar('Failed to hold seats: $e');
+      if (mounted) Navigator.pop(context);
     }
   }
 
@@ -234,9 +247,86 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
 
     final provider = context.read<BookingIntentProvider>();
 
-    if (provider.isExpired) {
+    // Check if intent has expired
+    if (_intentCreated && provider.isExpired) {
       _showExpiredDialog();
       return;
+    }
+
+    // Wait for intent creation if still in progress
+    if (!_intentCreated) {
+      _showErrorSnackBar('Please wait, reserving your seats...');
+      return;
+    }
+
+    // If lounge selection not done yet, show lounge selection screen
+    if (!_loungeSelectionDone &&
+        widget.masterRouteId != null &&
+        widget.masterRouteId!.isNotEmpty) {
+      final result = await Navigator.push<AddLoungeResult>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddLoungeScreen(
+            trip: widget.trip,
+            selectedSeats: widget.selectedSeats,
+            boardingPoint: widget.boardingPoint,
+            alightingPoint: widget.alightingPoint,
+            boardingStopId: widget.boardingStopId,
+            alightingStopId: widget.alightingStopId,
+            masterRouteId: widget.masterRouteId,
+            busFare: widget.totalPrice,
+            passengerName: _nameController.text.trim(),
+            passengerPhone: _phoneController.text.trim(),
+            passengerEmail: _emailController.text.trim().isNotEmpty
+                ? _emailController.text.trim()
+                : null,
+          ),
+        ),
+      );
+
+      if (result == null) {
+        // User pressed back, stay on this screen
+        return;
+      }
+
+      setState(() {
+        _preTripLounge = result.preTripLounge;
+        _postTripLounge = result.postTripLounge;
+        _loungeSelectionDone = true;
+      });
+
+      // If lounges were selected, add them to existing intent (don't recreate!)
+      if (result.hasLounges) {
+        _logger.i('Lounges selected, adding to existing intent');
+        
+        // Convert lounge data to intent requests
+        LoungeIntentRequest? preTripLounge;
+        LoungeIntentRequest? postTripLounge;
+
+        if (_preTripLounge != null) {
+          preTripLounge = _preTripLounge!.toIntentRequest();
+          _logger.i('Adding pre-trip lounge: ${_preTripLounge!.lounge.loungeName}');
+        }
+        if (_postTripLounge != null) {
+          postTripLounge = _postTripLounge!.toIntentRequest();
+          _logger.i('Adding post-trip lounge: ${_postTripLounge!.lounge.loungeName}');
+        }
+
+        // Add lounges to existing intent (extends TTL and updates pricing)
+        final addSuccess = await provider.addLoungeToIntent(
+          preTripLounge: preTripLounge,
+          postTripLounge: postTripLounge,
+        );
+
+        if (!addSuccess) {
+          _showErrorSnackBar(provider.errorMessage ?? 'Failed to add lounge');
+          // Allow retry by resetting lounge selection
+          setState(() => _loungeSelectionDone = false);
+          return;
+        }
+
+        _logger.i('Lounges added successfully, proceeding to payment');
+      }
     }
 
     // Initiate payment
@@ -286,7 +376,13 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     if (success && mounted) {
       final confirmedBooking = provider.confirmedBooking!;
 
-      // Navigate to success screen
+      print('🚀 Navigating to success screen:');
+      print('  Master: ${confirmedBooking.masterReference}');
+      print('  Bus: ${confirmedBooking.busBooking?.reference}');
+      print('  Pre-lounge: ${confirmedBooking.preLoungeBooking?.reference}');
+      print('  Post-lounge: ${confirmedBooking.postLoungeBooking?.reference}');
+
+      // Navigate to success screen with lounge booking info
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -300,6 +396,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             seatNumbers: widget.selectedSeats
                 .map((s) => s.seatNumber)
                 .join(', '),
+            preLoungeBooking: confirmedBooking.preLoungeBooking,
+            postLoungeBooking: confirmedBooking.postLoungeBooking,
           ),
         ),
       );
@@ -409,7 +507,11 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
               ? _buildLoadingView()
               : Column(
                   children: [
-                    _buildCountdownTimer(),
+                    // Only show countdown timer if intent has been created
+                    if (_intentCreated) _buildCountdownTimer(),
+                    // Show lounge summary if lounges selected
+                    if (_preTripLounge != null || _postTripLounge != null)
+                      _buildLoungeSelectionSummary(),
                     Expanded(
                       child: Container(
                         decoration: const BoxDecoration(
@@ -840,7 +942,109 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     );
   }
 
+  Widget _buildLoungeSelectionSummary() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFC300).withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFC300)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.weekend, color: Color(0xFFFFC300), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Lounge Added',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_preTripLounge != null)
+            _buildLoungeSummaryItem(_preTripLounge!, 'Pre-Trip'),
+          if (_postTripLounge != null)
+            _buildLoungeSummaryItem(_postTripLounge!, 'Post-Trip'),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () {
+              // Clear selections and allow re-selecting
+              setState(() {
+                _loungeSelectionDone = false;
+                _preTripLounge = null;
+                _postTripLounge = null;
+              });
+            },
+            child: const Text(
+              'Change lounge selection',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoungeSummaryItem(SelectedLoungeData lounge, String type) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              type,
+              style: const TextStyle(fontSize: 10, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              lounge.lounge.loungeName,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            'LKR ${lounge.totalPrice.toStringAsFixed(0)}',
+            style: const TextStyle(
+              color: Color(0xFFFFC300),
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPriceSummary() {
+    // Calculate total including lounges
+    double loungeTotal = 0;
+    if (_preTripLounge != null) {
+      loungeTotal += _preTripLounge!.totalPrice;
+    }
+    if (_postTripLounge != null) {
+      loungeTotal += _postTripLounge!.totalPrice;
+    }
+    final grandTotal = widget.totalPrice + loungeTotal;
+
     return Consumer<BookingIntentProvider>(
       builder: (context, provider, _) {
         final pricing = provider.currentIntent?.pricing;
@@ -853,6 +1057,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           ),
           child: Column(
             children: [
+              // Bus fare
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -865,7 +1070,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
                   Text(
                     pricing?.formattedBusFare ??
-                        'LKR ${widget.totalPrice.toStringAsFixed(2)}',
+                        'LKR ${widget.totalPrice.toStringAsFixed(0)}',
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppColors.primary,
@@ -873,6 +1078,104 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
                 ],
               ),
+              // Pre-trip lounge
+              if (_preTripLounge != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Pre-Trip: ${_preTripLounge!.lounge.loungeName}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary.withOpacity(0.7),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      'LKR ${_preTripLounge!.totalPrice.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_preTripLounge!.preOrders.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '• Pre-orders',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          'LKR ${_preTripLounge!.preOrderTotal.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+              // Post-trip lounge
+              if (_postTripLounge != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Post-Trip: ${_postTripLounge!.lounge.loungeName}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary.withOpacity(0.7),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      'LKR ${_postTripLounge!.totalPrice.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_postTripLounge!.preOrders.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '• Pre-orders',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          'LKR ${_postTripLounge!.preOrderTotal.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
               const Divider(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -887,7 +1190,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
                   Text(
                     pricing?.formattedTotal ??
-                        'LKR ${widget.totalPrice.toStringAsFixed(2)}',
+                        'LKR ${grandTotal.toStringAsFixed(0)}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -907,8 +1210,24 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     return Consumer<BookingIntentProvider>(
       builder: (context, provider, _) {
         final isLoading =
-            provider.isInitiatingPayment || provider.isConfirmingBooking;
-        final isExpired = provider.isExpired;
+            provider.isInitiatingPayment ||
+            provider.isConfirmingBooking ||
+            _isCreatingIntent;
+        final isExpired = _intentCreated && provider.isExpired;
+
+        // Determine button text based on state
+        String buttonText;
+        if (isExpired) {
+          buttonText = 'Session Expired';
+        } else if (!_loungeSelectionDone &&
+            widget.masterRouteId != null &&
+            widget.masterRouteId!.isNotEmpty) {
+          buttonText = 'Continue - Add Lounge (Optional)';
+        } else if (!_intentCreated) {
+          buttonText = 'Proceed to Payment';
+        } else {
+          buttonText = 'Proceed to Payment';
+        }
 
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
@@ -945,13 +1264,30 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                         color: AppColors.primary,
                       ),
                     )
-                  : Text(
-                      isExpired ? 'Session Expired' : 'Proceed to Payment',
-                      style: TextStyle(
-                        color: isExpired ? Colors.grey : AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (!_loungeSelectionDone &&
+                            widget.masterRouteId != null &&
+                            widget.masterRouteId!.isNotEmpty)
+                          const Icon(
+                            Icons.weekend,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        if (!_loungeSelectionDone &&
+                            widget.masterRouteId != null &&
+                            widget.masterRouteId!.isNotEmpty)
+                          const SizedBox(width: 8),
+                        Text(
+                          buttonText,
+                          style: TextStyle(
+                            color: isExpired ? Colors.grey : AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
             ),
           ),
