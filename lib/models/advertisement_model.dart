@@ -5,6 +5,7 @@ class Advertisement {
   final String imageUrl;
   final String? targetUrl;
   final int displayOrder;
+  final int priority;
   final bool active;
   final DateTime startDate;
   final DateTime endDate;
@@ -19,6 +20,7 @@ class Advertisement {
     required this.active,
     required this.startDate,
     required this.endDate,
+    required this.priority,
   });
 
   factory Advertisement.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class Advertisement {
       active: json['active'],
       startDate: DateTime.parse(json['startDate']),
       endDate: DateTime.parse(json['endDate']),
+      priority: json['priority'] ?? 0,
     );
   }
 }
