@@ -21,9 +21,12 @@ class AppTextStyles {
   );
 
   static const TextStyle body = TextStyle(fontSize: 14, color: AppColors.white);
-  
-  static const TextStyle bodyText1 = TextStyle(fontSize: 16, color: AppColors.white);
-  
+
+  static const TextStyle bodyText1 = TextStyle(
+    fontSize: 16,
+    color: AppColors.white,
+  );
+
   static const TextStyle buttonText = TextStyle(
     color: AppColors.white,
     fontSize: 18,
@@ -33,5 +36,23 @@ class AppTextStyles {
   static const TextStyle small = TextStyle(
     color: AppColors.white70,
     fontSize: 14,
+  );
+
+  static const TextStyle bodyLarge = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle caption = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textSecondary,
+  );
+
+  static const TextStyle bodyMedium = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textPrimary,
   );
 }

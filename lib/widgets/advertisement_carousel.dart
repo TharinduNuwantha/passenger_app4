@@ -34,7 +34,7 @@ class _AdvertisementCarouselState extends State<AdvertisementCarousel> {
             autoPlay: true,
             enlargeCenterPage: true,
             aspectRatio: 16 / 9,
-            autoPlayInterval: const Duration(seconds: 5),
+            autoPlayInterval: const Duration(seconds: 10),
             onPageChanged: (index, reason) {
               setState(() {
                 _currentIndex = index;

@@ -74,7 +74,9 @@ class MyApp extends StatelessWidget {
                   return MaterialPageRoute(builder: (_) => const DashBoard());
 
                 case AppConstants.profileRoute:
-                  return MaterialPageRoute(builder: (_) => ProfileScreen());
+                  return MaterialPageRoute(
+                    builder: (_) => const ProfileScreen(),
+                  );
 
                 case AppConstants.editProfileRoute:
                   return MaterialPageRoute(
