@@ -8,7 +8,6 @@ export 'my_bookings_screen.dart';
 export 'booking_detail_screen.dart';
 
 // Legacy screens (for backward compatibility)
-export 'seat_booking_screen.dart';
 export 'booking_conform.dart';
 export 'booking_success.dart';
 export 'Trip_details_screen.dart';

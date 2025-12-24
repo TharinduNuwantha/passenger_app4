@@ -173,7 +173,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           _intentCreated = true;
           _isCreatingIntent = false;
         });
-        _logger.i('Seats held successfully: ${provider.currentIntent?.intentId}');
+        _logger.i(
+          'Seats held successfully: ${provider.currentIntent?.intentId}',
+        );
       } else {
         // Handle partial availability
         if (provider.hasPartialAvailability) {
@@ -298,18 +300,22 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
       // If lounges were selected, add them to existing intent (don't recreate!)
       if (result.hasLounges) {
         _logger.i('Lounges selected, adding to existing intent');
-        
+
         // Convert lounge data to intent requests
         LoungeIntentRequest? preTripLounge;
         LoungeIntentRequest? postTripLounge;
 
         if (_preTripLounge != null) {
           preTripLounge = _preTripLounge!.toIntentRequest();
-          _logger.i('Adding pre-trip lounge: ${_preTripLounge!.lounge.loungeName}');
+          _logger.i(
+            'Adding boarding lounge: ${_preTripLounge!.lounge.loungeName}',
+          );
         }
         if (_postTripLounge != null) {
           postTripLounge = _postTripLounge!.toIntentRequest();
-          _logger.i('Adding post-trip lounge: ${_postTripLounge!.lounge.loungeName}');
+          _logger.i(
+            'Adding destination lounge: ${_postTripLounge!.lounge.loungeName}',
+          );
         }
 
         // Add lounges to existing intent (extends TTL and updates pricing)
@@ -1078,7 +1084,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
                 ],
               ),
-              // Pre-trip lounge
+              // Boarding lounge
               if (_preTripLounge != null) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -1086,7 +1092,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Pre-Trip: ${_preTripLounge!.lounge.loungeName}',
+                        'Boarding: ${_preTripLounge!.lounge.loungeName}',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.primary.withOpacity(0.7),
@@ -1127,7 +1133,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                     ),
                   ),
               ],
-              // Post-trip lounge
+              // Destination lounge
               if (_postTripLounge != null) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -1135,7 +1141,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Post-Trip: ${_postTripLounge!.lounge.loungeName}',
+                        'Destination: ${_postTripLounge!.lounge.loungeName}',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.primary.withOpacity(0.7),

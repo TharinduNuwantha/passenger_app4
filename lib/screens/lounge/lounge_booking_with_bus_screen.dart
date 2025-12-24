@@ -149,7 +149,7 @@ class _LoungeBookingWithBusScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isPreTrip ? 'Pre-Trip Lounge' : 'Post-Trip Lounge'),
+        title: Text(_isPreTrip ? 'Boarding Lounge' : 'Destination Lounge'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -209,7 +209,7 @@ class _LoungeBookingWithBusScreenState
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    _isPreTrip ? Icons.flight_takeoff : Icons.flight_land,
+                    _isPreTrip ? Icons.weekend : Icons.hotel,
                     color: Colors.white,
                     size: 28,
                   ),

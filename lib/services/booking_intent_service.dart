@@ -11,7 +11,8 @@ import 'api_service.dart';
 /// 2. Initiate Payment - Get payment gateway URL
 /// 3. Confirm Booking - Creates actual bookings after payment
 class BookingIntentService {
-  static final BookingIntentService _instance = BookingIntentService._internal();
+  static final BookingIntentService _instance =
+      BookingIntentService._internal();
   factory BookingIntentService() => _instance;
   BookingIntentService._internal();
 
@@ -129,8 +130,8 @@ class BookingIntentService {
   /// The intent is updated to include lounge data and the hold timer is extended.
   ///
   /// [intentId] - The existing intent ID
-  /// [preTripLounge] - Optional pre-trip lounge data
-  /// [postTripLounge] - Optional post-trip lounge data
+  /// [preTripLounge] - Optional boarding lounge data
+  /// [postTripLounge] - Optional destination lounge data
   ///
   /// Returns updated [BookingIntentResponse] with new totals and extended expiry
   Future<BookingIntentResponse> addLoungeToIntent({
@@ -141,10 +142,10 @@ class BookingIntentService {
     try {
       _logger.i('Adding lounge to intent: $intentId');
       if (preTripLounge != null) {
-        _logger.i('Pre-trip lounge: ${preTripLounge.loungeName}');
+        _logger.i('Boarding lounge: ${preTripLounge.loungeName}');
       }
       if (postTripLounge != null) {
-        _logger.i('Post-trip lounge: ${postTripLounge.loungeName}');
+        _logger.i('Destination lounge: ${postTripLounge.loungeName}');
       }
 
       final data = <String, dynamic>{};
@@ -164,7 +165,9 @@ class BookingIntentService {
 
       final intentResponse = BookingIntentResponse.fromJson(response.data);
 
-      _logger.i('Lounge added, new total: ${intentResponse.pricing.formattedTotal}');
+      _logger.i(
+        'Lounge added, new total: ${intentResponse.pricing.formattedTotal}',
+      );
       _logger.i('Extended expiry: ${intentResponse.expiresAt}');
 
       return intentResponse;
@@ -271,12 +274,16 @@ class BookingIntentService {
       }
       // Log lounge booking details
       if (confirmResponse.preLoungeBooking != null) {
-        _logger.i('Pre-lounge booking: ${confirmResponse.preLoungeBooking!.reference}, QR: ${confirmResponse.preLoungeBooking!.qrCode}');
+        _logger.i(
+          'Pre-lounge booking: ${confirmResponse.preLoungeBooking!.reference}, QR: ${confirmResponse.preLoungeBooking!.qrCode}',
+        );
       } else {
         _logger.w('No pre-lounge booking in confirm response');
       }
       if (confirmResponse.postLoungeBooking != null) {
-        _logger.i('Post-lounge booking: ${confirmResponse.postLoungeBooking!.reference}, QR: ${confirmResponse.postLoungeBooking!.qrCode}');
+        _logger.i(
+          'Post-lounge booking: ${confirmResponse.postLoungeBooking!.reference}, QR: ${confirmResponse.postLoungeBooking!.qrCode}',
+        );
       }
 
       return confirmResponse;
@@ -322,17 +329,14 @@ class BookingIntentService {
     try {
       _logger.i('Cancelling intent: $intentId');
 
-      await _apiService.post(
-        '/api/v1/booking/intent/$intentId/cancel',
-      );
+      await _apiService.post('/api/v1/booking/intent/$intentId/cancel');
 
       _logger.i('Intent cancelled successfully');
     } on DioException catch (e) {
       _logger.e('Failed to cancel intent: ${e.message}');
 
       if (e.response?.statusCode == 400) {
-        final error =
-            e.response?.data?['error'] ?? 'Cannot cancel this intent';
+        final error = e.response?.data?['error'] ?? 'Cannot cancel this intent';
         throw Exception(error);
       }
       if (e.response?.statusCode == 404) {
@@ -368,9 +372,12 @@ class BookingIntentService {
 
       _logger.d('Get intents response: ${response.data}');
 
-      final intents = (response.data['intents'] as List<dynamic>?)
-              ?.map((e) =>
-                  BookingIntentListItem.fromJson(e as Map<String, dynamic>))
+      final intents =
+          (response.data['intents'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    BookingIntentListItem.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [];
 

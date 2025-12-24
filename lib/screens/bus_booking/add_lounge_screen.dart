@@ -19,7 +19,11 @@ class SelectedLoungeData {
   final double preOrderTotal;
   final double totalPrice;
   final DateTime tripDate; // Date from the trip
-  final String checkInTime; // Check-in time (e.g., trip departure time for pre-trip)
+  final String
+  checkInTime; // Check-in time (e.g., trip departure time for pre-trip)
+  final String? transportType; // van, car, or tuktuk
+  final String? pickupLocation; // Selected pickup location
+  final double transportCost; // Cost for transport
 
   SelectedLoungeData({
     required this.lounge,
@@ -32,6 +36,9 @@ class SelectedLoungeData {
     required this.totalPrice,
     required this.tripDate,
     required this.checkInTime,
+    this.transportType,
+    this.pickupLocation,
+    this.transportCost = 0.0,
   });
 
   LoungeIntentRequest toIntentRequest() {
@@ -135,6 +142,30 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   // Selected lounges with full booking data
   SelectedLoungeData? _selectedPreTripLounge;
   SelectedLoungeData? _selectedPostTripLounge;
+
+  // Transport selection for Pre-Trip
+  String? _preTripTransportType;
+  String? _preTripPickupLocation;
+
+  // Transport selection for Post-Trip
+  String? _postTripTransportType;
+  String? _postTripPickupLocation;
+
+  // Transport locations (5 popular areas)
+  final List<Map<String, String>> _transportLocations = [
+    {'id': '1', 'name': 'City Center', 'icon': '🏙️'},
+    {'id': '2', 'name': 'Airport', 'icon': '✈️'},
+    {'id': '3', 'name': 'Railway Station', 'icon': '🚂'},
+    {'id': '4', 'name': 'Hotel District', 'icon': '🏨'},
+    {'id': '5', 'name': 'Shopping Mall', 'icon': '🛍️'},
+  ];
+
+  // Transport pricing
+  final Map<String, double> _transportPricing = {
+    'van': 2500.0,
+    'car': 1800.0,
+    'tuktuk': 800.0,
+  };
 
   @override
   void initState() {
@@ -392,11 +423,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.flight_takeoff, size: 18),
-                        const SizedBox(width: 6),
                         const Flexible(
                           child: Text(
-                            'Pre-Trip',
+                            'Boarding Lounge',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -416,11 +445,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.flight_land, size: 18),
-                        const SizedBox(width: 6),
                         const Flexible(
                           child: Text(
-                            'Post-Trip',
+                            'Destination Lounge',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -611,7 +638,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       child: Row(
         children: [
           Icon(
-            isPreTrip ? Icons.flight_takeoff : Icons.flight_land,
+            isPreTrip ? Icons.weekend : Icons.hotel,
             color: Colors.white70,
             size: 16,
           ),
@@ -746,7 +773,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           child: Row(
             children: [
               Icon(
-                isPreTrip ? Icons.flight_takeoff : Icons.flight_land,
+                isPreTrip ? Icons.weekend : Icons.hotel,
                 color: AppColors.primary,
                 size: 20,
               ),
@@ -1163,6 +1190,28 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   final TextEditingController _guestNameController = TextEditingController();
   final TextEditingController _guestPhoneController = TextEditingController();
 
+  // Transport selection
+  String? _preTripTransportType;
+  String? _preTripPickupLocation;
+  String? _postTripTransportType;
+  String? _postTripPickupLocation;
+
+  // Transport locations (5 popular areas)
+  final List<Map<String, String>> _transportLocations = [
+    {'id': '1', 'name': 'City Center', 'icon': '🏙️'},
+    {'id': '2', 'name': 'Airport', 'icon': '✈️'},
+    {'id': '3', 'name': 'Railway Station', 'icon': '🚂'},
+    {'id': '4', 'name': 'Hotel District', 'icon': '🏨'},
+    {'id': '5', 'name': 'Shopping Mall', 'icon': '🛍️'},
+  ];
+
+  // Transport pricing
+  final Map<String, double> _transportPricing = {
+    'van': 2500.0,
+    'car': 1800.0,
+    'tuktuk': 800.0,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -1218,7 +1267,16 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   double get _preOrderTotal =>
       _cart.values.fold(0, (sum, item) => sum + item.totalPrice);
 
-  double get _totalPrice => _basePrice + _preOrderTotal;
+  double get _transportCost {
+    if (widget.isPreTrip && _preTripTransportType != null) {
+      return _transportPricing[_preTripTransportType] ?? 0.0;
+    } else if (!widget.isPreTrip && _postTripTransportType != null) {
+      return _transportPricing[_postTripTransportType] ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  double get _totalPrice => _basePrice + _preOrderTotal + _transportCost;
 
   void _addGuest() {
     final name = _guestNameController.text.trim();
@@ -1269,16 +1327,16 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     }
 
     // Calculate check-in time based on pre-trip or post-trip
-    final DateTime tripDateTime = widget.isPreTrip 
-        ? widget.busDepartureTime 
+    final DateTime tripDateTime = widget.isPreTrip
+        ? widget.busDepartureTime
         : (widget.busArrivalTime ?? widget.busDepartureTime);
-    
+
     // For pre-trip: check-in 1-2 hours before departure
     // For post-trip: check-in at arrival time
     final checkInTime = DateFormat('HH:mm').format(
-      widget.isPreTrip 
+      widget.isPreTrip
           ? tripDateTime.subtract(const Duration(hours: 1))
-          : tripDateTime
+          : tripDateTime,
     );
 
     final result = SelectedLoungeData(
@@ -1292,6 +1350,21 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       totalPrice: _totalPrice,
       tripDate: tripDateTime,
       checkInTime: checkInTime,
+      transportType: widget.isPreTrip
+          ? _preTripTransportType
+          : _postTripTransportType,
+      pickupLocation: widget.isPreTrip
+          ? (_preTripPickupLocation != null
+                ? _transportLocations.firstWhere(
+                    (l) => l['id'] == _preTripPickupLocation,
+                  )['name']
+                : null)
+          : (_postTripPickupLocation != null
+                ? _transportLocations.firstWhere(
+                    (l) => l['id'] == _postTripPickupLocation,
+                  )['name']
+                : null),
+      transportCost: _transportCost,
     );
 
     Navigator.pop(context, result);
@@ -1299,110 +1372,144 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          // Handle
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
+          child: Column(
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.lounge.loungeName,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Text(
+                            widget.isPreTrip
+                                ? 'Boarding Lounge'
+                                : 'Destination Lounge',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.lounge.loungeName,
-                        style: const TextStyle(
-                          fontSize: 18,
+                      // Duration selection
+                      const Text(
+                        'Select Duration',
+                        style: TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
                         ),
                       ),
-                      Text(
-                        widget.isPreTrip
-                            ? 'Pre-Trip Lounge'
-                            : 'Post-Trip Lounge',
+                      const SizedBox(height: 12),
+                      _buildDurationOptions(),
+
+                      const SizedBox(height: 24),
+
+                      // Transport selection
+                      const Text(
+                        'Add Transport (Optional)',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Get picked up from your location to the lounge',
+                        style: TextStyle(
+                          fontSize: 13,
                           color: Colors.grey.shade600,
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      _buildTransportSection(),
+
+                      const SizedBox(height: 24),
+
+                      // Guests
+                      const Text(
+                        'Guests',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildGuestsList(),
+
+                      const SizedBox(height: 24),
+
+                      // Pre-orders (optional)
+                      if (_products.isNotEmpty) ...[
+                        const Text(
+                          'Pre-Order Food & Drinks (Optional)',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildPreOrderSection(),
+                      ],
+
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          // Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Duration selection
-                  const Text(
-                    'Select Duration',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDurationOptions(),
-
-                  const SizedBox(height: 24),
-
-                  // Guests
-                  const Text(
-                    'Guests',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildGuestsList(),
-
-                  const SizedBox(height: 24),
-
-                  // Pre-orders (optional)
-                  if (_products.isNotEmpty) ...[
-                    const Text(
-                      'Pre-Order Food & Drinks (Optional)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPreOrderSection(),
-                  ],
-
-                  const SizedBox(height: 100),
-                ],
               ),
-            ),
+              // Bottom
+              _buildBottomSection(),
+            ],
           ),
-          // Bottom
-          _buildBottomSection(),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1498,7 +1605,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                       child: const Text(
                         'Recommended',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1616,8 +1723,12 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             children: [
               TextField(
                 controller: _guestNameController,
+                style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   labelText: 'Guest Name',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  filled: true,
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -1630,8 +1741,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               const SizedBox(height: 8),
               TextField(
                 controller: _guestPhoneController,
+                style: const TextStyle(color: Colors.black),
+                keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: 'Phone (Optional)',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  filled: true,
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -1679,24 +1795,32 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               // Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: product.imageUrl != null
+                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
                     ? Image.network(
                         product.imageUrl!,
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
-                          width: 50,
-                          height: 50,
+                          width: 60,
+                          height: 60,
                           color: Colors.grey.shade200,
-                          child: const Icon(Icons.fastfood),
+                          child: Icon(
+                            Icons.fastfood,
+                            color: Colors.grey.shade400,
+                            size: 28,
+                          ),
                         ),
                       )
                     : Container(
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         color: Colors.grey.shade200,
-                        child: const Icon(Icons.fastfood),
+                        child: Icon(
+                          Icons.fastfood,
+                          color: Colors.grey.shade400,
+                          size: 28,
+                        ),
                       ),
               ),
               const SizedBox(width: 12),
@@ -1782,8 +1906,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
-        top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+        top: 8,
+        bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1796,6 +1920,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Price breakdown
           if (_selectedPricingType != null) ...[
@@ -1804,25 +1929,64 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               children: [
                 Text(
                   'Lounge (${_guests.length} guests)',
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
-                Text('LKR ${_basePrice.toStringAsFixed(0)}'),
+                Text(
+                  'LKR ${_basePrice.toStringAsFixed(0)}',
+                  style: const TextStyle(fontSize: 13),
+                ),
               ],
             ),
             if (_preOrderTotal > 0) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Pre-orders',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
-                  Text('LKR ${_preOrderTotal.toStringAsFixed(0)}'),
+                  Text(
+                    'LKR ${_preOrderTotal.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
                 ],
               ),
             ],
-            const Divider(height: 16),
+            // Transport section
+            if (widget.isPreTrip && _preTripTransportType != null) ...[
+              const SizedBox(height: 2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Transport (${_preTripTransportType!.toUpperCase()})',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                  Text(
+                    'LKR ${_transportPricing[_preTripTransportType]!.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ],
+            if (!widget.isPreTrip && _postTripTransportType != null) ...[
+              const SizedBox(height: 2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Transport (${_postTripTransportType!.toUpperCase()})',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                  Text(
+                    'LKR ${_transportPricing[_postTripTransportType]!.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ],
+            const Divider(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1840,7 +2004,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
           ],
           // Confirm button
           SizedBox(
@@ -1850,7 +2014,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFFC300),
                 disabledBackgroundColor: Colors.grey.shade300,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1868,6 +2032,215 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTransportSection() {
+    final selectedTransport = widget.isPreTrip
+        ? _preTripTransportType
+        : _postTripTransportType;
+    final selectedLocation = widget.isPreTrip
+        ? _preTripPickupLocation
+        : _postTripPickupLocation;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Vehicle selection
+        Row(
+          children: [
+            _buildVehicleOption('van', '🚐', 'Van', 'Up to 8 people', 2500.0),
+            const SizedBox(width: 12),
+            _buildVehicleOption('car', '🚗', 'Car', 'Up to 4 people', 1800.0),
+            const SizedBox(width: 12),
+            _buildVehicleOption(
+              'tuktuk',
+              '🛺',
+              'Tuk Tuk',
+              'Up to 3 people',
+              800.0,
+            ),
+          ],
+        ),
+
+        // Location selection (show only if transport is selected)
+        if (selectedTransport != null) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'Pickup Location',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _transportLocations.map((location) {
+              final isSelected = selectedLocation == location['id'];
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (widget.isPreTrip) {
+                      _preTripPickupLocation = location['id'];
+                    } else {
+                      _postTripPickupLocation = location['id'];
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFFFFC300)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFFFC300)
+                          : Colors.grey.shade300,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        location['icon']!,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        location['name']!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Driver will contact you 30 minutes before pickup',
+                    style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildVehicleOption(
+    String type,
+    String emoji,
+    String name,
+    String capacity,
+    double price,
+  ) {
+    final isSelected = widget.isPreTrip
+        ? _preTripTransportType == type
+        : _postTripTransportType == type;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            if (widget.isPreTrip) {
+              if (_preTripTransportType == type) {
+                _preTripTransportType = null;
+                _preTripPickupLocation = null;
+              } else {
+                _preTripTransportType = type;
+              }
+            } else {
+              if (_postTripTransportType == type) {
+                _postTripTransportType = null;
+                _postTripPickupLocation = null;
+              } else {
+                _postTripTransportType = type;
+              }
+            }
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFFFFC300).withOpacity(0.2)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFFFC300)
+                  : Colors.grey.shade300,
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFFC300).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Column(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 32)),
+              const SizedBox(height: 4),
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+              Text(
+                capacity,
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'LKR ${price.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? const Color(0xFFFFC300)
+                      : AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -62,10 +62,14 @@ class BookingSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     print('🎉 BookingSuccessScreen build:');
     print('  Bus ref: $busReference');
-    print('  Pre-lounge: ${preLoungeBooking?.reference}, QR: ${preLoungeBooking?.qrCode}');
-    print('  Post-lounge: ${postLoungeBooking?.reference}, QR: ${postLoungeBooking?.qrCode}');
+    print(
+      '  Pre-lounge: ${preLoungeBooking?.reference}, QR: ${preLoungeBooking?.qrCode}',
+    );
+    print(
+      '  Post-lounge: ${postLoungeBooking?.reference}, QR: ${postLoungeBooking?.qrCode}',
+    );
     print('  hasLoungeBookings: $hasLoungeBookings');
-    
+
     return Scaffold(
       backgroundColor: AppColors.primary,
       appBar: AppBar(
@@ -240,24 +244,24 @@ class BookingSuccessScreen extends StatelessWidget {
     if (preLoungeBooking != null) {
       qrCards.add(
         _buildQRCard(
-          title: 'Pre-Trip Lounge',
+          title: 'Boarding Lounge',
           subtitle: 'Show at lounge entry',
           qrData: preLoungeBooking!.qrCode ?? preLoungeBooking!.reference,
-          icon: Icons.flight_takeoff,
+          icon: Icons.weekend,
           color: const Color(0xFF2196F3),
           reference: preLoungeBooking!.reference,
         ),
       );
     }
 
-    // Post-trip lounge QR
+    // Destination lounge QR
     if (postLoungeBooking != null) {
       qrCards.add(
         _buildQRCard(
-          title: 'Post-Trip Lounge',
+          title: 'Destination Lounge',
           subtitle: 'Show at lounge entry',
           qrData: postLoungeBooking!.qrCode ?? postLoungeBooking!.reference,
-          icon: Icons.flight_land,
+          icon: Icons.hotel,
           color: const Color(0xFF9C27B0),
           reference: postLoungeBooking!.reference,
         ),
@@ -399,11 +403,11 @@ class BookingSuccessScreen extends StatelessWidget {
           // Show lounge info if applicable
           if (preLoungeBooking != null) ...[
             const SizedBox(height: 8),
-            _buildDetailRow('Pre-Trip Lounge', 'Booked ✓', highlight: true),
+            _buildDetailRow('Boarding Lounge', 'Booked ✓', highlight: true),
           ],
           if (postLoungeBooking != null) ...[
             const SizedBox(height: 4),
-            _buildDetailRow('Post-Trip Lounge', 'Booked ✓', highlight: true),
+            _buildDetailRow('Destination Lounge', 'Booked ✓', highlight: true),
           ],
 
           const Divider(height: 20),

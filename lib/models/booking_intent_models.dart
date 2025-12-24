@@ -153,9 +153,9 @@ enum IntentType {
       case IntentType.busWithLounge:
         return 'Bus + Lounge';
       case IntentType.busWithPreLounge:
-        return 'Bus + Pre-trip Lounge';
+        return 'Bus + Boarding Lounge';
       case IntentType.busWithPostLounge:
-        return 'Bus + Post-trip Lounge';
+        return 'Bus + Destination Lounge';
       case IntentType.busWithBothLounges:
         return 'Bus + Both Lounges';
     }
@@ -315,7 +315,7 @@ class LoungeIntentRequest {
   final String? checkOutTime;
   final List<LoungeGuestRequest> guests;
   final List<PreOrderItem>? preOrders;
-  
+
   // Pricing info
   final double pricePerGuest;
   final double basePrice;
@@ -368,7 +368,7 @@ class LoungeGuestRequest {
   final bool isPrimary;
 
   LoungeGuestRequest({
-    required this.guestName, 
+    required this.guestName,
     this.guestPhone,
     this.isPrimary = false,
   });
@@ -891,10 +891,10 @@ class PartialAvailabilityError {
       parts.add(unavailable.bus!.details ?? 'Some seats are unavailable');
     }
     if (unavailable.preLounge != null) {
-      parts.add('Pre-trip lounge: ${unavailable.preLounge!.details}');
+      parts.add('Boarding lounge: ${unavailable.preLounge!.details}');
     }
     if (unavailable.postLounge != null) {
-      parts.add('Post-trip lounge: ${unavailable.postLounge!.details}');
+      parts.add('Destination lounge: ${unavailable.postLounge!.details}');
     }
     return parts.isNotEmpty ? parts.join('\n') : message;
   }

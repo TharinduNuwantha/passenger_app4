@@ -367,11 +367,9 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.flight_takeoff, size: 18),
-                        const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            'Pre-Trip',
+                            'Boarding Lounge',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -387,11 +385,9 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.flight_land, size: 18),
-                        const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            'Post-Trip',
+                            'Destination Lounge',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -615,7 +611,7 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
           child: Row(
             children: [
               Icon(
-                isPreTrip ? Icons.flight_takeoff : Icons.flight_land,
+                isPreTrip ? Icons.weekend : Icons.hotel,
                 color: AppColors.primary,
                 size: 20,
               ),
@@ -1017,9 +1013,9 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
     if (_selectedDepartureLounge != null && _selectedArrivalLounge != null) {
       return 'Book Both Lounges';
     } else if (_selectedDepartureLounge != null) {
-      return 'Book Pre-Trip Lounge';
+      return 'Book Boarding Lounge';
     } else if (_selectedArrivalLounge != null) {
-      return 'Book Post-Trip Lounge';
+      return 'Book Destination Lounge';
     }
     return 'Select a Lounge';
   }

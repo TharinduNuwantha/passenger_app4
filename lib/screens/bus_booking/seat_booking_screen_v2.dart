@@ -137,20 +137,29 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    const Icon(Icons.bookmark, color: AppColors.primary),
+                    const Icon(
+                      Icons.bookmark,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Your Bookings on This Trip',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    Expanded(
+                      child: const Text(
+                        'Your Bookings on This Trip',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
@@ -187,13 +196,18 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Ref: ${booking.bookingReference}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                Expanded(
+                  child: Text(
+                    'Ref: ${booking.bookingReference}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 _buildStatusBadge(booking.bookingStatus),
               ],
             ),
