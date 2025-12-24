@@ -24,7 +24,9 @@ class ErrorHandler {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
         _logger.w('Timeout error: ${error.message}');
-        return 'Connection timeout. Please try again.';
+        _logger.w('Request URL: ${error.requestOptions.uri}');
+        _logger.w('Timeout type: ${error.type}');
+        return 'Connection timeout. Please check your internet connection and try again.';
 
       case DioExceptionType.badResponse:
         return _handleBadResponse(error);
