@@ -10,44 +10,19 @@ import '../../services/advertisement_service.dart';
 import '../../services/notification_service.dart';
 import '../../models/advertisement_model.dart';
 import '../../services/search_service.dart';
+import '../../theme/app_text_style.dart';
+import '../bus_booking/activities_screen.dart';
 import '../bus_booking/booking_conform.dart' hide AppColors;
 import '../bus_booking/bus_booking_screen.dart';
 import '../bus_booking/nav_booking_screen.dart';
 import '../bus_booking/check_in_status_screen.dart';
 import '../bus_booking/booking_qr_screen.dart';
-import '../bus_booking/seat_booking_screen.dart' hide AppColors;
-import '../lounge/lounge_details.dart';
+import '../lounge/lounge_booking_screen.dart';
+import '../lounge/lounge_list_screen.dart';
 import '../profile/profile_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../advertisements/advertisement_detail_screen.dart';
 import '../bus_tracking/bus_tracking_screen.dart';
-
-// Advertisement Model
-class Advertisement {
-  final String id;
-  final String title;
-  final String description;
-  final String imageUrl;
-  final String targetUrl;
-  final int displayOrder;
-  final bool active;
-  final DateTime startDate;
-  final DateTime endDate;
-  final int priority;
-
-  Advertisement({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-    required this.targetUrl,
-    required this.displayOrder,
-    required this.active,
-    required this.startDate,
-    required this.endDate,
-    required this.priority,
-  });
-}
 
 class DashBoard extends StatefulWidget {
   const DashBoard({super.key});
@@ -86,24 +61,14 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   final TextEditingController returnDropController = TextEditingController();
   final TextEditingController returnStopController = TextEditingController();
 
-  // Return trip controllers
-  final TextEditingController returnPickupController = TextEditingController();
-  final TextEditingController returnDropController = TextEditingController();
-
   List<Map<String, dynamic>> pickupAutocompleteSuggestions = [];
   List<Map<String, dynamic>> dropAutocompleteSuggestions = [];
-<<<<<<< HEAD
-=======
   List<Map<String, dynamic>> stopAutocompleteSuggestions = [];
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
   List<Map<String, dynamic>> returnPickupAutocompleteSuggestions = [];
   List<Map<String, dynamic>> returnDropAutocompleteSuggestions = [];
   bool isLoadingPickupSuggestions = false;
   bool isLoadingDropSuggestions = false;
-<<<<<<< HEAD
-=======
   bool isLoadingStopSuggestions = false;
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
   bool isLoadingReturnPickupSuggestions = false;
   bool isLoadingReturnDropSuggestions = false;
   bool showReturnPickupSuggestions = false;
@@ -118,87 +83,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   String? firstName;
 
-<<<<<<< HEAD
-  // Advertisement carousel
-  final PageController _pageController = PageController();
-  int _currentAdIndex = 0;
-  Timer? _adTimer;
-
-  // Advertisement data
-  final List<Advertisement> _advertisements = [
-    Advertisement(
-      id: '1',
-      title: 'Special Discount 20% Off',
-      description: 'Book your bus ticket now and save big!',
-      imageUrl:
-          'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80',
-      targetUrl: 'https://example.com/offer1',
-      displayOrder: 1,
-      active: true,
-      startDate: DateTime.now(),
-      endDate: DateTime.now().add(const Duration(days: 30)),
-      priority: 80,
-    ),
-    Advertisement(
-      id: '2',
-      title: 'Weekend Lounge Access',
-      description: 'Enjoy premium lounge with 15% off this weekend',
-      imageUrl:
-          'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800&q=80',
-      targetUrl: 'https://example.com/offer2',
-      displayOrder: 2,
-      active: true,
-      startDate: DateTime.now(),
-      endDate: DateTime.now().add(const Duration(days: 7)),
-      priority: 90,
-    ),
-    Advertisement(
-      id: '3',
-      title: 'Travel Rewards Program',
-      description: 'Earn points on every trip and redeem exciting rewards',
-      imageUrl:
-          'https://images.unsplash.com/photo-1483791424735-e9ad0209eea2?w=800&q=80',
-      targetUrl: 'https://example.com/offer3',
-      displayOrder: 3,
-      active: true,
-      startDate: DateTime.now(),
-      endDate: DateTime.now().add(const Duration(days: 60)),
-      priority: 70,
-    ),
-    Advertisement(
-      id: '4',
-      title: 'Group Booking Offer',
-      description: 'Save up to 25% when booking for 5 or more passengers',
-      imageUrl:
-          'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80',
-      targetUrl: 'https://example.com/offer4',
-      displayOrder: 4,
-      active: true,
-      startDate: DateTime.now(),
-      endDate: DateTime.now().add(const Duration(days: 45)),
-      priority: 75,
-    ),
-    Advertisement(
-      id: '5',
-      title: 'First Trip Bonus',
-      description: 'Get 2% cashback on your first bus booking with us',
-      imageUrl:
-          'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800&q=80',
-      targetUrl: 'https://example.com/offer5',
-      displayOrder: 5,
-      active: true,
-      startDate: DateTime.now(),
-      endDate: DateTime.now().add(const Duration(days: 90)),
-      priority: 85,
-    ),
-  ];
-=======
   // Active booking data
   Map<String, dynamic>? activeBooking;
   bool hasActiveBooking = false;
 
   var ThemeSelectorWidget;
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
 
   @override
   void initState() {
@@ -212,64 +101,24 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _loadNotifications();
     pickupController.addListener(_onPickupTextChanged);
     dropController.addListener(_onDropTextChanged);
-<<<<<<< HEAD
-    returnPickupController.addListener(_onReturnPickupTextChanged);
-    returnDropController.addListener(_onReturnDropTextChanged);
-    _startAdTimer();
-=======
     stopController.addListener(_onStopTextChanged);
     returnPickupController.addListener(_onReturnPickupTextChanged);
     returnDropController.addListener(_onReturnDropTextChanged);
     _startAdCarousel();
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
   }
 
   @override
   void dispose() {
-<<<<<<< HEAD
-    _adTimer?.cancel();
-    _pageController.dispose();
-    pickupController.removeListener(_onPickupTextChanged);
-    dropController.removeListener(_onDropTextChanged);
-=======
     WidgetsBinding.instance.removeObserver(this);
     _adTimer?.cancel();
     _adPageController.dispose();
     pickupController.removeListener(_onPickupTextChanged);
     dropController.removeListener(_onDropTextChanged);
     stopController.removeListener(_onStopTextChanged);
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
     returnPickupController.removeListener(_onReturnPickupTextChanged);
     returnDropController.removeListener(_onReturnDropTextChanged);
     pickupController.dispose();
     dropController.dispose();
-<<<<<<< HEAD
-    returnPickupController.dispose();
-    returnDropController.dispose();
-    super.dispose();
-  }
-
-  void _startAdTimer() {
-    _adTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (_currentAdIndex < _advertisements.length - 1) {
-        _currentAdIndex++;
-      } else {
-        _currentAdIndex = 0;
-      }
-
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          _currentAdIndex,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
-  }
-
-  Future<void> _loadFirstName() async {
-    final prefs = await SharedPreferences.getInstance();
-=======
     stopController.dispose();
     returnPickupController.dispose();
     returnDropController.dispose();
@@ -288,7 +137,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   void _clearSearchFields() {
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
     setState(() {
       pickupController.clear();
       dropController.clear();
@@ -428,7 +276,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   void _startAdCarousel() {
-    _adTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _adTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (advertisements.isNotEmpty && _adPageController.hasClients) {
         int nextPage = (_currentAdIndex + 1) % advertisements.length;
         _adPageController.animateToPage(
@@ -524,32 +372,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       setState(() {
         stopAutocompleteSuggestions.clear();
         isLoadingStopSuggestions = false;
-      });
-    }
-  }
-
-  // Listen to return pickup field changes
-  void _onReturnPickupTextChanged() {
-    final text = returnPickupController.text;
-    if (text.length >= 2) {
-      _fetchReturnAutocompleteSuggestions(text, isPickup: true);
-    } else {
-      setState(() {
-        returnPickupAutocompleteSuggestions.clear();
-        isLoadingReturnPickupSuggestions = false;
-      });
-    }
-  }
-
-  // Listen to return drop field changes
-  void _onReturnDropTextChanged() {
-    final text = returnDropController.text;
-    if (text.length >= 2) {
-      _fetchReturnAutocompleteSuggestions(text, isPickup: false);
-    } else {
-      setState(() {
-        returnDropAutocompleteSuggestions.clear();
-        isLoadingReturnDropSuggestions = false;
       });
     }
   }
@@ -754,14 +576,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
   }
 
-<<<<<<< HEAD
-  Future<void> _selectDate(BuildContext context) async {
-=======
   Future<void> _selectDate(
     BuildContext context, {
     bool isReturn = false,
   }) async {
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: isReturn
@@ -775,36 +593,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     if (picked != null) {
       setState(() {
-<<<<<<< HEAD
-        selectedDate = picked;
-        // Clear return date if it's before the new outbound date
-        if (returnDate != null && returnDate!.isBefore(picked)) {
-          returnDate = null;
-        }
-      });
-    }
-  }
-
-  Future<void> _selectReturnDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate:
-          returnDate ??
-          (selectedDate ?? DateTime.now()).add(const Duration(days: 1)),
-      firstDate: selectedDate ?? DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      setState(() {
-        returnDate = picked;
-=======
         if (isReturn) {
           returnDate = picked;
         } else {
           selectedDate = picked;
         }
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
       });
     }
   }
@@ -924,6 +717,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         MaterialPageRoute(
           builder: (context) => BusListScreen(
             date: searchDate,
+            returnDate: returnDate,
             pickup: fromStop,
             drop: toStop,
             stop: null, // Remove stop parameter
@@ -997,7 +791,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           top: 0,
                           child: Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.notificationBadge,
                               shape: BoxShape.circle,
                             ),
@@ -1024,71 +818,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               ),
             ],
           ),
-<<<<<<< HEAD
-          const SizedBox(height: 10),
-          Text('Hello ${firstName ?? 'User'},', style: AppTextStyles.h2),
-          Text('Where to go?', style: AppTextStyles.h2),
-          const SizedBox(height: 15),
-
-          // Date Pickers
-          Row(
-            children: [
-              // Outbound Date Picker
-              Expanded(
-                child: InkWell(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            selectedDate == null
-                                ? 'Departure'
-                                : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              if (!isOneWay) ...[
-                const SizedBox(width: 10),
-                // Return Date Picker
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectReturnDate(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-=======
           const SizedBox(height: 20),
           Row(
             children: [
-              Icon(Icons.waving_hand, color: AppColors.warning, size: 24),
+              const Icon(Icons.waving_hand, color: AppColors.warning, size: 24),
               const SizedBox(width: 8),
               Text(
                 'Hello ${firstName ?? 'User'},',
@@ -1103,7 +836,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.explore_outlined,
                 color: AppColors.secondaryLight,
                 size: 22,
@@ -1143,13 +876,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppColors.info ?? Colors.blue,
-                    width: 2,
-                  ),
+                  border: Border.all(color: AppColors.info, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.info!.withOpacity(0.2),
+                      color: AppColors.info.withOpacity(0.2),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -1285,9 +1015,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color:
-                              AppColors.shadowLight ??
-                              Colors.black.withOpacity(0.1),
+                          color: AppColors.shadowLight,
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1330,13 +1058,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 14,
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(30),
-<<<<<<< HEAD
-=======
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.08),
@@ -1344,7 +1069,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             offset: const Offset(0, 2),
                           ),
                         ],
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1355,11 +1079,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             color: AppColors.primary,
                             size: 20,
                           ),
-<<<<<<< HEAD
-                          const SizedBox(width: 8),
-=======
                           const SizedBox(width: 6),
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
                           Flexible(
                             child: Text(
                               returnDate == null
@@ -1390,7 +1110,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadowLight ?? Colors.black.withOpacity(0.1),
+                  color: AppColors.shadowLight,
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -1400,10 +1120,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() {
-                      isOneWay = true;
-                      returnDate = null;
-                    }),
+                    onTap: () => setState(() => isOneWay = true),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
@@ -1501,7 +1218,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadowLight ?? Colors.black.withOpacity(0.1),
+                  color: AppColors.shadowLight,
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -1514,29 +1231,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 // PICKUP FIELD
                 Row(
                   children: [
-<<<<<<< HEAD
                     const Icon(
                       Icons.my_location,
-                      color: Colors.green,
+                      color: AppColors.pickupGreen,
                       size: 18,
                     ),
                     const SizedBox(width: 6),
                     const Text(
                       'PickUp',
                       style: TextStyle(
-                        color: Colors.black87,
-=======
-                    Icon(
-                      Icons.my_location,
-                      color: AppColors.pickupGreen,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'PickUp',
-                      style: TextStyle(
                         color: AppColors.textPrimary,
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -1732,21 +1436,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 // DROP FIELD
                 Row(
                   children: [
-<<<<<<< HEAD
-                    const Icon(Icons.location_on, color: Colors.red, size: 18),
+                    const Icon(
+                      Icons.location_on,
+                      color: AppColors.dropRed,
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     const Text(
                       'Drop',
                       style: TextStyle(
-                        color: Colors.black87,
-=======
-                    Icon(Icons.location_on, color: AppColors.dropRed, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Drop',
-                      style: TextStyle(
                         color: AppColors.textPrimary,
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -1937,453 +1636,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 20),
 
-<<<<<<< HEAD
-          // Return Trip Section with Input Fields
-          if (!isOneWay) ...[
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.secondary, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.secondary.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.swap_horiz,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Return Trip Booking',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // RETURN PICKUP FIELD
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.my_location,
-                        color: Colors.green,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Return PickUp',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Focus(
-                    onFocusChange: (hasFocus) {
-                      setState(() {
-                        showReturnPickupSuggestions = hasFocus;
-                        if (!hasFocus) {
-                          returnPickupAutocompleteSuggestions.clear();
-                        }
-                      });
-                    },
-                    child: TextField(
-                      controller: returnPickupController,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        hintText: 'Return pickup location',
-                        border: UnderlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onTap: () {
-                        setState(() {
-                          showReturnPickupSuggestions = true;
-                        });
-                      },
-                    ),
-                  ),
-
-                  // RETURN PICKUP SUGGESTIONS
-                  if (showReturnPickupSuggestions) ...[
-                    const SizedBox(height: 10),
-                    if (isLoadingReturnPickupSuggestions)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    if (!isLoadingReturnPickupSuggestions &&
-                        returnPickupAutocompleteSuggestions.isNotEmpty)
-                      Column(
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: Text(
-                              'Search Results',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                          ...returnPickupAutocompleteSuggestions.map(
-                            (suggestion) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(
-                                Icons.location_on,
-                                color: AppColors.primary,
-                              ),
-                              title: Text(
-                                suggestion['description'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  returnPickupController.text =
-                                      suggestion['description'];
-                                  showReturnPickupSuggestions = false;
-                                  returnPickupAutocompleteSuggestions.clear();
-                                  FocusScope.of(context).unfocus();
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-
-                  const SizedBox(height: 16),
-
-                  // RETURN DROP FIELD
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Return Drop',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Focus(
-                    onFocusChange: (hasFocus) {
-                      setState(() {
-                        showReturnDropSuggestions = hasFocus;
-                        if (!hasFocus) {
-                          returnDropAutocompleteSuggestions.clear();
-                        }
-                      });
-                    },
-                    child: TextField(
-                      controller: returnDropController,
-                      style: const TextStyle(color: Colors.black),
-                      decoration: const InputDecoration(
-                        hintText: 'Return destination',
-                        border: UnderlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      onTap: () {
-                        setState(() {
-                          showReturnDropSuggestions = true;
-                        });
-                      },
-                    ),
-                  ),
-
-                  // RETURN DROP SUGGESTIONS
-                  if (showReturnDropSuggestions) ...[
-                    const SizedBox(height: 10),
-                    if (isLoadingReturnDropSuggestions)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    if (!isLoadingReturnDropSuggestions &&
-                        returnDropAutocompleteSuggestions.isNotEmpty)
-                      Column(
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: Text(
-                              'Search Results',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                          ...returnDropAutocompleteSuggestions.map(
-                            (suggestion) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(
-                                Icons.location_on,
-                                color: AppColors.primary,
-                              ),
-                              title: Text(
-                                suggestion['description'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  returnDropController.text =
-                                      suggestion['description'];
-                                  showReturnDropSuggestions = false;
-                                  returnDropAutocompleteSuggestions.clear();
-                                  FocusScope.of(context).unfocus();
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // Advertisement Carousel
-          SizedBox(
-            height: 200,
-            child: Stack(
-              children: [
-                PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentAdIndex = index;
-                    });
-                  },
-                  itemCount: _advertisements.length,
-                  itemBuilder: (context, index) {
-                    final ad = _advertisements[index];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            // Background Image
-                            Image.network(
-                              ad.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: AppColors.secondary,
-                                  child: const Icon(
-                                    Icons.image_not_supported,
-                                    size: 50,
-                                    color: AppColors.primary,
-                                  ),
-                                );
-                              },
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      color: AppColors.secondary,
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          value:
-                                              loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                        .cumulativeBytesLoaded /
-                                                    loadingProgress
-                                                        .expectedTotalBytes!
-                                              : null,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                            ),
-                            // Gradient Overlay
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.7),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // Content
-                            Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    ad.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black45,
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    ad.description,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black45,
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 10,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      if (pickupController.text.isEmpty ||
-                                          dropController.text.isEmpty ||
-                                          selectedDate == null) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Please select a date and enter pickup & drop locations.',
-                                            ),
-                                            backgroundColor: Colors.redAccent,
-                                          ),
-                                        );
-                                      } else {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => BusListScreen(
-                                              date: selectedDate,
-                                              pickup: pickupController.text,
-                                              drop: dropController.text,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: const Text(
-                                      'Book now',
-                                      style: TextStyle(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                // Page Indicators
-                Positioned(
-                  bottom: 12,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _advertisements.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        height: 8,
-                        width: _currentAdIndex == index ? 24 : 8,
-                        decoration: BoxDecoration(
-                          color: _currentAdIndex == index
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.4),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-=======
           // Return Trip Section - Second Booking Input Fields
           if (!isOneWay) ...[
             Container(
@@ -2395,13 +1647,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.info ?? Colors.blue,
-                  width: 2.5,
-                ),
+                border: Border.all(color: AppColors.info, width: 2.5),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.info!.withOpacity(0.15),
+                    color: AppColors.info.withOpacity(0.15),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -2418,7 +1667,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.swap_horizontal_circle,
                           color: AppColors.iconLight,
                           size: 24,
@@ -2440,13 +1689,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   // RETURN PICKUP FIELD
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.my_location,
                         color: AppColors.pickupGreen,
                         size: 18,
                       ),
                       const SizedBox(width: 6),
-                      Text(
+                      const Text(
                         'Return PickUp',
                         style: TextStyle(
                           color: AppColors.textPrimary,
@@ -2644,7 +1893,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             const SizedBox(height: 20),
           ],
 
-          // Advertisement carousel (auto-rotating every 10s)
+          // Advertisement carousel (auto-rotating every 5s)
           SizedBox(
             height: 200,
             child: Column(
@@ -2755,7 +2004,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             ? AppColors.white
                             : AppColors.white.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(8),
->>>>>>> 965a58f3607cb31be027fed8f9056b25c5e46283
                       ),
                     ),
                   ),
@@ -2769,9 +2017,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     final List<Widget> pages = [
       // Page 0: Your Full Dashboard UI
       SafeArea(child: singleChildScrollView),
-      const BookingScreen(),
+      const ActivitiesScreen(),
       const BusTrackingScreen(),
-      const LoungeDetailsScreen(),
+      const LoungeListScreen(),
       const ProfileScreen(),
     ];
 

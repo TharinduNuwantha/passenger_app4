@@ -29,4 +29,6 @@ class AppColors {
   static Color shadowLight = Colors.black.withOpacity(0.1);
   static const Color textLight = Colors.white;
   static const Color warning = Color(0xFFFFA726);
+  static const Color background = Color(0xFFF5F5F5);
+  static const Color backgroundLight = Color(0xFFF9F9F9);
 }

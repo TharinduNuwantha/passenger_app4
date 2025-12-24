@@ -18,6 +18,7 @@ class BusListScreen extends StatefulWidget {
     required this.pickup,
     required this.drop,
     required stop,
+    DateTime? returnDate,
   });
 
   @override
