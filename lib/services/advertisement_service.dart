@@ -28,4 +28,8 @@ class AdvertisementService {
       return [];
     }
   }
+
+  Future<void> trackView(String id) async {}
+
+  Future<void> trackClick(String id) async {}
 }

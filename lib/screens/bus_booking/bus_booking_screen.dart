@@ -17,6 +17,7 @@ class BusListScreen extends StatefulWidget {
     this.date,
     required this.pickup,
     required this.drop,
+    required stop,
   });
 
   @override
@@ -192,13 +193,15 @@ class _BusListScreenState extends State<BusListScreen> {
     // Check if the trip is today
     final now = DateTime.now();
     final tripDate = trip.departureTime;
-    final isToday = tripDate.year == now.year && 
-                    tripDate.month == now.month && 
-                    tripDate.day == now.day;
-    final isTomorrow = tripDate.year == now.year && 
-                       tripDate.month == now.month && 
-                       tripDate.day == now.day + 1;
-    
+    final isToday =
+        tripDate.year == now.year &&
+        tripDate.month == now.month &&
+        tripDate.day == now.day;
+    final isTomorrow =
+        tripDate.year == now.year &&
+        tripDate.month == now.month &&
+        tripDate.day == now.day + 1;
+
     // Format the date display
     String dateLabel;
     if (isToday) {
@@ -206,7 +209,9 @@ class _BusListScreenState extends State<BusListScreen> {
     } else if (isTomorrow) {
       dateLabel = 'Tomorrow';
     } else {
-      dateLabel = DateFormat('EEE, MMM d').format(tripDate); // e.g., "Sun, Dec 15"
+      dateLabel = DateFormat(
+        'EEE, MMM d',
+      ).format(tripDate); // e.g., "Sun, Dec 15"
     }
 
     return Container(
@@ -232,8 +237,8 @@ class _BusListScreenState extends State<BusListScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isToday 
-                    ? Colors.green.withOpacity(0.15) 
+                color: isToday
+                    ? Colors.green.withOpacity(0.15)
                     : AppColors.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -325,13 +330,10 @@ class _BusListScreenState extends State<BusListScreen> {
                       ),
                     ),
                     Text(
-                      trip.boardingPoint.isNotEmpty 
-                          ? trip.boardingPoint 
+                      trip.boardingPoint.isNotEmpty
+                          ? trip.boardingPoint
                           : 'Departure',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -407,13 +409,10 @@ class _BusListScreenState extends State<BusListScreen> {
                       ),
                     ),
                     Text(
-                      trip.droppingPoint.isNotEmpty 
-                          ? trip.droppingPoint 
+                      trip.droppingPoint.isNotEmpty
+                          ? trip.droppingPoint
                           : 'Arrival',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
