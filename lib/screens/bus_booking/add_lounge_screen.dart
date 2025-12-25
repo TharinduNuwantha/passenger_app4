@@ -596,21 +596,28 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFC300).withOpacity(0.5)),
+        border: Border.all(color: const Color(0xFFFFC300)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.weekend, color: Color(0xFFFFC300), size: 18),
+              Icon(Icons.weekend, color: AppColors.primary, size: 18),
               SizedBox(width: 8),
               Text(
                 'Selected Lounges',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black87,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
@@ -632,14 +639,15 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       margin: const EdgeInsets.only(top: 4),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         children: [
           Icon(
             isPreTrip ? Icons.weekend : Icons.hotel,
-            color: Colors.white70,
+            color: AppColors.primary,
             size: 16,
           ),
           const SizedBox(width: 8),
@@ -650,17 +658,14 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 Text(
                   data.lounge.loungeName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.black87,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   '${data.guests.length} guest(s) • ${_formatPricingType(data.pricingType)}',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 10,
-                  ),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
                 ),
               ],
             ),
@@ -668,7 +673,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           Text(
             'LKR ${data.totalPrice.toStringAsFixed(0)}',
             style: const TextStyle(
-              color: Color(0xFFFFC300),
+              color: AppColors.primary,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -676,7 +681,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () => _removeLounge(isPreTrip),
-            child: const Icon(Icons.close, color: Colors.white70, size: 18),
+            child: Icon(Icons.close, color: Colors.red.shade400, size: 18),
           ),
         ],
       ),
@@ -2226,17 +2231,6 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               Text(
                 capacity,
                 style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'LKR ${price.toStringAsFixed(0)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? const Color(0xFFFFC300)
-                      : AppColors.primary,
-                ),
               ),
             ],
           ),

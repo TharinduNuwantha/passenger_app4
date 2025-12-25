@@ -800,7 +800,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
 
                 if (seat == null) {
                   // Empty seat placeholder
-                  return const SizedBox(width: 40, height: 36);
+                  return const SizedBox(width: 40, height: 40);
                 }
 
                 return _buildSeatWidget(seat);
@@ -820,7 +820,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       onTap: isSelectable ? () => _toggleSeatSelection(seat) : null,
       child: Container(
         width: 40,
-        height: 36,
+        height: 40,
         margin: const EdgeInsets.symmetric(horizontal: 2),
         child: Tooltip(
           message:
@@ -828,7 +828,8 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(_getSeatIcon(seat), color: _getSeatColor(seat), size: 24),
+              Icon(_getSeatIcon(seat), color: _getSeatColor(seat), size: 22),
+              const SizedBox(height: 2),
               Text(
                 seat.seatNumber,
                 style: TextStyle(

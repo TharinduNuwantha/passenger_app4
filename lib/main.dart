@@ -13,6 +13,8 @@ import 'screens/auth/otp_verification_screen.dart';
 import 'screens/auth/phone_input_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
+import 'screens/profile/help and support.dart';
+import 'screens/profile/privacy_policy.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/splash_screen.dart';
 
@@ -81,6 +83,16 @@ class MyApp extends StatelessWidget {
                 case AppConstants.editProfileRoute:
                   return MaterialPageRoute(
                     builder: (_) => const EditProfileScreen(),
+                  );
+
+                case '/privacy-policy':
+                  return MaterialPageRoute(
+                    builder: (_) => const PrivacyPolicyScreen(),
+                  );
+
+                case '/help-support':
+                  return MaterialPageRoute(
+                    builder: (_) => const HelpSupportScreen(),
                   );
 
                 default:

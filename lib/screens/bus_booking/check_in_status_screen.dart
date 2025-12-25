@@ -10,7 +10,14 @@ import 'live_tracking_screen.dart';
 import 'complimentary_food_screen.dart';
 
 class CheckInStatusScreen extends StatefulWidget {
-  const CheckInStatusScreen({super.key});
+  final String bookingId;
+  final String bookingReference;
+
+  const CheckInStatusScreen({
+    super.key,
+    required this.bookingId,
+    required this.bookingReference,
+  });
 
   @override
   State<CheckInStatusScreen> createState() => _CheckInStatusScreenState();
@@ -40,13 +47,12 @@ class _CheckInStatusScreenState extends State<CheckInStatusScreen> {
   }
 
   Future<void> _loadActiveBooking() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bookingData = prefs.getString('activeBooking');
-
     setState(() {
-      if (bookingData != null) {
-        activeBooking = json.decode(bookingData);
-      }
+      // Use the passed bookingId and bookingReference
+      activeBooking = {
+        'id': widget.bookingId,
+        'bookingReference': widget.bookingReference,
+      };
       isLoading = false;
       currentTime = DateFormat('h:mm a').format(DateTime.now());
     });

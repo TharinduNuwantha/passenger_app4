@@ -8,7 +8,9 @@ import 'dart:async';
 import '../../theme/app_colors.dart';
 import '../../services/advertisement_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/booking_service.dart';
 import '../../models/advertisement_model.dart';
+import '../../models/booking_models.dart';
 import '../../services/search_service.dart';
 import '../../theme/app_text_style.dart';
 import '../bus_booking/activities_screen.dart';
@@ -16,7 +18,7 @@ import '../bus_booking/booking_conform.dart' hide AppColors;
 import '../bus_booking/bus_booking_screen.dart';
 import '../bus_booking/nav_booking_screen.dart';
 import '../bus_booking/check_in_status_screen.dart';
-import '../bus_booking/booking_qr_screen.dart';
+import '../bus_booking/booking_qr_screen.dart' hide CheckInStatusScreen;
 import '../lounge/lounge_booking_screen.dart';
 import '../lounge/lounge_list_screen.dart';
 import '../profile/profile_screen.dart';
@@ -43,9 +45,14 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   late AdvertisementService _advertisementService;
   late NotificationService _notificationService;
+  late BookingService _bookingService;
   List<Advertisement> advertisements = [];
   String? userId;
   int _unreadNotifications = 0;
+
+  // Upcoming bookings
+  List<BookingListItem> _upcomingBookings = [];
+  bool _isLoadingBookings = false;
 
   // Advertisement carousel
   PageController _adPageController = PageController();
@@ -95,8 +102,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _advertisementService = AdvertisementService();
     _notificationService = NotificationService();
+    _bookingService = BookingService();
     _loadUserData();
     _loadActiveBooking();
+    _loadUpcomingBookings();
     _loadDummyAdvertisements();
     _loadNotifications();
     pickupController.addListener(_onPickupTextChanged);
@@ -201,6 +210,25 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       activeBooking = null;
       hasActiveBooking = false;
     });
+  }
+
+  Future<void> _loadUpcomingBookings() async {
+    setState(() {
+      _isLoadingBookings = true;
+    });
+
+    try {
+      final bookings = await _bookingService.getUpcomingBookings(limit: 5);
+      setState(() {
+        _upcomingBookings = bookings;
+        _isLoadingBookings = false;
+      });
+    } catch (e) {
+      print('Failed to load upcoming bookings: $e');
+      setState(() {
+        _isLoadingBookings = false;
+      });
+    }
   }
 
   void _loadDummyAdvertisements() {
@@ -733,6 +761,312 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     });
   }
 
+  Widget _buildUpcomingBookingsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.confirmation_number,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Your Bookings',
+                  style: AppTextStyles.h3.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/bookings');
+              },
+              child: Text(
+                'View All',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _upcomingBookings.length,
+            itemBuilder: (context, index) {
+              return _buildBookingCard(_upcomingBookings[index]);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBookingCard(BookingListItem booking) {
+    final departureDate = booking.departureDatetime;
+    final routeName = booking.routeName ?? 'Bus Trip';
+    final numberOfSeats = booking.numberOfSeats ?? 1;
+    final totalPrice = booking.formattedTotal;
+    final status = booking.bookingStatus;
+
+    Color statusColor;
+    Color bgColor;
+    IconData statusIcon;
+
+    switch (status) {
+      case MasterBookingStatus.confirmed:
+        statusColor = const Color(0xFF4CAF50);
+        bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
+        statusIcon = Icons.check_circle;
+        break;
+      case MasterBookingStatus.pending:
+        statusColor = Colors.orange;
+        bgColor = Colors.orange.withOpacity(0.1);
+        statusIcon = Icons.pending;
+        break;
+      case MasterBookingStatus.cancelled:
+        statusColor = Colors.red;
+        bgColor = Colors.red.withOpacity(0.1);
+        statusIcon = Icons.cancel;
+        break;
+      default:
+        statusColor = Colors.grey;
+        bgColor = Colors.grey.withOpacity(0.1);
+        statusIcon = Icons.info;
+    }
+
+    return GestureDetector(
+      onTap: () async {
+        // Show loading indicator
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          );
+        }
+
+        try {
+          // Fetch full booking details
+          final bookingDetails = await _bookingService.getBookingById(
+            booking.id,
+          );
+
+          // Close loading dialog
+          if (mounted) Navigator.pop(context);
+
+          // Validate booking status
+          if (status == MasterBookingStatus.cancelled) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('This booking has been cancelled'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            return;
+          }
+
+          // Navigate to check-in status screen
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CheckInStatusScreen(
+                  bookingId: booking.id,
+                  bookingReference: bookingDetails.booking.bookingReference,
+                ),
+              ),
+            );
+          }
+        } catch (e) {
+          // Close loading dialog
+          if (mounted) Navigator.pop(context);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to load booking: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+      child: Container(
+        width: 300,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: statusColor.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Status Badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 14, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          status.displayName,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.directions_bus,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Route Name
+              Text(
+                routeName,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              // Booking Reference
+              Text(
+                'Ref: ${booking.bookingReference}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              // Bottom Info
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.event_seat,
+                        size: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$numberOfSeats seat${numberOfSeats > 1 ? 's' : ''}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    totalPrice,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              if (departureDate != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.schedule, size: 14, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatBookingDate(departureDate),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatBookingDate(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = dateTime.difference(now).inDays;
+
+    if (difference == 0) {
+      return 'Today, ${_formatTime(dateTime)}';
+    } else if (difference == 1) {
+      return 'Tomorrow, ${_formatTime(dateTime)}';
+    } else if (difference < 7) {
+      return 'In $difference days, ${_formatTime(dateTime)}';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${_formatTime(dateTime)}';
+    }
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour > 12
+        ? dateTime.hour - 12
+        : (dateTime.hour == 0 ? 12 : dateTime.hour);
+    final period = dateTime.hour >= 12 ? 'PM' : 'AM';
+    return '${hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')} $period';
+  }
+
   @override
   Widget build(BuildContext context) {
     var singleChildScrollView = SingleChildScrollView(
@@ -854,7 +1188,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 24),
 
-          // Active Trip Notification Card
+          // Upcoming Bookings Section
+          if (_upcomingBookings.isNotEmpty) _buildUpcomingBookingsSection(),
+
+          const SizedBox(height: 16),
+
+          // Active Trip Notification Card (old booking - keep for now)
           if (hasActiveBooking && activeBooking != null)
             GestureDetector(
               onTap: () {

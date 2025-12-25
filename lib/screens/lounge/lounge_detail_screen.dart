@@ -55,6 +55,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
           // App Bar with Image
@@ -122,15 +123,23 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
     return SliverAppBar(
       expandedHeight: 250,
       pinned: true,
-      backgroundColor: AppColors.primary,
+      backgroundColor: Colors.white,
+      iconTheme: const IconThemeData(color: AppColors.primary),
       leading: IconButton(
         icon: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.white.withOpacity(0.9),
             shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: const Icon(Icons.arrow_back, color: Colors.white),
+          child: const Icon(Icons.arrow_back, color: AppColors.primary),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -163,10 +172,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.5),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.5)],
                 ),
               ),
             ),
@@ -203,22 +209,19 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
 
   Widget _buildPlaceholder() {
     return Container(
-      color: AppColors.secondary,
+      color: Colors.grey.shade200,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.airline_seat_individual_suite_outlined,
             size: 64,
-            color: AppColors.primary.withOpacity(0.5),
+            color: Colors.grey.shade400,
           ),
           const SizedBox(height: 8),
           Text(
             'Lounge',
-            style: TextStyle(
-              color: AppColors.primary.withOpacity(0.5),
-              fontSize: 16,
-            ),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
           ),
         ],
       ),
@@ -236,7 +239,8 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
               Text(
                 _lounge.loungeName,
                 style: AppTextStyles.h2.copyWith(
-                  color: AppColors.primary,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
@@ -294,16 +298,13 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.location_on,
-            color: AppColors.primary,
-            size: 24,
-          ),
+          Icon(Icons.location_on, color: AppColors.primary, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -320,10 +321,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _lounge.state!,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ],
               ],
@@ -340,16 +338,15 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
       children: [
         Text(
           'About',
-          style: AppTextStyles.h3.copyWith(color: AppColors.primary),
+          style: AppTextStyles.h3.copyWith(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           _lounge.description!,
-          style: TextStyle(
-            color: Colors.grey[700],
-            fontSize: 15,
-            height: 1.5,
-          ),
+          style: TextStyle(color: Colors.grey[700], fontSize: 15, height: 1.5),
         ),
       ],
     );
@@ -361,7 +358,10 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
       children: [
         Text(
           'Amenities',
-          style: AppTextStyles.h3.copyWith(color: AppColors.primary),
+          style: AppTextStyles.h3.copyWith(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -409,9 +409,9 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.secondary.withOpacity(0.5),
+        color: AppColors.primary.withOpacity(0.08),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -420,8 +420,8 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
           const SizedBox(width: 8),
           Text(
             amenity,
-            style: TextStyle(
-              color: AppColors.primary,
+            style: const TextStyle(
+              color: Colors.black87,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -436,7 +436,10 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
       children: [
         Text(
           'Pricing',
-          style: AppTextStyles.h3.copyWith(color: AppColors.primary),
+          style: AppTextStyles.h3.copyWith(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 12),
         Container(
@@ -498,13 +501,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey[700],
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 15, color: Colors.grey[700])),
           Text(
             price,
             style: TextStyle(
@@ -529,7 +526,10 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
           children: [
             Text(
               'Menu',
-              style: AppTextStyles.h3.copyWith(color: AppColors.primary),
+              style: AppTextStyles.h3.copyWith(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             if (_products.length > 4)
               TextButton(
@@ -572,9 +572,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
         children: [
           // Image
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(12),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             child: product.imageUrl != null
                 ? Image.network(
                     product.imageUrl!,
@@ -584,20 +582,14 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
                     errorBuilder: (_, __, ___) => Container(
                       height: 70,
                       color: Colors.grey[100],
-                      child: Icon(
-                        Icons.fastfood,
-                        color: Colors.grey[400],
-                      ),
+                      child: Icon(Icons.fastfood, color: Colors.grey[400]),
                     ),
                   )
                 : Container(
                     height: 70,
                     color: Colors.grey[100],
                     child: Center(
-                      child: Icon(
-                        Icons.fastfood,
-                        color: Colors.grey[400],
-                      ),
+                      child: Icon(Icons.fastfood, color: Colors.grey[400]),
                     ),
                   ),
           ),
@@ -637,16 +629,13 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.phone,
-            color: AppColors.primary,
-            size: 24,
-          ),
+          Icon(Icons.phone, color: AppColors.primary, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -654,10 +643,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
               children: [
                 const Text(
                   'Contact',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 Text(
                   _lounge.contactPhone!,
@@ -673,10 +659,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
             onPressed: () {
               // TODO: Open phone dialer
             },
-            icon: Icon(
-              Icons.call,
-              color: AppColors.primary,
-            ),
+            icon: Icon(Icons.call, color: AppColors.primary),
           ),
         ],
       ),
@@ -711,10 +694,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
               children: [
                 const Text(
                   'Starting from',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 Text(
                   _lounge.formattedPrice1Hour,
@@ -734,10 +714,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -745,10 +722,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
             ),
             child: const Text(
               'Book Now',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -760,10 +734,8 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LoungeIntentBookingScreen(
-          lounge: _lounge,
-          products: _products,
-        ),
+        builder: (context) =>
+            LoungeIntentBookingScreen(lounge: _lounge, products: _products),
       ),
     );
   }

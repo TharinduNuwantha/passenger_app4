@@ -439,6 +439,8 @@ class MasterBooking {
   // Related
   final BusBooking? busBooking;
 
+  var totalPrice;
+
   MasterBooking({
     required this.id,
     required this.bookingReference,
