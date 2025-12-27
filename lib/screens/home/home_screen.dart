@@ -19,6 +19,7 @@ import '../bus_booking/bus_booking_screen.dart';
 import '../bus_booking/nav_booking_screen.dart';
 import '../bus_booking/check_in_status_screen.dart';
 import '../bus_booking/booking_qr_screen.dart' hide CheckInStatusScreen;
+import '../bus_booking/booking_detail_screen.dart';
 import '../lounge/lounge_booking_screen.dart';
 import '../lounge/lounge_list_screen.dart';
 import '../profile/profile_screen.dart';
@@ -53,6 +54,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   // Upcoming bookings
   List<BookingListItem> _upcomingBookings = [];
   bool _isLoadingBookings = false;
+  PageController _bookingPageController = PageController();
+  Timer? _bookingTimer;
+  int _currentBookingIndex = 0;
 
   // Advertisement carousel
   PageController _adPageController = PageController();
@@ -114,13 +118,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     returnPickupController.addListener(_onReturnPickupTextChanged);
     returnDropController.addListener(_onReturnDropTextChanged);
     _startAdCarousel();
+    _startBookingCarousel();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _adTimer?.cancel();
+    _bookingTimer?.cancel();
     _adPageController.dispose();
+    _bookingPageController.dispose();
     pickupController.removeListener(_onPickupTextChanged);
     dropController.removeListener(_onDropTextChanged);
     stopController.removeListener(_onStopTextChanged);
@@ -142,6 +149,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       // Refresh active booking when app comes back to foreground
       _loadActiveBooking();
       _loadNotifications();
+      _loadUpcomingBookings(); // Refresh upcoming bookings
     }
   }
 
@@ -219,6 +227,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     try {
       final bookings = await _bookingService.getUpcomingBookings(limit: 5);
+      // Show all upcoming bookings
       setState(() {
         _upcomingBookings = bookings;
         _isLoadingBookings = false;
@@ -308,6 +317,19 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       if (advertisements.isNotEmpty && _adPageController.hasClients) {
         int nextPage = (_currentAdIndex + 1) % advertisements.length;
         _adPageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  void _startBookingCarousel() {
+    _bookingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (_upcomingBookings.isNotEmpty && _bookingPageController.hasClients) {
+        int nextPage = (_currentBookingIndex + 1) % _upcomingBookings.length;
+        _bookingPageController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
@@ -777,7 +799,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Your Bookings',
+                  'Upcoming Bookings',
                   style: AppTextStyles.h3.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -801,14 +823,46 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: _upcomingBookings.length,
-            itemBuilder: (context, index) {
-              return _buildBookingCard(_upcomingBookings[index]);
-            },
+          height: 200,
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  controller: _bookingPageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentBookingIndex = index;
+                    });
+                  },
+                  itemCount: _upcomingBookings.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _buildBookingCard(_upcomingBookings[index]),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Page indicators
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  _upcomingBookings.length,
+                  (index) => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: _currentBookingIndex == index ? 24 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _currentBookingIndex == index
+                          ? AppColors.primary
+                          : AppColors.primary.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -849,68 +903,20 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
 
     return GestureDetector(
-      onTap: () async {
-        // Show loading indicator
-        if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            ),
-          );
-        }
-
-        try {
-          // Fetch full booking details
-          final bookingDetails = await _bookingService.getBookingById(
-            booking.id,
-          );
-
-          // Close loading dialog
-          if (mounted) Navigator.pop(context);
-
-          // Validate booking status
-          if (status == MasterBookingStatus.cancelled) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('This booking has been cancelled'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-            return;
-          }
-
-          // Navigate to check-in status screen
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CheckInStatusScreen(
-                  bookingId: booking.id,
-                  bookingReference: bookingDetails.booking.bookingReference,
-                ),
-              ),
-            );
-          }
-        } catch (e) {
-          // Close loading dialog
-          if (mounted) Navigator.pop(context);
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to load booking: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
+      onTap: () {
+        // Navigate to BookingDetailScreen for full booking information
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookingDetailScreen(bookingId: booking.id),
+          ),
+        ).then((_) {
+          // Refresh bookings when returning from detail screen
+          _loadUpcomingBookings();
+        });
       },
       child: Container(
-        width: 300,
+        width: MediaQuery.of(context).size.width - 48,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -959,7 +965,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     ),
                   ),
                   Icon(
-                    Icons.directions_bus,
+                    booking.bookingType == BookingType.loungeOnly ||
+                            booking.bookingType == BookingType.busWithLounge
+                        ? Icons.weekend
+                        : Icons.directions_bus,
                     color: AppColors.primary,
                     size: 24,
                   ),

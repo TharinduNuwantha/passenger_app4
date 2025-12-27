@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/constants.dart';
 import '../../config/theme_config.dart';
 import '../../providers/auth_provider.dart';
@@ -43,6 +44,17 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     final lastName = _lastNameController.text.trim();
 
     _logger.i('Submitting profile: $firstName $lastName');
+
+    // Save to SharedPreferences first
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('firstName', firstName);
+      await prefs.setString('lastName', lastName);
+      await prefs.setBool('profileCompleted', true);
+      _logger.i('Profile saved to SharedPreferences');
+    } catch (e) {
+      _logger.e('Error saving to SharedPreferences: $e');
+    }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.completeBasicProfile(
@@ -88,20 +100,41 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                     children: [
                       const SizedBox(height: 40),
 
-                      // Welcome Icon
+                      // Welcome Icon with Add Badge
                       Center(
-                        child: Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Icon(
-                            Icons.person_outline_rounded,
-                            size: 50,
-                            color: AppColors.primary,
-                          ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD4A548).withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Color(0xFFD4A548),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFD4A548),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -109,13 +142,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
                       // Title
                       Center(
-                        child: Text(
+                        child: const Text(
                           'Complete Your Profile',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
 
@@ -123,10 +156,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
                       // Subtitle
                       Center(
-                        child: Text(
-                          'Just a few details to get you started',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: AppColors.textSecondary),
+                        child: const Text(
+                          'Please enter your name to get started',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -134,11 +166,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       const SizedBox(height: 48),
 
                       // First Name Field
-                      Text(
+                      const Text(
                         'First Name',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -149,30 +182,17 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
                           hintText: 'Enter your first name',
-                          prefixIcon: const Icon(Icons.person_outline),
+                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.border),
+                            borderSide: BorderSide.none,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.border),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppColors.primary,
-                              width: 2,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.error,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: AppColors.surface,
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -193,11 +213,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       const SizedBox(height: 24),
 
                       // Last Name Field
-                      Text(
+                      const Text(
                         'Last Name',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -207,31 +228,18 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.done,
                         decoration: InputDecoration(
-                          hintText: 'Enter your last name',
-                          prefixIcon: const Icon(Icons.person_outline),
+                          hintText: 'Enter your Last Name',
+                          hintStyle: TextStyle(color: Colors.grey.shade400),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.border),
+                            borderSide: BorderSide.none,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.border),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppColors.primary,
-                              width: 2,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.error,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: AppColors.surface,
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -248,10 +256,38 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       const SizedBox(height: 48),
 
                       // Continue Button
-                      CustomButton(
-                        text: 'Continue',
-                        onPressed: _submitProfile,
+                      SizedBox(
+                        height: 56,
                         width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : _submitProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4A548),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: authProvider.isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Continue',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
                       ),
 
                       const SizedBox(height: 16),

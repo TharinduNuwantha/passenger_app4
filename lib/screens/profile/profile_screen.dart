@@ -229,17 +229,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    // Logout using AuthProvider
-                    final authProvider = Provider.of<AuthProvider>(
-                      context,
-                      listen: false,
+                    // Show confirmation dialog
+                    final shouldLogout = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Logout'),
+                        content: const Text('Are you sure you want to logout?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.secondary,
+                            ),
+                            child: const Text('Logout'),
+                          ),
+                        ],
+                      ),
                     );
-                    await authProvider.logout();
-                    if (context.mounted) {
+
+                    if (shouldLogout != true) return;
+
+                    // Show loading
+                    if (!mounted) return;
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                    );
+
+                    try {
+                      // Get auth provider before async operation
+                      final authProvider = Provider.of<AuthProvider>(
+                        context,
+                        listen: false,
+                      );
+
+                      // Perform logout
+                      await authProvider.logout();
+
+                      // Close loading dialog
+                      if (!mounted) return;
+                      Navigator.pop(context);
+
+                      // Navigate to login screen
+                      if (!mounted) return;
                       Navigator.pushNamedAndRemoveUntil(
                         context,
                         '/login',
                         (route) => false,
+                      );
+                    } catch (e) {
+                      // Close loading dialog
+                      if (!mounted) return;
+                      Navigator.pop(context);
+
+                      // Show error
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Logout failed: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                        ),
                       );
                     }
                   },
