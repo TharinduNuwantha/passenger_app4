@@ -1085,26 +1085,39 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surfaceWhite, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.shadowMedium,
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hello ${firstName ?? 'User'},',
+                    style: AppTextStyles.h2.copyWith(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 22,
                     ),
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: 35,
-                  backgroundImage: const AssetImage(
-                    'assets/images/johns_photo.png',
                   ),
-                  backgroundColor: AppColors.primaryLighter.withOpacity(0.2),
-                ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.explore_outlined,
+                        color: AppColors.secondaryLight,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Where to go?',
+                        style: AppTextStyles.h2.copyWith(
+                          color: AppColors.textLight,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               GestureDetector(
                 onTap: _openNotifications,
@@ -1157,40 +1170,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                         ),
                     ],
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              const Icon(Icons.waving_hand, color: AppColors.warning, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'Hello ${firstName ?? 'User'},',
-                style: AppTextStyles.h2.copyWith(
-                  color: AppColors.textLight,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 22,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                Icons.explore_outlined,
-                color: AppColors.secondaryLight,
-                size: 22,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Where to go?',
-                style: AppTextStyles.h2.copyWith(
-                  color: AppColors.textLight,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 18,
                 ),
               ),
             ],
