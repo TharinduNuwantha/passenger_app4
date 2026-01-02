@@ -30,6 +30,12 @@ class ApiConfig {
   static const String autocompleteEndpoint = '/api/v1/search/autocomplete';
   static const String searchHealthEndpoint = '/api/v1/search/health';
 
+  // Notification Endpoints
+  static const String notificationsEndpoint = '/api/v1/notifications';
+  static const String notificationReadEndpoint = '/api/v1/notifications';
+  static const String notificationReadAllEndpoint = '/api/v1/notifications/read-all';
+  static const String notificationUnreadCountEndpoint = '/api/v1/notifications/unread-count';
+
   // Full URLs - Auth
   static String get sendOtpUrl => '$baseUrl$sendOtpEndpoint';
   static String get verifyOtpUrl => '$baseUrl$verifyOtpEndpoint';
@@ -43,6 +49,11 @@ class ApiConfig {
   static String get popularRoutesUrl => '$baseUrl$popularRoutesEndpoint';
   static String get autocompleteUrl => '$baseUrl$autocompleteEndpoint';
   static String get searchHealthUrl => '$baseUrl$searchHealthEndpoint';
+
+  // Full URLs - Notifications
+  static String get notificationsUrl => '$baseUrl$notificationsEndpoint';
+  static String get notificationReadAllUrl => '$baseUrl$notificationReadAllEndpoint';
+  static String get notificationUnreadCountUrl => '$baseUrl$notificationUnreadCountEndpoint';
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);
