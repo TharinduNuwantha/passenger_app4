@@ -26,6 +26,7 @@ import '../profile/profile_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../advertisements/advertisement_detail_screen.dart';
 import '../bus_tracking/bus_tracking_screen.dart';
+import '../../widgets/blue_header.dart';
 
 class DashBoard extends StatefulWidget {
   const DashBoard({super.key});
@@ -1078,101 +1079,106 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
+
     var singleChildScrollView = SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hello ${firstName ?? 'User'},',
-                    style: AppTextStyles.h2.copyWith(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 22,
+          BlueHeader(
+            padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 18),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello ${firstName ?? 'User'},',
+                      style: AppTextStyles.h2.copyWith(
+                        color: AppColors.textLight,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 22,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.explore_outlined,
-                        color: AppColors.secondaryLight,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Where to go?',
-                        style: AppTextStyles.h2.copyWith(
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.explore_outlined,
                           color: AppColors.textLight,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
+                          size: 22,
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: _openNotifications,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceWhite,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadowMedium,
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      const Icon(
-                        Icons.notifications,
-                        color: AppColors.primary,
-                        size: 28,
-                      ),
-                      if (_unreadNotifications > 0)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppColors.notificationBadge,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              _unreadNotifications > 9
-                                  ? '9+'
-                                  : '$_unreadNotifications',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Where to go?',
+                          style: AppTextStyles.h2.copyWith(
+                            color: AppColors.textLight.withOpacity(0.85),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 18,
                           ),
                         ),
-                    ],
+                      ],
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: _openNotifications,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceWhite,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.shadowMedium,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        const Icon(
+                          Icons.notifications,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
+                        if (_unreadNotifications > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.notificationBadge,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                _unreadNotifications > 9
+                                    ? '9+'
+                                    : '$_unreadNotifications',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -1451,15 +1457,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        gradient: isOneWay
-                            ? LinearGradient(
-                                colors: [
-                                  AppColors.secondary,
-                                  AppColors.secondary.withOpacity(0.8),
-                                ],
-                              )
-                            : null,
-                        color: isOneWay ? null : AppColors.white,
+                        color:
+                            isOneWay ? AppColors.primary : AppColors.white,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(8),
                           bottomLeft: Radius.circular(8),
@@ -1472,14 +1471,18 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             isOneWay
                                 ? Icons.check_circle_rounded
                                 : Icons.radio_button_unchecked,
-                            color: AppColors.primary,
+                            color: isOneWay
+                                ? AppColors.textLight
+                                : AppColors.primary,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'One way',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: isOneWay
+                                  ? AppColors.textLight
+                                  : AppColors.primary,
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
                             ),
@@ -1495,15 +1498,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        gradient: !isOneWay
-                            ? LinearGradient(
-                                colors: [
-                                  AppColors.secondary,
-                                  AppColors.secondary.withOpacity(0.8),
-                                ],
-                              )
-                            : null,
-                        color: !isOneWay ? null : AppColors.white,
+                        color:
+                            !isOneWay ? AppColors.primary : AppColors.white,
                         borderRadius: const BorderRadius.only(
                           topRight: Radius.circular(8),
                           bottomRight: Radius.circular(8),
@@ -1516,14 +1512,18 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             !isOneWay
                                 ? Icons.check_circle_rounded
                                 : Icons.radio_button_unchecked,
-                            color: AppColors.primary,
+                            color: !isOneWay
+                                ? AppColors.textLight
+                                : AppColors.primary,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'Return trip',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: !isOneWay
+                                  ? AppColors.textLight
+                                  : AppColors.primary,
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
                             ),
@@ -2343,7 +2343,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     );
     final List<Widget> pages = [
       // Page 0: Your Full Dashboard UI
-      SafeArea(child: singleChildScrollView),
+      SafeArea(top: false, child: singleChildScrollView),
       const ActivitiesScreen(),
       const BusTrackingScreen(),
       const LoungeListScreen(),
@@ -2351,7 +2351,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: AppColors.white,
@@ -2559,7 +2559,7 @@ class LocationPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: Center(child: Text('Offers Page', style: AppTextStyles.h2)),
     );
   }
@@ -2570,7 +2570,7 @@ class WeekendPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: Center(child: Text('Tours Page', style: AppTextStyles.h2)),
     );
   }
@@ -2581,7 +2581,7 @@ class profile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: Center(child: Text('Tours Page', style: AppTextStyles.h2)),
     );
   }

@@ -88,7 +88,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     final int totalAmount = busFare;
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

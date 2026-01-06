@@ -490,7 +490,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,

@@ -13,7 +13,7 @@ class ContactUsScreen extends StatelessWidget {
     final messageController = TextEditingController();
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,

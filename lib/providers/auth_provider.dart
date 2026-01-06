@@ -80,7 +80,8 @@ class AuthProvider extends ChangeNotifier {
       return false;
     } catch (e) {
       _logger.e('Send OTP error: $e');
-      _error = e.toString();
+      // The error is already a formatted string from ErrorHandler
+      _error = e is String ? e : e.toString();
       return false;
     } finally {
       _isLoading = false;

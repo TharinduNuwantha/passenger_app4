@@ -4,6 +4,7 @@ import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import 'lounge_detail_screen.dart';
+import '../../widgets/blue_header.dart';
 
 /// Main lounge marketplace screen - displays available lounges
 /// By default loads 5 random lounges, allows search by state
@@ -85,30 +86,31 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        title: Text(
-          'Lounges',
-          style: AppTextStyles.h2.copyWith(color: AppColors.white),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // State Filter Dropdown
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _buildStateFilter(),
-          ),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            BlueHeader(
+              padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 18),
+              title: 'Lounges',
+              subtitle: 'Discover and book premium lounges',
+            ),
+            // State Filter Dropdown
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _buildStateFilter(),
+            ),
 
-          // Content
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
+            // Content
+            Expanded(
+              child: _buildContent(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -166,7 +168,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
   Widget _buildContent() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.white),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -180,17 +182,17 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
               const Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Colors.white70,
+                color: AppColors.warning,
               ),
               const SizedBox(height: 16),
               Text(
                 'Failed to load lounges',
-                style: AppTextStyles.h3.copyWith(color: AppColors.white),
+                style: AppTextStyles.h3,
               ),
               const SizedBox(height: 8),
               Text(
                 _error!,
-                style: const TextStyle(color: Colors.white70),
+                style: AppTextStyles.body,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -219,14 +221,14 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
               const Icon(
                 Icons.airline_seat_individual_suite_outlined,
                 size: 64,
-                color: Colors.white70,
+                color: AppColors.primaryLight,
               ),
               const SizedBox(height: 16),
               Text(
                 _selectedState != null
                     ? 'No lounges in $_selectedState'
                     : 'No lounges available',
-                style: AppTextStyles.h3.copyWith(color: AppColors.white),
+                style: AppTextStyles.h3,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -234,7 +236,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
                 _selectedState != null
                     ? 'Try selecting a different state'
                     : 'Check back later for available lounges',
-                style: const TextStyle(color: Colors.white70),
+                style: AppTextStyles.body,
               ),
               if (_selectedState != null) ...[
                 const SizedBox(height: 16),
@@ -242,7 +244,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
                   onPressed: () => _searchByState(null),
                   child: const Text(
                     'Show All Lounges',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: AppColors.primary),
                   ),
                 ),
               ],
@@ -545,13 +547,13 @@ class _LoungeCard extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: AppColors.primary,
+            color: AppColors.textLight,
           ),
           const SizedBox(width: 4),
           Text(
             amenity,
             style: TextStyle(
-              color: AppColors.primary,
+              color: AppColors.textLight,
               fontSize: 12,
             ),
           ),

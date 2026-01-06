@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../config/theme_config.dart' as config;
 import '../payment/payment_method_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
@@ -29,7 +28,7 @@ class BookingSuccessScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(fontSize: 15, color: Colors.black87),
+          style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
           children: [
             TextSpan(
               text: '$title: ',
@@ -45,12 +44,12 @@ class BookingSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         automaticallyImplyLeading: true,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -58,22 +57,18 @@ class BookingSuccessScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 80),
+              const Icon(Icons.check_circle, color: AppColors.success, size: 80),
               const SizedBox(height: 20),
 
-              const Text(
+              Text(
                 'Your booking is confirmed!',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTextStyles.h1.copyWith(fontSize: 24),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Safe travels & enjoy your journey ahead.',
-                style: TextStyle(color: AppColors.white70, fontSize: 15),
+                style: AppTextStyles.body.copyWith(fontSize: 15),
                 textAlign: TextAlign.center,
               ),
 
@@ -83,8 +78,15 @@ class BookingSuccessScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(15),
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.shadowLight,
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,17 +121,18 @@ class BookingSuccessScreen extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textLight,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    elevation: 2,
+                    elevation: 3,
                   ),
                   child: const Text(
                     'Checkout',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: AppColors.textLight,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
