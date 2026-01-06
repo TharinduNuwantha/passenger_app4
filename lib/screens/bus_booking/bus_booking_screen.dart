@@ -56,7 +56,7 @@ class _BusListScreenState extends State<BusListScreen> {
     return SafeArea(
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.background,
         body: Consumer<SearchProvider>(
           builder: (context, searchProvider, child) {
             // Get filtered trips based on bus type
@@ -95,7 +95,7 @@ class _BusListScreenState extends State<BusListScreen> {
             SizedBox(height: 16),
             Text(
               'Searching for trips...',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
             ),
           ],
         ),
@@ -112,19 +112,19 @@ class _BusListScreenState extends State<BusListScreen> {
             children: [
               const Icon(
                 Icons.error_outline,
-                color: AppColors.secondary,
+                color: AppColors.warning,
                 size: 64,
               ),
               const SizedBox(height: 16),
               Text(
                 'Search Failed',
-                style: AppTextStyles.h2.copyWith(color: Colors.white),
+                style: AppTextStyles.h2,
               ),
               const SizedBox(height: 8),
               Text(
                 searchProvider.errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.white70),
+                style: AppTextStyles.body,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -149,17 +149,17 @@ class _BusListScreenState extends State<BusListScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.search_off, color: AppColors.white70, size: 64),
+              const Icon(Icons.search_off, color: AppColors.primaryLight, size: 64),
               const SizedBox(height: 16),
               Text(
                 'No Trips Found',
-                style: AppTextStyles.h2.copyWith(color: Colors.white),
+                style: AppTextStyles.h2,
               ),
               const SizedBox(height: 8),
               Text(
                 'No buses available for this route on the selected date.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.white70),
+                style: AppTextStyles.body,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
