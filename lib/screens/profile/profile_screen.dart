@@ -5,6 +5,7 @@ import '../../services/user_service.dart';
 import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
+import '../../widgets/blue_header.dart';
 
 import 'contact_us.dart';
 
@@ -63,7 +64,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.primary,
+          title: const Text('Profile'),
+          centerTitle: true,
+        ),
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.secondary),
         ),
@@ -72,7 +78,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (errorMessage != null) {
       return Scaffold(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.primary,
+          title: const Text('Profile'),
+          centerTitle: true,
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -106,20 +117,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final displayName = _user?.fullName.isNotEmpty == true
-        ? _user!.fullName
-        : 'Passenger';
-    final displayPhone = _user != null
-        ? _formatPhoneNumber(_user!.phoneNumber)
-        : '';
+    final displayName =
+        _user?.fullName.isNotEmpty == true ? _user!.fullName : 'Passenger';
+    final displayPhone =
+        _user != null ? _formatPhoneNumber(_user!.phoneNumber) : '';
+    final topInset = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const SizedBox(height: 40),
+              BlueHeader(
+                padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 18),
+                title: 'Profile',
+                subtitle: 'Manage your personal details',
+              ),
+              const SizedBox(height: 24),
               // User avatar with initials
               CircleAvatar(
                 radius: 50,
@@ -129,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: AppColors.textLight,
                   ),
                 ),
               ),
@@ -328,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     VoidCallback? onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.white),
+      leading: Icon(icon, color: AppColors.primary),
       title: Text(title, style: AppTextStyles.body),
       contentPadding: EdgeInsets.zero,
       onTap: onTap,
