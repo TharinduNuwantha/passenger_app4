@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_text_style.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
   final String referenceNo;
@@ -14,12 +15,12 @@ class PaymentSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         automaticallyImplyLeading: false,
-        iconTheme: const IconThemeData(color: AppColors.white),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: SafeArea(
         child: Padding(
@@ -29,26 +30,22 @@ class PaymentSuccessScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Success Icon
-              const Icon(Icons.check_circle, color: Colors.green, size: 100),
+              const Icon(Icons.check_circle, color: AppColors.success, size: 100),
               const SizedBox(height: 30),
 
               // Success Title
-              const Text(
+              Text(
                 'Payment Successful!',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTextStyles.h1.copyWith(fontSize: 26),
                 textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 12),
 
               // Success Message
-              const Text(
+              Text(
                 'Your payment has been processed successfully.',
-                style: TextStyle(color: AppColors.white70, fontSize: 16),
+                style: AppTextStyles.body.copyWith(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
 
@@ -59,19 +56,22 @@ class PaymentSuccessScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(15),
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.shadowLight,
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Payment Details',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                      style: AppTextStyles.h2.copyWith(fontSize: 20),
                     ),
                     const SizedBox(height: 16),
                     _buildDetailRow('Reference No', referenceNo),
@@ -100,17 +100,18 @@ class PaymentSuccessScreen extends StatelessWidget {
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.white,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textLight,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    elevation: 2,
+                    elevation: 3,
                   ),
                   child: const Text(
                     'Done',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: AppColors.textLight,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -129,21 +130,21 @@ class PaymentSuccessScreen extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Receipt will be sent to your email'),
-                        backgroundColor: Colors.green,
+                        backgroundColor: AppColors.success,
                       ),
                     );
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: AppColors.white, width: 2),
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: const Text(
                     'View Receipt',
                     style: TextStyle(
-                      color: AppColors.white,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -163,14 +164,14 @@ class PaymentSuccessScreen extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 15, color: Colors.black54),
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
         Text(
           value,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: valueColor ?? Colors.black87,
+            color: valueColor ?? AppColors.textPrimary,
           ),
         ),
       ],
