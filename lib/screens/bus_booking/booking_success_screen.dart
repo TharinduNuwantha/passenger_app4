@@ -26,7 +26,7 @@ class BookingSuccessScreenV2 extends StatelessWidget {
     final qrData = qrCode ?? busBooking?.qrCodeData ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
