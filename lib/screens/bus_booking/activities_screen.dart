@@ -3,8 +3,10 @@ import 'package:logger/logger.dart';
 import '../../models/unified_booking.dart';
 import '../../services/combined_bookings_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_text_style.dart';
 import 'booking_detail_screen.dart';
 import '../lounge/lounge_booking_detail_screen.dart';
+import '../../widgets/blue_header.dart';
 
 /// Redesigned Activities/Bookings screen with tabs for Upcoming, Completed, Cancelled
 class ActivitiesScreen extends StatefulWidget {
@@ -332,92 +334,91 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.background,
       body: SafeArea(
+        top: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            BlueHeader(
+              padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'My Bookings',
-                    style: TextStyle(
+                    style: AppTextStyles.h2.copyWith(
+                      color: AppColors.textLight,
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Track your trips and lounge visits',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.7),
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textLight.withOpacity(0.8),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            // Tab Bar
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorPadding: const EdgeInsets.all(4),
-                labelColor: AppColors.primary,
-                unselectedLabelColor: Colors.white.withOpacity(0.8),
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                ),
-                dividerColor: Colors.transparent,
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.schedule, size: 16),
-                        const SizedBox(width: 6),
-                        const Text('Upcoming'),
-                      ],
+                  const SizedBox(height: 20),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.check_circle_outline, size: 16),
-                        const SizedBox(width: 6),
-                        const Text('Completed'),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.cancel_outlined, size: 16),
-                        const SizedBox(width: 6),
-                        const Text('Cancelled'),
+                    child: TabBar(
+                      controller: _tabController,
+                      indicator: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicatorPadding: const EdgeInsets.all(4),
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor:
+                          AppColors.textLight.withOpacity(0.85),
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                      dividerColor: Colors.transparent,
+                      tabs: const [
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.schedule, size: 16),
+                              SizedBox(width: 6),
+                              Text('Upcoming'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 16),
+                              SizedBox(width: 6),
+                              Text('Completed'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cancel_outlined, size: 16),
+                              SizedBox(width: 6),
+                              Text('Cancelled'),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
