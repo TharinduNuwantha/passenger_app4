@@ -1,8 +1,9 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart';
 import 'config/constants.dart';
-import 'config/theme_config.dart';
+import 'config/theme_config.dart' show AppTheme;
 import 'providers/auth_provider.dart';
 import 'providers/booking_intent_provider.dart';
 import 'providers/search_provider.dart';
@@ -17,10 +18,18 @@ import 'screens/profile/help and support.dart';
 import 'screens/profile/privacy_policy.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/splash_screen.dart';
+import 'theme/app_colors.dart';
 
 Future<void> main() async {
   // Load environment variables
   await dotenv.load(fileName: ".env");
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: AppColors.primary,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+    ),
+  );
 
   runApp(const MyApp());
 }
