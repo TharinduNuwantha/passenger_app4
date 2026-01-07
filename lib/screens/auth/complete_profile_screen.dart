@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/constants.dart';
-import '../../config/theme_config.dart';
+import '../../config/theme_config.dart' hide AppColors;
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/error_dialog.dart';
 import '../../widgets/loading_overlay.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_text_style.dart';
 
 /// Screen shown to new passengers after OTP verification
 /// Collects only first_name and last_name to complete their profile
@@ -89,7 +91,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           isLoading: authProvider.isLoading,
           message: 'Saving...',
           child: Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.background,
             body: SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
@@ -109,13 +111,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               width: 100,
                               height: 100,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFD4A548).withOpacity(0.2),
+                                color: AppColors.primary.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.person,
                                 size: 50,
-                                color: Color(0xFFD4A548),
+                                color: AppColors.primary,
                               ),
                             ),
                             Positioned(
@@ -123,8 +125,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               right: 0,
                               child: Container(
                                 padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD4A548),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -142,23 +144,22 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
                       // Title
                       Center(
-                        child: const Text(
+                        child: Text(
                           'Complete Your Profile',
-                          style: TextStyle(
-                            fontSize: 24,
+                          style: AppTextStyles.h1.copyWith(
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // Subtitle
                       Center(
-                        child: const Text(
+                        child: Text(
                           'Please enter your name to get started',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -166,28 +167,36 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       const SizedBox(height: 48),
 
                       // First Name Field
-                      const Text(
+                      Text(
                         'First Name',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _firstNameController,
                         focusNode: _firstNameFocusNode,
+                        style: const TextStyle(color: Colors.black, fontSize: 16),
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
                           hintText: 'Enter your first name',
                           hintStyle: TextStyle(color: Colors.grey.shade400),
                           filled: true,
-                          fillColor: Colors.grey.shade100,
+                          fillColor: AppColors.surfaceWhite,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            borderSide: BorderSide(color: AppColors.divider),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: const Color.fromARGB(255, 36, 100, 237)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -213,28 +222,36 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       const SizedBox(height: 24),
 
                       // Last Name Field
-                      const Text(
+                      Text(
                         'Last Name',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _lastNameController,
                         focusNode: _lastNameFocusNode,
+                        style: const TextStyle(color: Colors.black, fontSize: 16),
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.done,
                         decoration: InputDecoration(
                           hintText: 'Enter your Last Name',
                           hintStyle: TextStyle(color: Colors.grey.shade400),
                           filled: true,
-                          fillColor: Colors.grey.shade100,
+                          fillColor: AppColors.surfaceWhite,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            borderSide: BorderSide(color: AppColors.divider),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: const Color.fromARGB(255, 36, 100, 237)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -264,7 +281,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               ? null
                               : _submitProfile,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFD4A548),
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
