@@ -490,7 +490,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.primary, // Standardize header background
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -953,16 +953,16 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFC300).withOpacity(0.2),
+        color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFC300)),
+        border: Border.all(color: AppColors.secondary.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.weekend, color: Color(0xFFFFC300), size: 20),
+              Icon(Icons.weekend, color: AppColors.secondary, size: 20),
               SizedBox(width: 8),
               Text(
                 'Lounge Added',
@@ -1030,7 +1030,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           Text(
             'LKR ${lounge.totalPrice.toStringAsFixed(0)}',
             style: const TextStyle(
-              color: Color(0xFFFFC300),
+              color: AppColors.secondary,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -1200,7 +1200,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF4CAF50),
+                      color: AppColors.success,
                     ),
                   ),
                 ],
@@ -1254,7 +1254,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: isExpired
                     ? Colors.grey
-                    : const Color(0xFFFFC300),
+                    : AppColors.secondary,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
