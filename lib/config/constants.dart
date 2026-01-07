@@ -1,7 +1,7 @@
 class AppConstants {
   // App Information
   static const String appName = 'AASL Passenger';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '2.0.0';
 
   // Phone Number
   static const String countryCode = '+94';
