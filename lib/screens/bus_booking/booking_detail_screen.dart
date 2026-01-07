@@ -113,7 +113,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary, // Themed background for top
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -164,7 +164,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ElevatedButton(
               onPressed: _loadBookingDetails,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: AppColors.secondary,
                 foregroundColor: AppColors.primary,
               ),
               child: const Text('Try Again'),
@@ -461,7 +461,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF4CAF50),
+                          color: AppColors.success,
                         ),
                       ),
                     ],
@@ -494,7 +494,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC300),
+                      backgroundColor: AppColors.secondary,
                       foregroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
