@@ -476,7 +476,7 @@ class _BusListScreenState extends State<BusListScreen> {
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
-                        foregroundColor: AppColors.primary,
+                        foregroundColor: const Color.fromARGB(255, 241, 242, 243),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -847,7 +847,7 @@ class _BusListScreenState extends State<BusListScreen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 40, 16, 20),
       decoration: const BoxDecoration(
-        color: Color(0xFF5A9DB6),
+        color: AppColors.primary,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(40),
           bottomRight: Radius.circular(40),
