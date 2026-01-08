@@ -19,26 +19,30 @@ class HelpSupportScreen extends StatelessWidget {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'How can we help you?',
               style: AppTextStyles.h1.copyWith(
-                color: Colors.white,
-                fontSize: 22,
+                color: AppColors.primary,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 20),
-            Text(
-              '• FAQ: Find answers to commonly asked questions.\n\n'
-              '• Contact Us: Reach out to our support team via email or phone.\n\n'
-              '• Report an Issue: Let us know if you face any problems in the app.',
-              style: AppTextStyles.h2.copyWith(
-                color: Colors.white,
-                fontSize: 16,
-              ),
+            const SizedBox(height: 24),
+            _buildSupportOption(
+              'FAQ',
+              'Find answers to commonly asked questions.',
+            ),
+            _buildSupportOption(
+              'Contact Us',
+              'Reach out to our support team via email or phone.',
+            ),
+            _buildSupportOption(
+              'Report an Issue',
+              'Let us know if you face any problems in the app.',
             ),
             const SizedBox(height: 30),
             SizedBox(
@@ -48,7 +52,7 @@ class HelpSupportScreen extends StatelessWidget {
                   // Add contact action here
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
+                  backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -57,8 +61,8 @@ class HelpSupportScreen extends StatelessWidget {
                 child: const Text(
                   'Contact Support',
                   style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 16,
+                    color: Colors.white,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -66,6 +70,34 @@ class HelpSupportScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSupportOption(String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }

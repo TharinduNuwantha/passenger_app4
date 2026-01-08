@@ -130,12 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              BlueHeader(
-                padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 18),
-                title: 'Profile',
-                subtitle: 'Manage your personal details',
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 60),
               // User avatar with initials
               CircleAvatar(
                 radius: 50,
@@ -156,9 +151,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.phone, size: 16, color: AppColors.secondary),
+                  const Icon(Icons.phone, size: 20, color: AppColors.secondary),
                   const SizedBox(width: 8),
-                  Text(displayPhone, style: AppTextStyles.small),
+                  Text(displayPhone, style: AppTextStyles.small.copyWith(fontSize: 20)),
                 ],
               ),
               // Email if available
@@ -183,7 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Profile Settings', style: AppTextStyles.h2),
+                    Text('Profile Settings', style: AppTextStyles.h2.copyWith(color: AppColors.secondary)),
                     const SizedBox(height: 10),
                     const Divider(color: AppColors.secondary),
                     _buildSettingsTile(
@@ -235,93 +230,115 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 30),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    foregroundColor: AppColors.primary,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: () async {
-                    // Show confirmation dialog
-                    final shouldLogout = await showDialog<bool>(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.pop(dialogContext, false),
-                            child: const Text('Cancel'),
+                child: Column(
+                  children: [
+                    // Log Out Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: AppColors.primary,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(dialogContext, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
+                        ),
+                        onPressed: () async {
+                          // Show confirmation dialog
+                          final shouldLogout = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Logout'),
+                              content: const Text('Are you sure you want to logout?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.pop(dialogContext, true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.secondary,
+                                  ),
+                                  child: const Text('Logout'),
+                                ),
+                              ],
                             ),
-                            child: const Text('Logout'),
-                          ),
-                        ],
+                          );
+
+                          if (shouldLogout != true) return;
+
+                          // Show loading
+                          if (!mounted) return;
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          );
+
+                          try {
+                            // Get auth provider before async operation
+                            final authProvider = Provider.of<AuthProvider>(
+                              context,
+                              listen: false,
+                            );
+
+                            // Perform logout
+                            await authProvider.logout();
+
+                            // Close loading dialog
+                            if (!mounted) return;
+                            Navigator.pop(context);
+
+                            // Navigate to login screen
+                            if (!mounted) return;
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/login',
+                              (route) => false,
+                            );
+                          } catch (e) {
+                            // Close loading dialog
+                            if (!mounted) return;
+                            Navigator.pop(context);
+
+                            // Show error
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Logout failed: ${e.toString()}'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Log Out', style: AppTextStyles.buttonText),
                       ),
-                    );
+                    ),
 
-                    if (shouldLogout != true) return;
+                    const SizedBox(height: 16),
 
-                    // Show loading
-                    if (!mounted) return;
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.secondary,
+                    // App Version
+                    const Center(
+                      child: Text(
+                        'Version 2.0.0',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                    );
-
-                    try {
-                      // Get auth provider before async operation
-                      final authProvider = Provider.of<AuthProvider>(
-                        context,
-                        listen: false,
-                      );
-
-                      // Perform logout
-                      await authProvider.logout();
-
-                      // Close loading dialog
-                      if (!mounted) return;
-                      Navigator.pop(context);
-
-                      // Navigate to login screen
-                      if (!mounted) return;
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/login',
-                        (route) => false,
-                      );
-                    } catch (e) {
-                      // Close loading dialog
-                      if (!mounted) return;
-                      Navigator.pop(context);
-
-                      // Show error
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Logout failed: ${e.toString()}'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Log Out', style: AppTextStyles.buttonText),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),

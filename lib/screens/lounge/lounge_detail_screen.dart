@@ -694,13 +694,13 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
               children: [
                 const Text(
                   'Starting from',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: Colors.grey, fontSize: 13), // Adjusted contrast
                 ),
                 Text(
                   _lounge.formattedPrice1Hour,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.primary,
-                    fontSize: 20,
+                    fontSize: 22, // Slightly larger for emphasis
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -712,8 +712,8 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
           ElevatedButton(
             onPressed: _lounge.isOperational ? _navigateToBooking : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.secondary, // Use secondary (yellow) for consistency with "Book" buttons
+              foregroundColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -722,7 +722,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
             ),
             child: const Text(
               'Book Now',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 236, 238, 240)),
             ),
           ),
         ],

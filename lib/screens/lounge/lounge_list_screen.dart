@@ -88,7 +88,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white, // Standardize to white background
       body: SafeArea(
         top: false,
         child: Column(
@@ -119,12 +119,12 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color.fromARGB(250, 254, 254, 255),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         children: [
-          Icon(Icons.location_on, color: AppColors.primary),
+          Icon(Icons.location_on, color: const Color.fromARGB(255, 3, 123, 243)),
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonHideUnderline(
@@ -132,7 +132,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
                 value: _selectedState,
                 hint: const Text(
                   'Select State / Province',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Color.fromARGB(255, 4, 158, 235)),
                 ),
                 isExpanded: true,
                 icon: Icon(Icons.arrow_drop_down, color: AppColors.primary),
@@ -267,7 +267,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
               _selectedState != null
                   ? '${_lounges.length} lounge(s) in $_selectedState'
                   : 'Showing ${_lounges.length} lounges',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: const TextStyle(color: Colors.grey, fontSize: 14), // Changed from white70 to grey
             ),
           ),
           
@@ -313,6 +313,8 @@ class _LoungeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
+      color: Colors.white, // Explicitly white background
+      surfaceTintColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -538,7 +540,7 @@ class _LoungeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.secondary.withOpacity(0.5),
+        color: AppColors.primary.withOpacity(0.1), // Consistent with bus feature chips
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -547,14 +549,15 @@ class _LoungeCard extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: AppColors.textLight,
+            color: AppColors.primary,
           ),
           const SizedBox(width: 4),
           Text(
             amenity,
-            style: TextStyle(
-              color: AppColors.textLight,
+            style: const TextStyle(
+              color: AppColors.primary,
               fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
