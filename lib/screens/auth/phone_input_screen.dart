@@ -130,9 +130,8 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Use the dark surface color while checking to avoid flashing
     if (_isChecking) {
-      return const Scaffold(backgroundColor: Colors.black);
+      return const Scaffold(backgroundColor: Colors.white);
     }
 
     return Consumer<AuthProvider>(
@@ -141,6 +140,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
           isLoading: authProvider.isLoading,
           message: 'Processing...',
           child: Scaffold(
+            backgroundColor: Colors.white,
             body: Stack(
               children: [
                 // Background Image
@@ -159,9 +159,9 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                         horizontal: 30,
                         vertical: 40,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.85),
-                        borderRadius: const BorderRadius.only(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(40),
                           topRight: Radius.circular(40),
                         ),
@@ -174,17 +174,17 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                             const Text(
                               'Log In',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.primary,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 10),
                             const Text(
-                              'Log in to continue your\nseamless journey',
+                              'Log in to continue your seamless journey',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: Color.fromARGB(255, 139, 139, 139),
                                 fontSize: 14,
                               ),
                             ),
@@ -192,18 +192,26 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                             // Phone Input Styled as per image
                             IntlPhoneField(
                               controller: _phoneController,
-                              style: const TextStyle(color: Colors.white),
-                              dropdownTextStyle: const TextStyle(color: Colors.white),
+                              style: const TextStyle(color: Colors.black),
+                              dropdownTextStyle: const TextStyle(color: Colors.black),
                               inputFormatters: [NoLeadingZeroFormatter()],
                               cursorColor: AppColors.primary,
                               decoration: InputDecoration(
                                 hintText: 'Mobile Number',
-                                hintStyle: const TextStyle(color: Colors.white38),
+                                hintStyle: const TextStyle(color: Colors.black38),
                                 filled: true,
-                                fillColor: Colors.white.withOpacity(0.1),
+                                fillColor: Colors.grey.shade100,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                  borderSide: BorderSide.none,
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20,
@@ -233,7 +241,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                                 onPressed: _sendOtp,
