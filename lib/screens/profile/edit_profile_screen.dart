@@ -138,7 +138,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 CircleAvatar(
                   radius: 60,
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
                   backgroundImage: const AssetImage('assets/johns_photo.png'),
                   onBackgroundImageError: (exception, stackTrace) {
                     print('Error loading profile image: $exception');
@@ -146,7 +146,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: const Icon(
                     Icons.person,
                     size: 60,
-                    color: Colors.white54,
+                    color: AppColors.primary,
                   ),
                 ),
                 Positioned(
@@ -270,7 +270,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               },
               child: const Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+                style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
             ),
           ],
@@ -290,8 +290,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
+          style: TextStyle(
+            color: Colors.grey[700],
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -300,11 +300,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: const TextStyle(color: Colors.black87, fontSize: 16),
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.white.withOpacity(0.1),
-            prefixIcon: Icon(icon, color: Colors.white70),
+            fillColor: Colors.grey[100],
+            prefixIcon: Icon(icon, color: Colors.grey[600]),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -312,13 +312,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.grey[300]!,
                 width: 1,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.white, width: 2),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
