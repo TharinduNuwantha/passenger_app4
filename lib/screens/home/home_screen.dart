@@ -810,7 +810,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             ),
             TextButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/bookings');
+                _onItemTapped(1);
               },
               child: Text(
                 'View All',
@@ -1560,16 +1560,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   children: [
                     const Icon(
                       Icons.my_location,
-                      color: AppColors.pickupGreen,
-                      size: 18,
+                      color: AppColors.primary,
+                      size: 20,
                     ),
                     const SizedBox(width: 6),
                     const Text(
                       'PickUp',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -1587,9 +1587,20 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   child: TextField(
                     controller: pickupController,
                     style: const TextStyle(color: Colors.black),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Your Location',
-                      border: UnderlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.divider),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(199, 237, 237, 237)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -1765,16 +1776,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   children: [
                     const Icon(
                       Icons.location_on,
-                      color: AppColors.dropRed,
-                      size: 18,
+                      color: AppColors.primary,
+                      size: 20,
                     ),
                     const SizedBox(width: 6),
                     const Text(
                       'Drop',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -1792,9 +1803,20 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   child: TextField(
                     controller: dropController,
                     style: const TextStyle(color: Colors.black),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Where are you going?',
-                      border: UnderlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.divider),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: const Color.fromARGB(199, 237, 237, 237)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                     ),
