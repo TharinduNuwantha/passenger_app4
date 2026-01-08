@@ -111,7 +111,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color.fromARGB(0, 42, 123, 210),
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.3,
@@ -319,7 +319,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
 
   Color _getSeatColor(TripSeat seat) {
     if (_selectedSeatIds.contains(seat.id)) {
-      return const Color(0xFFFFC300); // Selected - Yellow
+      return AppColors.secondary; // Selected - Secondary Yellow
     }
     if (seat.isBooked || seat.isBlocked) {
       return AppColors.primary.withOpacity(0.5); // Booked - Faded Blue
@@ -417,7 +417,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -513,14 +513,14 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFC300),
+            color: const Color.fromARGB(255, 82, 156, 222),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
               const Icon(
                 Icons.info_outline,
-                color: AppColors.primary,
+                color: Color.fromARGB(255, 241, 242, 243),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -528,7 +528,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                 child: Text(
                   'You have ${_existingBookings.length} booking(s) on this trip',
                   style: const TextStyle(
-                    color: AppColors.primary,
+                    color: Color.fromARGB(255, 243, 244, 246),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -536,7 +536,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               ),
               const Icon(
                 Icons.chevron_right,
-                color: AppColors.primary,
+                color: Color.fromARGB(255, 210, 211, 213),
                 size: 20,
               ),
             ],
@@ -552,7 +552,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color:  const Color.fromARGB(255, 82, 156, 222),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -593,7 +593,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               child: Text(
                 widget.trip.busTypeDisplay,
                 style: const TextStyle(
-                  color: AppColors.primary,
+                  color: Color.fromARGB(255, 12, 12, 12),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -626,7 +626,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
           children: [
             _buildLegendItem(
               Icons.event_seat,
-              const Color(0xFFFFC300),
+              AppColors.secondary,
               'Selected',
             ),
             const SizedBox(width: 16),
@@ -638,7 +638,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             const SizedBox(width: 16),
             _buildLegendItem(
               Icons.event_seat,
-              AppColors.primary.withOpacity(0.5),
+              const Color.fromARGB(255, 228, 16, 69),
               'Booked',
             ),
           ],
@@ -893,7 +893,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             child: ElevatedButton(
               onPressed: seatCount == 0 ? null : _proceedToConfirm,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFC300),
+                backgroundColor: AppColors.secondary,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -905,7 +905,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                     ? 'Continue ($seatCount ${seatCount == 1 ? 'Seat' : 'Seats'})'
                     : 'Select Seats to Continue',
                 style: TextStyle(
-                  color: seatCount > 0 ? AppColors.primary : Colors.grey,
+                  color: seatCount > 0 ? const Color.fromARGB(255, 236, 237, 238) : Colors.grey,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
