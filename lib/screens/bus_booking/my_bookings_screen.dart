@@ -143,7 +143,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -162,7 +162,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFFFFC300),
+          indicatorColor: AppColors.secondary,
           indicatorWeight: 3,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white60,
@@ -294,8 +294,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
         itemBuilder: (context, index) {
           return _buildBookingCard(bookings[index]);
         },
-      ),
-    );
+      );
   }
 
   Widget _buildBookingCard(BookingListItem booking) {
