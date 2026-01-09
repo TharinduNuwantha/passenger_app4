@@ -833,10 +833,10 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               Text(
                 seat.seatNumber,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10,
                   color: isSelected
-                      ? const Color(0xFFFFC300)
-                      : Colors.grey.shade600,
+                      ? AppColors.primary
+                      : const Color.fromARGB(255, 0, 0, 0),
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),

@@ -120,10 +120,13 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
         arguments: {'phoneNumber': _completePhoneNumber},
       );
     } else {
+      final isRateLimit = authProvider.error?.contains('Too many') ?? false;
+      
       ErrorDialog.show(
         context: context,
+        title: isRateLimit ? 'Too Many Requests' : 'Error',
         message: authProvider.error ?? 'Failed to send verification code',
-        onRetry: _sendOtp,
+        onRetry: isRateLimit ? null : _sendOtp,
       );
     }
   }
