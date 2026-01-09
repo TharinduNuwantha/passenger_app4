@@ -177,9 +177,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         ),
       );
     } else {
+      final isRateLimit = authProvider.error?.contains('Too many') ?? false;
+      
       ErrorDialog.show(
         context: context,
+        title: isRateLimit ? 'Too Many Requests' : 'Error',
         message: authProvider.error ?? 'Failed to send code. Please try again.',
+        onRetry: isRateLimit ? null : _resendOtp,
       );
     }
   }
