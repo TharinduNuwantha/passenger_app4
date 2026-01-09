@@ -369,7 +369,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -382,7 +382,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Color.fromARGB(255, 238, 239, 239),
           ),
         ),
         centerTitle: true,
@@ -408,7 +408,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
-                  color: const Color(0xFFFFC300),
+                  color:  AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 indicatorPadding: const EdgeInsets.all(4),
@@ -525,7 +525,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFC300),
+                color: AppColors.primarySurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -574,7 +574,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 Text(
                   'LKR ${widget.busFare.toStringAsFixed(0)}',
                   style: const TextStyle(
-                    color: Color(0xFFFFC300),
+                    color:AppColors.primarySurface,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -598,7 +598,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFC300)),
+        border: Border.all(color: AppColors.primarySurface),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -859,7 +859,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFFC300) : Colors.grey.shade200,
+            color: isSelected ? AppColors.primarySurface : const Color.fromARGB(255, 76, 149, 246),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
@@ -916,7 +916,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
+                            color: const Color.fromARGB(255, 236, 235, 234).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -925,7 +925,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                               const Icon(
                                 Icons.star,
                                 size: 14,
-                                color: Colors.amber,
+                                color:AppColors.primarySurface,
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -933,7 +933,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.amber,
+                                  color: Color.fromARGB(255, 238, 237, 234),
                                 ),
                               ),
                             ],
@@ -995,7 +995,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isSelected
                               ? Colors.green
-                              : const Color(0xFFFFC300),
+                              : AppColors.primary,
                           foregroundColor: isSelected
                               ? Colors.white
                               : AppColors.primary,
@@ -1012,6 +1012,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -1109,7 +1110,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     child: const Text(
                       'Skip Lounge',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: Color.fromARGB(179, 255, 255, 255),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1121,7 +1122,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                   child: ElevatedButton(
                     onPressed: _continueWithLounges,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC300),
+                      backgroundColor: const Color.fromARGB(255, 238, 238, 237),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1604,7 +1605,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFC300),
+                        color: const Color.fromARGB(255, 244, 243, 241),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Text(
