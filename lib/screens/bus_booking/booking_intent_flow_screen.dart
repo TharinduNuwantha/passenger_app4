@@ -1267,7 +1267,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                       width: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.primary,
+                        color: Color.fromARGB(255, 223, 223, 223),
                       ),
                     )
                   : Row(
@@ -1278,7 +1278,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                             widget.masterRouteId!.isNotEmpty)
                           const Icon(
                             Icons.weekend,
-                            color: AppColors.primary,
+                            color: Color.fromARGB(255, 239, 240, 241),
                             size: 20,
                           ),
                         if (!_loungeSelectionDone &&
@@ -1288,7 +1288,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                         Text(
                           buttonText,
                           style: TextStyle(
-                            color: isExpired ? Colors.grey : AppColors.primary,
+                            color: isExpired ? Colors.grey : const Color.fromARGB(255, 222, 223, 225),
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
