@@ -322,7 +322,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       return AppColors.secondary; // Selected - Secondary Yellow
     }
     if (seat.isBooked || seat.isBlocked) {
-      return AppColors.primary.withOpacity(0.5); // Booked - Faded Blue
+      return const Color.fromARGB(255, 215, 8, 8).withOpacity(0.5); // Booked - Faded Blue
     }
     if (seat.canBeSelected) {
       return const Color(0xFF4CAF50); // Available - Green
@@ -638,7 +638,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             const SizedBox(width: 16),
             _buildLegendItem(
               Icons.event_seat,
-              const Color.fromARGB(255, 228, 16, 69),
+              const Color.fromARGB(255, 220, 108, 136),
               'Booked',
             ),
           ],
@@ -656,7 +656,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 14,
             color: AppColors.primary.withOpacity(0.8),
           ),
         ),
@@ -728,7 +728,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                     ),
                   ),
                 ),
-                const Icon(Icons.drive_eta, size: 40, color: AppColors.primary),
+                const Icon(Icons.directions_bus, size: 40, color: AppColors.primary),
               ],
             ),
           ),
