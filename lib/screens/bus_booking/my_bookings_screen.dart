@@ -294,7 +294,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
         itemBuilder: (context, index) {
           return _buildBookingCard(bookings[index]);
         },
-      );
+      ),
+    );
   }
 
   Widget _buildBookingCard(BookingListItem booking) {
