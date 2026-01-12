@@ -106,7 +106,7 @@ class BookingSuccessScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 50),
+                child: const Icon(Icons.check, color: Color.fromARGB(255, 19, 143, 244), size: 50),
               ),
               const SizedBox(height: 20),
 
