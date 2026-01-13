@@ -64,6 +64,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   Timer? _adTimer;
   int _currentAdIndex = 0;
 
+  // Refresh timer for periodic updates
+  Timer? _refreshTimer;
+
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController dropController = TextEditingController();
   final TextEditingController stopController = TextEditingController();
@@ -108,11 +111,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _advertisementService = AdvertisementService();
     _notificationService = NotificationService();
     _bookingService = BookingService();
-    _loadUserData();
-    _loadActiveBooking();
-    _loadUpcomingBookings();
-    _loadDummyAdvertisements();
-    _loadNotifications();
+    
+    // Initialize data
+    _initializeData();
+    
     pickupController.addListener(_onPickupTextChanged);
     dropController.addListener(_onDropTextChanged);
     stopController.addListener(_onStopTextChanged);
@@ -120,6 +122,25 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     returnDropController.addListener(_onReturnDropTextChanged);
     _startAdCarousel();
     _startBookingCarousel();
+    _startRefreshTimer();
+  }
+
+  Future<void> _initializeData() async {
+    await _loadUserData();
+    _loadActiveBooking();
+    _loadUpcomingBookings();
+    _loadDummyAdvertisements();
+    _loadNotifications();
+  }
+
+  void _startRefreshTimer() {
+    // Refresh notifications and upcoming bookings every 30 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        _loadNotifications();
+        _loadUpcomingBookings();
+      }
+    });
   }
 
   @override
@@ -127,6 +148,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _adTimer?.cancel();
     _bookingTimer?.cancel();
+    _refreshTimer?.cancel();
     _adPageController.dispose();
     _bookingPageController.dispose();
     pickupController.removeListener(_onPickupTextChanged);
@@ -774,7 +796,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             stop: null, // Remove stop parameter
           ),
         ),
-      );
+      ).then((_) {
+        // Refresh bookings and notifications when returning from booking flow
+        _loadUpcomingBookings();
+        _loadNotifications();
+        _loadActiveBooking();
+      });
     }
   }
 
@@ -1083,6 +1110,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     var singleChildScrollView = SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 16),
+      
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1331,112 +1359,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               ),
             ),
           if (hasActiveBooking) const SizedBox(height: 20),
-
-          // Date Pickers Row
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceWhite,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowLight,
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.calendar_month_rounded,
-                          color: AppColors.primary,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            selectedDate == null
-                                ? 'Departure'
-                                : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              if (!isOneWay) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectDate(context, isReturn: true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.event_repeat,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              returnDate == null
-                                  ? 'Return'
-                                  : '${returnDate!.day}/${returnDate!.month}/${returnDate!.year}',
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Trip type toggle
+ // Trip type toggle
           Container(
             decoration: BoxDecoration(
               color: AppColors.surfaceWhite,
@@ -1535,6 +1458,109 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ),
               ],
             ),
+          ),
+            const SizedBox(height: 20),
+          // Date Pickers Row
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectDate(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.shadowLight,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.calendar_month_rounded,
+                          color: AppColors.surfaceWhite,
+                          size: 22,
+                        ),
+                        
+                        Flexible(
+                          child: Text(
+                            selectedDate == null
+                                ? 'Select Departure Date'
+                                : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                            style: const TextStyle(
+                              color: AppColors.surfaceWhite,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (!isOneWay) ...[
+                const SizedBox(width: 10),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _selectDate(context, isReturn: true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.event_repeat,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              returnDate == null
+                                  ? 'Return'
+                                  : '${returnDate!.day}/${returnDate!.month}/${returnDate!.year}',
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 15),
 
