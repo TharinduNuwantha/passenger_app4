@@ -20,15 +20,41 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    final rawCreatedAt =
+        json['createdAt'] ?? json['created_at'] ?? json['timestamp'];
+    DateTime createdAt;
+    if (rawCreatedAt is DateTime) {
+      createdAt = rawCreatedAt;
+    } else if (rawCreatedAt is int) {
+      createdAt = DateTime.fromMillisecondsSinceEpoch(rawCreatedAt);
+    } else if (rawCreatedAt is String) {
+      createdAt = DateTime.tryParse(rawCreatedAt) ?? DateTime.now();
+    } else {
+      createdAt = DateTime.now();
+    }
+
     return NotificationModel(
-      id: json['id'],
-      userId: json['userId'],
-      title: json['title'],
-      message: json['message'],
-      type: json['type'],
+      id: (json['id'] ?? '').toString(),
+      userId: (json['userId'] ?? json['user_id'] ?? '').toString(),
+      title: json['title'] ?? '',
+      message: json['message'] ?? '',
+      type: json['type'] ?? 'info',
       read: json['read'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
-      actionUrl: json['actionUrl'],
+      createdAt: createdAt,
+      actionUrl: json['actionUrl'] ?? json['action_url'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'title': title,
+      'message': message,
+      'type': type,
+      'read': read,
+      'createdAt': createdAt.toIso8601String(),
+      'actionUrl': actionUrl,
+    };
   }
 }

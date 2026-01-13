@@ -71,7 +71,7 @@ class BookingSuccessScreen extends StatelessWidget {
     print('  hasLoungeBookings: $hasLoungeBookings');
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -106,7 +106,7 @@ class BookingSuccessScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 50),
+                child: const Icon(Icons.check, color: Color.fromARGB(255, 19, 143, 244), size: 50),
               ),
               const SizedBox(height: 20),
 
@@ -187,7 +187,7 @@ class BookingSuccessScreen extends StatelessWidget {
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC300),
+                    backgroundColor: const Color.fromARGB(255, 224, 12, 12),
                     foregroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -197,7 +197,7 @@ class BookingSuccessScreen extends StatelessWidget {
                   ),
                   child: const Text(
                     'Back to Home',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color.fromARGB(255, 252, 250, 250)),
                   ),
                 ),
               ),

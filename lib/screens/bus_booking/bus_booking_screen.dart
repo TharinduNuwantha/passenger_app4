@@ -115,10 +115,10 @@ class _BusListScreenState extends State<BusListScreen> {
                 color: AppColors.warning,
                 size: 64,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               Text(
                 'Search Failed',
-                style: AppTextStyles.h2,
+                style: AppTextStyles.h2.merge(TextStyle(color: AppColors.warning)),
               ),
               const SizedBox(height: 8),
               Text(
@@ -133,7 +133,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   backgroundColor: AppColors.secondary,
                   foregroundColor: AppColors.primary,
                 ),
-                child: const Text('Retry'),
+                child: const Text('Retry', style: TextStyle(color: Color.fromARGB(255, 227, 230, 232))),
               ),
             ],
           ),
@@ -166,9 +166,12 @@ class _BusListScreenState extends State<BusListScreen> {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondary,
-                  foregroundColor: AppColors.primary,
+                  foregroundColor: const Color.fromARGB(255, 250, 250, 250),
                 ),
+                
                 child: const Text('Change Search'),
+               
+
               ),
             ],
           ),
@@ -820,7 +823,7 @@ class _BusListScreenState extends State<BusListScreen> {
           child: Text(
             type,
             style: TextStyle(
-              color: isSelected ? AppColors.primary : AppColors.white,
+              color: isSelected ? const Color.fromARGB(255, 242, 243, 244) : AppColors.white,
               fontWeight: FontWeight.bold,
             ),
           ),

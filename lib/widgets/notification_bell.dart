@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 
@@ -19,12 +20,26 @@ class NotificationBell extends StatefulWidget {
 class _NotificationBellState extends State<NotificationBell> {
   late NotificationService _notificationService;
   int _unreadCount = 0;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _notificationService = NotificationService();
     _loadUnreadCount();
+    
+    // Auto-refresh unread count every minute
+    _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        _loadUnreadCount();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUnreadCount() async {

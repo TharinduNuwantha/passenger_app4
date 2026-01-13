@@ -8,6 +8,7 @@ import '../../models/booking_models.dart';
 import '../../models/search_models.dart';
 import '../../providers/booking_intent_provider.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
 import '../payment/payment_webview_screen.dart';
 import 'booking_intent_success_screen.dart';
@@ -57,6 +58,7 @@ class BookingIntentFlowScreen extends StatefulWidget {
 class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
   final Logger _logger = Logger();
   final AuthService _authService = AuthService();
+  final NotificationService _notificationService = NotificationService();
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -387,6 +389,27 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
       print('  Bus: ${confirmedBooking.busBooking?.reference}');
       print('  Pre-lounge: ${confirmedBooking.preLoungeBooking?.reference}');
       print('  Post-lounge: ${confirmedBooking.postLoungeBooking?.reference}');
+
+      // Ensure notifications list reflects the newly confirmed booking immediately
+      try {
+        final departureLabel =
+            DateFormat('MMM d, h:mm a').format(widget.trip.departureTime);
+        final reference = confirmedBooking.busBooking?.reference ??
+            confirmedBooking.masterReference;
+        await _notificationService.addLocalNotification(
+          title: 'Booking confirmed',
+          message:
+              'Trip to ${widget.alightingPoint} on $departureLabel is confirmed. Ref: $reference',
+          type: 'booking',
+          actionUrl: '/bookings/${confirmedBooking.masterReference}',
+        );
+      } catch (e, stack) {
+        _logger.w(
+          'Failed to cache booking notification',
+          error: e,
+          stackTrace: stack,
+        );
+      }
 
       // Navigate to success screen with lounge booking info
       Navigator.pushReplacement(
@@ -1228,7 +1251,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         } else if (!_loungeSelectionDone &&
             widget.masterRouteId != null &&
             widget.masterRouteId!.isNotEmpty) {
-          buttonText = 'Continue - Add Lounge (Optional)';
+          buttonText = 'Continue';
         } else if (!_intentCreated) {
           buttonText = 'Proceed to Payment';
         } else {
