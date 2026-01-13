@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../models/notification_model.dart';
 import '../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
@@ -17,12 +18,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   late NotificationService _notificationService;
   late Future<List<NotificationModel>> _notificationsFuture;
   bool _showUnreadOnly = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _notificationService = NotificationService();
     _loadNotifications();
+    
+    // Auto-refresh notifications every 30 seconds while on this screen
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        _loadNotifications();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   void _loadNotifications() {
