@@ -57,7 +57,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const SizedBox(height: 30),
             Center(
               child: Text(
-                'Last updated: October 2026',
+                'Last updated: January 2026',
                 style: TextStyle(
                   color: Colors.grey[500],
                   fontSize: 12,
