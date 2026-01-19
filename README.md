@@ -2,7 +2,7 @@
 
 A Flutter-based mobile application for bus transportation booking and management. Passengers can search for trips, book seats, and manage their reservations with SMS OTP authentication.
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Features](#features)
 - [Prerequisites](#prerequisites)
@@ -15,7 +15,7 @@ A Flutter-based mobile application for bus transportation booking and management
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
-## ✨ Features
+##  Features
 
 ### Authentication
 - **SMS OTP Login**: Secure authentication via one-time passwords (OTP)
@@ -49,7 +49,7 @@ A Flutter-based mobile application for bus transportation booking and management
 - **Multi-language Support**: Internationalization ready
 - **Local Storage**: Secure token storage with Flutter Secure Storage
 
-## 🔧 Prerequisites
+##  Prerequisites
 
 Before you begin, ensure you have the following installed:
 
@@ -69,7 +69,7 @@ dart --version
 flutter doctor
 ```
 
-## 📦 Installation
+##  Installation
 
 ### 1. Clone the Repository
 ```bash
@@ -101,7 +101,7 @@ pod install
 cd ..
 ```
 
-## ⚙️ Configuration
+##  Configuration
 
 ### 1. Environment Variables
 
@@ -148,7 +148,7 @@ GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 <string>Camera is used to scan QR codes for tickets</string>
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 lib/
@@ -200,7 +200,7 @@ lib/
     └── loading_widget.dart      # Loading indicators
 ```
 
-## ▶️ Running the App
+##  Running the App
 
 ### 1. Run on Android Emulator/Device
 ```bash
@@ -279,7 +279,7 @@ flutter run -d chrome
 ### See Backend Documentation
 For complete API documentation, visit the backend's swagger.yaml file or access the Postman collection.
 
-## 🧪 Testing
+##  Testing
 
 ### Unit Tests
 ```bash
@@ -319,7 +319,7 @@ flutter test integration_test/
 - [ ] Session refresh with refresh token works
 - [ ] Logout clears all data
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -375,7 +375,7 @@ flutter run -v
 adb logcat | grep flutter
 ```
 
-## 📚 Additional Resources
+##  Additional Resources
 
 - [Flutter Documentation](https://flutter.dev/docs)
 - [Dart Language Tour](https://dart.dev/guides/language/language-tour)
@@ -383,14 +383,14 @@ adb logcat | grep flutter
 - [HTTP Package](https://pub.dev/packages/http)
 - [Firebase Security Best Practices](https://firebase.google.com/docs/best-practices)
 
-## 🤝 Contributing
+##  Contributing
 
 1. Create a feature branch: `git checkout -b feature/your-feature`
 2. Commit changes: `git commit -am 'Add feature'`
 3. Push to branch: `git push origin feature/your-feature`
 4. Create Pull Request
 
-## 📝 License
+##  License
 
 This project is proprietary and confidential. All rights reserved.
 
