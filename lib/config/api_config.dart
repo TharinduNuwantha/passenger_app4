@@ -9,7 +9,7 @@ class ApiConfig {
   // Load base URL from environment variables (secure)
   static String get baseUrl =>
       dotenv.env['API_BASE_URL'] ??
-      'https://a9a9815d-fed9-4f0e-bf6f-706f789df0f3-dev.e1-us-east-azure.choreoapis.dev/default/backend/v1.0';
+      'https://584bf421-3861-4953-806e-cdc205b16164-dev.e1-us-east-azure.choreoapis.dev/bustransportationsystem/backend-mx/v1.0';
 
   // Google Maps API Key (for location autocomplete - will be replaced with backend autocomplete)
   static String get googleMapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
@@ -17,7 +17,8 @@ class ApiConfig {
   // API Endpoints
   static const String sendOtpEndpoint = '/api/v1/auth/send-otp';
   static const String verifyOtpEndpoint = '/api/v1/auth/verify-otp';
-  static const String refreshTokenEndpoint = '/api/v1/auth/refresh';
+ // static const String refreshTokenEndpoint = '/api/v1/auth/refresh';QrBitBuffer
+ static const String refreshTokenEndpoint = '/api/v1/auth/refresh';
   static const String profileEndpoint = '/api/v1/user/profile';
   static const String updateProfileEndpoint = '/api/v1/user/profile';
   static const String completeBasicProfileEndpoint =
