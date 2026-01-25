@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/booking_intent_provider.dart';
 import '../../theme/app_colors.dart';
 import '../bus_booking/booking_intent_flow_screen.dart';
@@ -106,10 +107,20 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
           },
           onWebResourceError: (WebResourceError error) {
             _logger.e('Web error: ${error.description}');
+            final shouldAutoLaunchExternal =
+                error.errorType == WebResourceErrorType.hostLookup ||
+                    error.errorCode == -2; // Android net::ERR_NAME_NOT_RESOLVED
+
             setState(() {
-              _errorMessage = 'Failed to load payment page';
+              _errorMessage =
+                  'Failed to load payment page. Please try again or open in your browser.';
               _isLoading = false;
             });
+
+            // If DNS/host lookup failed, immediately try external browser fallback.
+            if (shouldAutoLaunchExternal) {
+              _openInBrowser();
+            }
           },
         ),
       )
@@ -408,22 +419,46 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _errorMessage = null;
-                  _isLoading = true;
-                });
-                _controller.reload();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-              ),
-              child: const Text('Try Again'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _errorMessage = null;
+                      _isLoading = true;
+                    });
+                    _controller.reload();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: const Text('Try Again'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  onPressed: _openInBrowser,
+                  child: const Text('Open in Browser'),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openInBrowser() async {
+    final uri = Uri.parse(widget.paymentUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _logger.w('Could not launch payment URL externally: ${widget.paymentUrl}');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Unable to open payment page externally.';
+        });
+      }
+    }
   }
 }
