@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,6 +14,7 @@ import '../../models/advertisement_model.dart';
 import '../../models/booking_models.dart';
 import '../../services/search_service.dart';
 import '../../theme/app_text_style.dart';
+import '../../providers/auth_provider.dart';
 import '../bus_booking/activities_screen.dart';
 import '../bus_booking/booking_conform.dart' hide AppColors;
 import '../bus_booking/bus_booking_screen.dart';
@@ -1081,6 +1083,20 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     );
   }
 
+  String _greetingName(AuthProvider authProvider) {
+    final providerName = authProvider.user?.firstName?.trim();
+    if (providerName != null && providerName.isNotEmpty) {
+      return providerName;
+    }
+
+    final cachedName = firstName?.trim();
+    if (cachedName != null && cachedName.isNotEmpty) {
+      return cachedName;
+    }
+
+    return 'User';
+  }
+
   String _formatBookingDate(DateTime dateTime) {
     final now = DateTime.now();
     final difference = dateTime.difference(now).inDays;
@@ -1106,6 +1122,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final greetingName = _greetingName(authProvider);
     final topInset = MediaQuery.of(context).padding.top;
 
     var singleChildScrollView = SingleChildScrollView(
@@ -1124,7 +1142,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hello ${firstName ?? 'User'},',
+                      'Hello $greetingName,',
                       style: AppTextStyles.h2.copyWith(
                         color: AppColors.textLight,
                         fontWeight: FontWeight.w600,
