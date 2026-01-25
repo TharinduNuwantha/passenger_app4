@@ -37,12 +37,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadUserData() async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final user = authProvider.user;
 
+      // Always pull the latest profile from the backend to keep this form fresh
+      final user = await _userService.getProfile();
+      authProvider.updateUser(user);
+
+      if (!mounted) return;
       setState(() {
-        _firstNameController.text = user?.firstName ?? '';
-        _lastNameController.text = user?.lastName ?? '';
-        _emailController.text = user?.email ?? '';
+        _firstNameController.text = user.firstName ?? '';
+        _lastNameController.text = user.lastName ?? '';
+        _emailController.text = user.email ?? '';
         isLoading = false;
       });
     } catch (e) {
