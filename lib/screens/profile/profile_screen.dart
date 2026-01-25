@@ -158,17 +158,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               // Email if available
               if (_user?.email != null && _user!.email!.isNotEmpty) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(
                       Icons.email,
-                      size: 16,
+                      size: 18,
                       color: AppColors.secondary,
                     ),
                     const SizedBox(width: 8),
-                    Text(_user!.email!, style: AppTextStyles.small),
+                    Text(_user!.email!, style: AppTextStyles.small.copyWith(fontSize: 17)),
                   ],
                 ),
               ],
