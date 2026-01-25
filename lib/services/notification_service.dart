@@ -302,58 +302,8 @@ class NotificationService {
 
   /// Get mock notifications for development/testing
   List<NotificationModel> _getMockNotifications() {
-    final now = DateTime.now();
-    return [
-      NotificationModel(
-        id: '1',
-        userId: 'user123',
-        title: 'Booking Confirmed',
-        message: 'Your bus booking for Route 245 has been confirmed. Departure at 10:30 AM.',
-        type: 'booking',
-        read: false,
-        createdAt: now.subtract(const Duration(minutes: 30)),
-        actionUrl: '/bookings/1',
-      ),
-      NotificationModel(
-        id: '2',
-        userId: 'user123',
-        title: 'Special Offer: 20% Off',
-        message: 'Book your next trip and get 20% off! Limited time offer.',
-        type: 'promo',
-        read: false,
-        createdAt: now.subtract(const Duration(hours: 2)),
-        actionUrl: '/offers',
-      ),
-      NotificationModel(
-        id: '3',
-        userId: 'user123',
-        title: 'Trip Reminder',
-        message: 'Your trip to Colombo is scheduled for tomorrow at 8:00 AM. Don\'t forget to check in!',
-        type: 'alert',
-        read: true,
-        createdAt: now.subtract(const Duration(days: 1)),
-        actionUrl: '/bookings/2',
-      ),
-      NotificationModel(
-        id: '4',
-        userId: 'user123',
-        title: 'Payment Successful',
-        message: 'Your payment of LKR 1,500 has been processed successfully.',
-        type: 'booking',
-        read: true,
-        createdAt: now.subtract(const Duration(days: 2)),
-        actionUrl: '/payments/1',
-      ),
-      NotificationModel(
-        id: '5',
-        userId: 'user123',
-        title: 'New Route Available',
-        message: 'Check out our new express route to Kandy! Faster and more comfortable.',
-        type: 'promo',
-        read: true,
-        createdAt: now.subtract(const Duration(days: 3)),
-        actionUrl: '/routes/kandy-express',
-      ),
-    ];
+    // Returning empty list to ensure only real/locally-triggered notifications are shown
+    // as requested by the user to avoid stale mock data.
+    return [];
   }
 }

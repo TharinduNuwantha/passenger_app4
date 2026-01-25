@@ -396,12 +396,45 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             DateFormat('MMM d, h:mm a').format(widget.trip.departureTime);
         final reference = confirmedBooking.busBooking?.reference ??
             confirmedBooking.masterReference;
+
+        // Add "Payment Successful" notification as requested by user
+        final amountFormatter = NumberFormat('#,###');
+        final formattedAmount =
+            amountFormatter.format(confirmedBooking.effectiveTotalAmount);
+
         await _notificationService.addLocalNotification(
-          title: 'Booking confirmed',
+          title: 'Payment Successful',
+          message:
+              'Your payment of ${confirmedBooking.currency} $formattedAmount has been processed successfully.',
+          type: 'booking',
+          actionUrl: '/bookings/${confirmedBooking.masterReference}',
+        );
+
+        // Add "Booking Confirmed" notification
+        await _notificationService.addLocalNotification(
+          title: 'Booking Confirmed',
           message:
               'Trip to ${widget.alightingPoint} on $departureLabel is confirmed. Ref: $reference',
           type: 'booking',
           actionUrl: '/bookings/${confirmedBooking.masterReference}',
+        );
+
+        // Add "Trip Reminder" notification
+        await _notificationService.addLocalNotification(
+          title: 'Trip Reminder',
+          message:
+              'Your trip to ${widget.alightingPoint} is scheduled for $departureLabel. Don\'t forget to check in!',
+          type: 'alert',
+          actionUrl: '/bookings/${confirmedBooking.masterReference}',
+        );
+
+        // Add "New Route Available" notification
+        await _notificationService.addLocalNotification(
+          title: 'New Route Available',
+          message:
+              'Check out our new express route to ${widget.alightingPoint}! Faster and more comfortable.',
+          type: 'promo',
+          actionUrl: '/routes/express-discovery',
         );
       } catch (e, stack) {
         _logger.w(
