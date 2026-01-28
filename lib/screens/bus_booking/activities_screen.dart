@@ -370,6 +370,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                     ),
                     child: TabBar(
                       controller: _tabController,
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                       indicator: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(10),
@@ -381,11 +383,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           AppColors.textLight.withOpacity(0.85),
                       labelStyle: const TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                       unselectedLabelStyle: const TextStyle(
                         fontWeight: FontWeight.w500,
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                       dividerColor: Colors.transparent,
                       tabs: const [
@@ -393,8 +395,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.schedule, size: 16),
-                              SizedBox(width: 6),
+                              Icon(Icons.schedule, size: 14),
+                              SizedBox(width: 3),
                               Text('Upcoming'),
                             ],
                           ),
@@ -403,8 +405,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check_circle_outline, size: 16),
-                              SizedBox(width: 6),
+                              Icon(Icons.check_circle_outline, size: 14),
+                              SizedBox(width: 3),
                               Text('Completed'),
                             ],
                           ),
@@ -413,8 +415,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.cancel_outlined, size: 16),
-                              SizedBox(width: 6),
+                              Icon(Icons.cancel_outlined, size: 14),
+                              SizedBox(width: 3),
                               Text('Cancelled'),
                             ],
                           ),
