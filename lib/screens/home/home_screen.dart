@@ -78,7 +78,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   bool isLoadingDropSuggestions = false;
   bool isLoadingStopSuggestions = false;
 
-  final String googleMapsApiKey = 'AIzaSyCs7dOTJ-9GlNB1T29k5Bexz8XOY1IuaA4';
+  final String googleMapsApiKey = 'AIzaSyAuA_RMUaOuqKOasnd5GU8MdYvrDmToXPg';
 
   final List<Map<String, String>> nearbyLocations = [];
 
