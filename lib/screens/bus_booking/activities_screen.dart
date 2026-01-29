@@ -370,8 +370,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                     ),
                     child: TabBar(
                       controller: _tabController,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
                       padding: EdgeInsets.zero,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                       indicator: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(10),
