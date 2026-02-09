@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/user_service.dart';
@@ -49,7 +49,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String _formatPhoneNumber(String phone) {
-    // Format +94XXXXXXXXX to 0XX XXX XXXX
     if (phone.startsWith('+94')) {
       final local = '0${phone.substring(3)}';
       if (local.length == 10) {
@@ -69,9 +68,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: AppColors.primary,
           title: const Text('Profile'),
           centerTitle: true,
+          elevation: 0,
         ),
         body: const Center(
-          child: CircularProgressIndicator(color: AppColors.secondary),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
@@ -83,33 +83,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: AppColors.primary,
           title: const Text('Profile'),
           centerTitle: true,
+          elevation: 0,
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
-              const SizedBox(height: 16),
+              const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 64),
+              const SizedBox(height: 24),
               Text(
-                'Failed to load profile',
-                style: AppTextStyles.h2.copyWith(color: Colors.white),
+                'Something went wrong',
+                style: AppTextStyles.h2.copyWith(color: AppColors.primary),
               ),
               const SizedBox(height: 8),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(horizontal: 48),
                 child: Text(
                   errorMessage!,
-                  style: AppTextStyles.small.copyWith(color: Colors.white70),
+                  style: AppTextStyles.body.copyWith(color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
                 onPressed: _loadUserData,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try Again'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Retry'),
               ),
             ],
           ),
@@ -117,93 +122,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final displayName =
-        _user?.fullName.isNotEmpty == true ? _user!.fullName : 'Passenger';
-    final displayPhone =
-        _user != null ? _formatPhoneNumber(_user!.phoneNumber) : '';
-    final topInset = MediaQuery.of(context).padding.top;
+    final displayName = _user?.fullName.isNotEmpty == true ? _user!.fullName : 'Passenger';
+    final displayPhone = _user != null ? _formatPhoneNumber(_user!.phoneNumber) : '';
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              // User avatar with initials
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: AppColors.secondary,
-                child: Text(
-                  _getInitials(displayName),
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textLight,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(displayName, style: AppTextStyles.h2),
-              const SizedBox(height: 8),
-              // Phone number
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Modern Header with Profile Info
+            BlueHeader(
+              bottomRadius: 30,
+              padding: const EdgeInsets.only(top: 60, bottom: 40, left: 24, right: 24),
+              child: Column(
                 children: [
-                  const Icon(Icons.phone, size: 20, color: AppColors.secondary),
-                  const SizedBox(width: 8),
-                  Text(displayPhone, style: AppTextStyles.small.copyWith(fontSize: 20)),
+                  Hero(
+                    tag: 'profile-avatar',
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      child: Text(
+                        _getInitials(displayName),
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    displayName,
+                    style: AppTextStyles.h2.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    displayPhone,
+                    style: AppTextStyles.body.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                  if (_user?.email != null && _user!.email!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _user!.email!,
+                      style: AppTextStyles.small.copyWith(
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              // Email if available
-              if (_user?.email != null && _user!.email!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.email,
-                      size: 18,
-                      color: AppColors.secondary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(_user!.email!, style: AppTextStyles.small.copyWith(fontSize: 17)),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Profile Settings', style: AppTextStyles.h2.copyWith(color: AppColors.secondary)),
-                    const SizedBox(height: 10),
-                    const Divider(color: AppColors.secondary),
+            ),
+
+            const SizedBox(height: 24),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle('Account Management'),
+                  _buildModernCard([
                     _buildSettingsTile(
-                      Icons.person_outline,
+                      Icons.person_outline_rounded,
                       'Edit Profile',
                       onTap: () async {
                         final result = await Navigator.pushNamed(
                           context,
                           '/edit-profile',
                         );
-                        // Reload data if profile was updated
                         if (result == true) {
                           _loadUserData();
                         }
                       },
                     ),
+                  ]),
 
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Support & Legal'),
+                  _buildModernCard([
                     _buildSettingsTile(
-                      Icons.privacy_tip_outlined,
-                      'Privacy Policy',
+                      Icons.help_outline_rounded,
+                      'Help & Support',
                       onTap: () {
-                        Navigator.pushNamed(context, '/privacy-policy');
+                        Navigator.pushNamed(context, '/help-support');
                       },
                     ),
-
                     _buildSettingsTile(
                       Icons.contact_support_outlined,
                       'Contact Us',
@@ -216,155 +222,183 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                     ),
-
                     _buildSettingsTile(
-                      Icons.help_outline,
-                      'Help & Support',
+                      Icons.privacy_tip_outlined,
+                      'Privacy Policy',
                       onTap: () {
-                        Navigator.pushNamed(context, '/help-support');
+                        Navigator.pushNamed(context, '/privacy-policy');
                       },
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  children: [
-                    // Log Out Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          foregroundColor: AppColors.primary,
-                          minimumSize: const Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                  ]),
+
+                  const SizedBox(height: 40),
+
+                  // Logout Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: Colors.red.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        onPressed: () async {
-                          // Show confirmation dialog
-                          final shouldLogout = await showDialog<bool>(
-                            context: context,
-                            builder: (dialogContext) => AlertDialog(
-                              title: const Text('Logout'),
-                              content: const Text('Are you sure you want to logout?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(dialogContext, false),
-                                  child: const Text('Cancel'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () => Navigator.pop(dialogContext, true),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.secondary,
-                                  ),
-                                  child: const Text('Logout'),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (shouldLogout != true) return;
-
-                          // Show loading
-                          if (!mounted) return;
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) => const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.secondary,
-                              ),
-                            ),
-                          );
-
-                          try {
-                            // Get auth provider before async operation
-                            final authProvider = Provider.of<AuthProvider>(
-                              context,
-                              listen: false,
-                            );
-
-                            // Perform logout
-                            await authProvider.logout();
-
-                            // Close loading dialog
-                            if (!mounted) return;
-                            Navigator.pop(context);
-
-                            // Navigate to login screen
-                            if (!mounted) return;
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              '/login',
-                              (route) => false,
-                            );
-                          } catch (e) {
-                            // Close loading dialog
-                            if (!mounted) return;
-                            Navigator.pop(context);
-
-                            // Show error
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Logout failed: ${e.toString()}'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                        child: const Text('Log Out', style: AppTextStyles.buttonText),
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // App Version
-                    const Center(
-                      child: Text(
-                        'Version 2.0.0',
+                      icon: Icon(Icons.logout_rounded, color: Colors.red.shade400),
+                      label: Text(
+                        'Logout Account',
                         style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                          letterSpacing: 0.5,
+                          color: Colors.red.shade400,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
+                      onPressed: () => _handleLogout(context),
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Version info
+                  const Center(
+                    child: Text(
+                      'App Version 2.6.3 (Build 312)',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: children.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final widget = entry.value;
+          return Column(
+            children: [
+              widget,
+              if (idx < children.length - 1)
+                Divider(height: 1, indent: 56, color: Colors.grey[100]),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(IconData icon, String title, {VoidCallback? onTap}) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: AppColors.primary, size: 22),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    );
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Stay Signed In', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.logout();
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Logout failed: $e')),
+      );
+    }
   }
 
   String _getInitials(String name) {
     if (name.isEmpty) return 'P';
     final parts = name.trim().split(' ');
     if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
     }
-    return name[0].toUpperCase();
-  }
-
-  Widget _buildSettingsTile(
-    IconData icon,
-    String title, {
-    VoidCallback? onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.primary),
-      title: Text(title, style: AppTextStyles.body),
-      contentPadding: EdgeInsets.zero,
-      onTap: onTap,
-    );
+    return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : 'P';
   }
 }
