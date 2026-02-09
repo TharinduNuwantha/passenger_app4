@@ -45,29 +45,45 @@ class CombinedBookingsService {
         'Fetching combined $status bookings (busPage: $busPage, loungePage: $loungePage, limit: $limit)',
       );
 
-      // Fetch both types in parallel
-      final results = await Future.wait([
-        _busBookingService.getMyBookings(
-          status: status,
-          page: busPage,
-          limit: limit,
-        ),
-        // For upcoming, use the dedicated upcoming endpoint (status enum differs)
-        if (status == 'upcoming')
-          _loungeBookingService.getUpcomingBookings(
-            page: loungePage,
-            limit: limit,
-          )
-        else
-          _loungeBookingService.getMyBookings(
-            status: status,
-            page: loungePage,
-            limit: limit,
-          ),
-      ]);
+      // Fetch both types in parallel, but handle errors individually
+      List<BookingListItem> busBookings = [];
+      List<LoungeBooking> loungeBookings = [];
 
-      final busBookings = results[0] as List<BookingListItem>;
-      final loungeBookings = results[1] as List<LoungeBooking>;
+      await Future.wait([
+        // Bus bookings
+        _busBookingService
+            .getMyBookings(status: status, page: busPage, limit: limit)
+            .then((result) {
+              busBookings = result;
+            })
+            .catchError((e) {
+              _logger.e('Failed to fetch bus bookings: $e');
+              // Continue with empty list
+              busBookings = [];
+            }),
+
+        // Lounge bookings
+        () async {
+          try {
+            if (status == 'upcoming') {
+              loungeBookings = await _loungeBookingService.getUpcomingBookings(
+                page: loungePage,
+                limit: limit,
+              );
+            } else {
+              loungeBookings = await _loungeBookingService.getMyBookings(
+                status: status,
+                page: loungePage,
+                limit: limit,
+              );
+            }
+          } catch (e) {
+            _logger.e('Failed to fetch lounge bookings: $e');
+            // Continue with empty list
+            loungeBookings = [];
+          }
+        }(),
+      ]);
 
       _logger.d(
         'Got ${busBookings.length} $status bus and ${loungeBookings.length} $status lounge bookings',

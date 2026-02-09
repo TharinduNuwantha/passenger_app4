@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -29,6 +30,7 @@ import '../notifications/notifications_screen.dart';
 import '../advertisements/advertisement_detail_screen.dart';
 import '../bus_tracking/bus_tracking_screen.dart';
 import '../../widgets/blue_header.dart';
+import '../../widgets/notification_bell.dart';
 
 class DashBoard extends StatefulWidget {
   const DashBoard({super.key});
@@ -51,18 +53,22 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   List<Advertisement> advertisements = [];
   String? userId;
   int _unreadNotifications = 0;
+  int _previousUnreadNotifications = 0; // Track previous count for minimal alerts
 
   // Upcoming bookings
   List<BookingListItem> _upcomingBookings = [];
   bool _isLoadingBookings = false;
-  PageController _bookingPageController = PageController();
+  final PageController _bookingPageController = PageController();
   Timer? _bookingTimer;
   int _currentBookingIndex = 0;
 
   // Advertisement carousel
-  PageController _adPageController = PageController();
+  final PageController _adPageController = PageController();
   Timer? _adTimer;
   int _currentAdIndex = 0;
+
+  // Calendar scroll controller
+  final ScrollController _calendarScrollController = ScrollController();
 
   // Refresh timer for periodic updates
   Timer? _refreshTimer;
@@ -85,6 +91,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   // Search service for fuzzy matching
   final SearchService _searchService = SearchService();
 
+  // Search History (last 3 searches)
+  List<Map<String, String>> _searchHistory = [];
+
   String? firstName;
 
   // Active booking data
@@ -100,10 +109,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _advertisementService = AdvertisementService();
     _notificationService = NotificationService();
     _bookingService = BookingService();
-    
+
     // Initialize data
     _initializeData();
-    
+
     pickupController.addListener(_onPickupTextChanged);
     dropController.addListener(_onDropTextChanged);
     stopController.addListener(_onStopTextChanged);
@@ -114,10 +123,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   Future<void> _initializeData() async {
     await _loadUserData();
+    await _loadSearchHistory();
     _loadActiveBooking();
     _loadUpcomingBookings();
     _loadDummyAdvertisements();
-    _loadNotifications();
+    _loadNotifications(silent: true);
   }
 
   void _startRefreshTimer() {
@@ -138,6 +148,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _refreshTimer?.cancel();
     _adPageController.dispose();
     _bookingPageController.dispose();
+    _calendarScrollController.dispose();
     pickupController.removeListener(_onPickupTextChanged);
     dropController.removeListener(_onDropTextChanged);
     stopController.removeListener(_onStopTextChanged);
@@ -179,6 +190,56 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       firstName = prefs.getString('firstName') ?? 'User';
       userId = prefs.getString('userId');
     });
+  }
+
+  // Load search history from SharedPreferences
+  Future<void> _loadSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyJson = prefs.getString('searchHistory');
+    if (historyJson != null) {
+      final List<dynamic> decoded = json.decode(historyJson);
+      setState(() {
+        _searchHistory = decoded.map((item) {
+          return {
+            'pickup': item['pickup'] as String,
+            'drop': item['drop'] as String,
+          };
+        }).toList();
+      });
+    }
+  }
+
+  // Save search history to SharedPreferences
+  Future<void> _saveSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('searchHistory', json.encode(_searchHistory));
+  }
+
+  // Add search to history (limit to 3)
+  Future<void> _addToSearchHistory(String pickup, String drop) async {
+    // Check if this combination already exists
+    _searchHistory.removeWhere(
+      (item) => item['pickup'] == pickup && item['drop'] == drop,
+    );
+
+    // Add to beginning of list
+    _searchHistory.insert(0, {'pickup': pickup, 'drop': drop});
+
+    // Keep only last 3 searches
+    if (_searchHistory.length > 3) {
+      _searchHistory = _searchHistory.sublist(0, 3);
+    }
+
+    await _saveSearchHistory();
+    setState(() {});
+  }
+
+  // Remove search from history
+  Future<void> _removeFromSearchHistory(int index) async {
+    setState(() {
+      _searchHistory.removeAt(index);
+    });
+    await _saveSearchHistory();
   }
 
   Future<void> _loadActiveBooking() async {
@@ -349,13 +410,55 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _loadNotifications() async {
+  Future<void> _loadNotifications({bool silent = false}) async {
     if (userId != null) {
       final count = await _notificationService.getUnreadCount(userId!);
+      
+      // If count increased, show a minimal "WhatsApp-style" top banner
+      if (!silent && count > _unreadNotifications && mounted) {
+        _showMinimalNotificationBanner();
+      }
+      
       setState(() {
+        _previousUnreadNotifications = _unreadNotifications;
         _unreadNotifications = count;
       });
     }
+  }
+
+  void _showMinimalNotificationBanner() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'New notification received',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                _openNotifications();
+              },
+              child: const Text('VIEW', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 150,
+          left: 16,
+          right: 16,
+        ),
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   void _openNotifications() {
@@ -509,9 +612,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _selectDate(
-    BuildContext context,
-  ) async {
+  Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: (selectedDate ?? DateTime.now()),
@@ -606,52 +707,278 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
   }
 
+  // Swap pickup and drop locations
+  void _swapLocations() {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      final temp = pickupController.text;
+      pickupController.text = dropController.text;
+      dropController.text = temp;
+    });
+
+    // Show feedback
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.swap_vert, color: Colors.white),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Locations swapped')),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   // Auto navigate to booking screen (triggers search)
   Future<void> _autoNavigateToBooking() async {
     if (pickupController.text.isEmpty || dropController.text.isEmpty) {
       return;
     }
 
-    // Fuzzy match pickup location to bus stop
-    final fromStop = await _fuzzyMatchToStop(pickupController.text);
+    // Show loading dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return PopScope(
+            canPop: false,
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
+                      strokeWidth: 3,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Searching for trips...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please wait',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
 
-    // Fuzzy match drop location to bus stop
-    final toStop = await _fuzzyMatchToStop(dropController.text);
+    try {
+      print('🔍 Starting search...');
+      print('🔍 Raw Pickup: "${pickupController.text}"');
+      print('🔍 Raw Drop: "${dropController.text}"');
 
-    if (fromStop == null || toStop == null) {
-      // Show error if fuzzy matching failed completely
+      // Fuzzy match pickup location to bus stop
+      final fromStop = await _fuzzyMatchToStop(pickupController.text);
+
+      // Fuzzy match drop location to bus stop
+      final toStop = await _fuzzyMatchToStop(dropController.text);
+
+      print('🔍 Matched Pickup: "$fromStop"');
+      print('🔍 Matched Drop: "$toStop"');
+
+      // Dismiss loading dialog
       if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (fromStop == null || toStop == null) {
+        // Show error if fuzzy matching failed completely
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not find bus stops for selected locations'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Use selected date or default to today
+      // Normalize to start of day (00:00:00) to search from beginning of the day
+      final rawDate = selectedDate ?? DateTime.now();
+      final searchDate = DateTime(rawDate.year, rawDate.month, rawDate.day);
+      print('🔍 Search Date (normalized to start of day): $searchDate');
+
+      // Add to search history
+      await _addToSearchHistory(pickupController.text, dropController.text);
+
+      // Navigate to bus list screen with search (no stop location)
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BusListScreen(
+              date: searchDate,
+              pickup: fromStop,
+              drop: toStop,
+              stop: null, // Remove stop parameter
+            ),
+          ),
+        ).then((_) {
+          // Refresh bookings and notifications when returning from booking flow
+          _loadUpcomingBookings();
+          _loadNotifications();
+          _loadActiveBooking();
+        });
+      }
+    } catch (e) {
+      // Dismiss loading dialog on error
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not find bus stops for selected locations'),
+          SnackBar(
+            content: Text('Search failed: ${e.toString()}'),
             backgroundColor: Colors.redAccent,
           ),
         );
       }
-      return;
     }
+  }
 
-    // Use selected date or default to next 7 days
-    final searchDate = selectedDate ?? DateTime.now();
+  // Get current location and populate search field
+  Future<void> _useCurrentLocation({required bool isPickup}) async {
+    try {
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Location permission denied'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          return;
+        }
+      }
 
-    // Navigate to bus list screen with search (no stop location)
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BusListScreen(
-            date: searchDate,
-            pickup: fromStop,
-            drop: toStop,
-            stop: null, // Remove stop parameter
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Location permission permanently denied. Please enable in settings.',
+              ),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('Getting your location...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
           ),
-        ),
-      ).then((_) {
-        // Refresh bookings and notifications when returning from booking flow
-        _loadUpcomingBookings();
-        _loadNotifications();
-        _loadActiveBooking();
-      });
+        );
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Reverse geocode to get address
+      final String url =
+          'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$googleMapsApiKey';
+
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'OK' && data['results'].isNotEmpty) {
+          final address = data['results'][0]['formatted_address'];
+
+          setState(() {
+            if (isPickup) {
+              pickupController.text = address;
+              showPickupSuggestions = false;
+            } else {
+              dropController.text = address;
+              showDropSuggestions = false;
+            }
+          });
+
+          if (mounted) {
+            FocusScope.of(context).unfocus();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Location set: ${address.length > 50 ? address.substring(0, 50) + '...' : address}',
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error getting current location: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to get current location'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -665,39 +992,50 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.confirmation_number,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Upcoming Bookings',
-                  style: AppTextStyles.h3.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green, Colors.lightGreen.shade700],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.confirmation_number_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            TextButton(
-              onPressed: () {
-                _onItemTapped(1);
-              },
-              child: Text(
-                'View All',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Upcoming Trips',
+                    style: AppTextStyles.h3.copyWith(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+              TextButton.icon(
+                onPressed: () {
+                  _onItemTapped(1);
+                },
+                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                label: const Text(
+                  'View All',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -968,6 +1306,149 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     return '${hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')} $period';
   }
 
+  String _getDayName(DateTime date) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[date.weekday % 7];
+  }
+
+  String _getMonthName(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[date.month - 1];
+  }
+
+  // Helper method to scroll calendar to a specific date
+  void _scrollCalendarToDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+    final daysDifference = targetDate.difference(today).inDays;
+
+    // Each date card is 70 width + 10 margin = 80 total
+    final scrollOffset = daysDifference * 80.0;
+
+    // Animate to the position
+    if (_calendarScrollController.hasClients) {
+      _calendarScrollController.animateTo(
+        scrollOffset.clamp(
+          0.0,
+          _calendarScrollController.position.maxScrollExtent,
+        ),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  // Helper method to build quick date buttons
+  Widget _buildQuickDateButton(String label, DateTime date) {
+    final isSelected =
+        selectedDate?.day == date.day &&
+        selectedDate?.month == date.month &&
+        selectedDate?.year == date.year;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedDate = date;
+        });
+        // Auto-scroll calendar to the selected date
+        _scrollCalendarToDate(date);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey.shade700,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper method to build quick route buttons
+  Widget _buildQuickRouteButton(
+    String label,
+    IconData icon,
+    String fromLocation,
+    String toLocation,
+  ) {
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() {
+          pickupController.text = fromLocation;
+          dropController.text = toLocation;
+          showPickupSuggestions = false;
+          showDropSuggestions = false;
+        });
+        FocusScope.of(context).unfocus();
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withOpacity(0.1),
+              AppColors.primary.withOpacity(0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 16),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -976,110 +1457,112 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     var singleChildScrollView = SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 16),
-      
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BlueHeader(
-            padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 18),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Enhanced Header with Gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary,
+                  AppColors.primary.withOpacity(0.85),
+                  const Color(0xFF1565C0),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              // borderRadius: const BorderRadius.only(
+              //   bottomLeft: Radius.circular(32),
+              //   bottomRight: Radius.circular(32),
+              // ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.fromLTRB(20, topInset + 20, 20, 24),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Hello $greetingName,',
-                      style: AppTextStyles.h2.copyWith(
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 22,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hello $greetingName! ',
+                          style: AppTextStyles.h2.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.explore_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Ready to explore?',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.95),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onLongPress: () async {
+                        // Minimal way to "create" a notification for testing
+                        HapticFeedback.heavyImpact();
+                        await _notificationService.addLocalNotification(
+                          title: 'Special Offer! 🎫',
+                          message: 'Get 25% off on your next trip to Kandy.',
+                          type: 'offer',
+                        );
+                        _loadNotifications();
+                      },
+                      child: NotificationBell(
+                        userId: userId ?? '',
+                        initialCount: _unreadNotifications,
+                        onTap: _openNotifications,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.explore_outlined,
-                          color: AppColors.textLight,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Where to go?',
-                          style: AppTextStyles.h2.copyWith(
-                            color: AppColors.textLight.withOpacity(0.85),
-                            fontWeight: FontWeight.w500,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
-                ),
-                GestureDetector(
-                  onTap: _openNotifications,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceWhite,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowMedium,
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Stack(
-                      children: [
-                        const Icon(
-                          Icons.notifications,
-                          color: AppColors.primary,
-                          size: 28,
-                        ),
-                        if (_unreadNotifications > 0)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: AppColors.notificationBadge,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                _unreadNotifications > 9
-                                    ? '9+'
-                                    : '$_unreadNotifications',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 1),
 
           // Upcoming Bookings Section
           if (_upcomingBookings.isNotEmpty) _buildUpcomingBookingsSection(),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 09),
 
           // Active Trip Notification Card (old booking - keep for now)
           if (hasActiveBooking && activeBooking != null)
@@ -1225,68 +1708,15 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               ),
             ),
           if (hasActiveBooking) const SizedBox(height: 20),
-          // Date Pickers Row
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowLight,
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.calendar_month_rounded,
-                          color: AppColors.surfaceWhite,
-                          size: 22,
-                        ),
-                        
-                        Flexible(
-                          child: Text(
-                            selectedDate == null
-                                ? 'Select Departure Date'
-                                : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                            style: const TextStyle(
-                              color: AppColors.surfaceWhite,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
 
-          // Input Fields
+          // Horizontal Date Selector
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.shadowLight,
+                  color: Colors.black.withOpacity(0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -1296,25 +1726,247 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // PICKUP FIELD
+                // Scrollable Date Cards
+                SizedBox(
+                  height: 80,
+                  child: ListView.builder(
+                    controller: _calendarScrollController,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: 30,
+                    itemBuilder: (context, index) {
+                      final date = DateTime.now().add(Duration(days: index));
+                      final isSelected =
+                          selectedDate?.day == date.day &&
+                          selectedDate?.month == date.month &&
+                          selectedDate?.year == date.year;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedDate = date;
+                          });
+                        },
+                        child: Container(
+                          width: 70,
+                          margin: const EdgeInsets.only(right: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _getMonthName(date).substring(0, 3),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.grey.shade600,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${date.day}',
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppColors.primary,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _getDayName(date),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.grey.shade600,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Quick Action Buttons
                 Row(
                   children: [
-                    const Icon(
-                      Icons.my_location,
-                      color: AppColors.primary,
-                      size: 20,
+                    Expanded(
+                      child: _buildQuickDateButton('Today', DateTime.now()),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildQuickDateButton(
+                        'Tomorrow',
+                        DateTime.now().add(const Duration(days: 1)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildQuickDateButton(
+                        'Next Month',
+                        DateTime(
+                          DateTime.now().year,
+                          DateTime.now().month + 1,
+                          1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Quick Route Buttons Section
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.flash_on,
+                            color: AppColors.primary,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Popular Routes',
+                          style: AppTextStyles.h3.copyWith(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildQuickRouteButton(
+                        'Colombo → Kandy',
+                        Icons.trending_up,
+                        'Colombo Fort',
+                        'Kandy',
+                      ),
+                      const SizedBox(width: 10),
+                      _buildQuickRouteButton(
+                        'Colombo → Galle',
+                        Icons.beach_access,
+                        'Colombo Fort',
+                        'Galle',
+                      ),
+                      const SizedBox(width: 10),
+                      _buildQuickRouteButton(
+                        'Kandy → Nuwara Eliya',
+                        Icons.landscape,
+                        'Kandy',
+                        'Nuwara Eliya',
+                      ),
+                      const SizedBox(width: 10),
+                      _buildQuickRouteButton(
+                        'Colombo → Jaffna',
+                        Icons.directions_bus,
+                        'Colombo Fort',
+                        'Jaffna',
+                      ),
+                      const SizedBox(width: 10),
+                      _buildQuickRouteButton(
+                        'Galle → Matara',
+                        Icons.waves,
+                        'Galle',
+                        'Matara',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Input Fields - Enhanced Card
+          Container(
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 255, 255, 255),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: Border.all(
+                color: AppColors.primary.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // PICKUP FIELD - Enhanced
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.trip_origin,
+                        color: Colors.green,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     const Text(
-                      'PickUp',
+                      'From',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: Colors.black87,
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
                 Focus(
                   onFocusChange: (hasFocus) {
                     setState(() {
@@ -1327,23 +1979,55 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   },
                   child: TextField(
                     controller: pickupController,
-                    style: const TextStyle(color: Colors.black),
+                    style: const TextStyle(color: Colors.black87, fontSize: 15),
                     decoration: InputDecoration(
-                      hintText: 'Your Location',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.divider),
+                      hintText: 'Enter pickup location',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 14,
                       ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey[800],
+                        size: 20,
+                      ),
+                      suffixIcon: pickupController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.clear,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  pickupController.clear();
+                                  pickupAutocompleteSuggestions.clear();
+                                });
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: const Color.fromARGB(199, 237, 237, 237)),
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Colors.grey[100],
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                     onTap: () {
                       setState(() {
@@ -1356,6 +2040,128 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 // PICKUP SUGGESTIONS
                 if (showPickupSuggestions) ...[
                   const SizedBox(height: 10),
+
+                  // Show Search History (if no search text and history exists)
+                  if (pickupController.text.isEmpty &&
+                      _searchHistory.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text(
+                                'Recent Searches',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black54,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        ..._searchHistory.asMap().entries.map((entry) {
+                          int index = entry.key;
+                          Map<String, String> search = entry.value;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              leading: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.history,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          search['pickup'] ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.arrow_downward,
+                                              size: 12,
+                                              color: Colors.grey,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                search['drop'] ?? '',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  _removeFromSearchHistory(index);
+                                },
+                              ),
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  pickupController.text =
+                                      search['pickup'] ?? '';
+                                  dropController.text = search['drop'] ?? '';
+                                  showPickupSuggestions = false;
+                                  showDropSuggestions = false;
+                                  FocusScope.of(context).unfocus();
+                                });
+                                _autoNavigateToBooking();
+                              },
+                            ),
+                          );
+                        }),
+                        const Divider(height: 20),
+                      ],
+                    ),
 
                   // Show loading indicator for pickup
                   if (isLoadingPickupSuggestions)
@@ -1398,6 +2204,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                               ),
                             ),
                             onTap: () {
+                              HapticFeedback.selectionClick();
                               setState(() {
                                 pickupController.text =
                                     suggestion['description'];
@@ -1414,76 +2221,45 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       ],
                     ),
 
-                  // Show nearby locations when no search or typing less than 3 chars
-                  if (!isLoadingPickupSuggestions &&
-                      pickupAutocompleteSuggestions.isEmpty)
-                    Column(
-                      children: [
-                        if (pickupController.text.length <= 2) ...[
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: Text(
-                              'Nearby Locations',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                          ...nearbyLocations.map(
-                            (loc) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(
-                                Icons.location_pin,
-                                color: AppColors.primary,
-                              ),
-                              title: Text(
-                                loc["title"]!,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              subtitle: Text(
-                                '${loc["subtitle"]!}\n${loc["distance"]!}',
-                                style: const TextStyle(color: Colors.black54),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  pickupController.text = loc["title"]!;
-                                  showPickupSuggestions = false;
-                                  FocusScope.of(context).unfocus();
-                                });
-                                // Auto-navigate to booking after selection
-                                _autoNavigateToBooking();
-                              },
-                            ),
-                          ),
-                          const Divider(height: 20),
-                        ],
-                      ],
-                    ),
-
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.bookmark_outline,
-                      color: AppColors.primary,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.my_location,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                     title: const Text(
-                      'Saved Addresses',
-                      style: TextStyle(color: Colors.black54),
+                      'Use Current Location',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    onTap: () {
-                      // Handle saved addresses
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Saved addresses feature'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
+                    subtitle: const Text(
+                      'Detect my location using GPS',
+                      style: TextStyle(color: Colors.black54, fontSize: 12),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.black54,
+                    ),
+                    onTap: () async {
+                      setState(() {
+                        showPickupSuggestions = false;
+                      });
+                      FocusScope.of(context).unfocus();
+                      await _useCurrentLocation(isPickup: true);
                     },
                   ),
+
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(
@@ -1508,29 +2284,117 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     },
                   ),
                 ],
+const SizedBox(height: 25),
+                // Swap button and visual connector between From and To
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      // Dotted line aligned with leading icons
+                      Container(
+                        width: 32, // Matches leading icon box width
+                        alignment: Alignment.center,
+                        child: Column(
+                          children: List.generate(
+                            4,
+                            (index) => Container(
+                              width: 1.5,
+                              height: 4,
+                              margin: const EdgeInsets.symmetric(vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[400],
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
 
-                // Spacing between pickup and drop
-                const SizedBox(height: 10),
+                      // Centered swap button
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                if (pickupController.text.isNotEmpty ||
+                                    dropController.text.isNotEmpty) {
+                                  _swapLocations();
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(25),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: (pickupController.text.isEmpty &&
+                                          dropController.text.isEmpty)
+                                      ? Colors.grey[200]
+                                      : AppColors.primary.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: (pickupController.text.isEmpty &&
+                                            dropController.text.isEmpty)
+                                        ? Colors.grey[400]!
+                                        : AppColors.primary.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.swap_vert_rounded,
+                                  color: (pickupController.text.isEmpty &&
+                                          dropController.text.isEmpty)
+                                      ? Colors.grey[600]
+                                      : AppColors.primary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tap to swap locations',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[600],
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                // DROP FIELD
+                      // Right side balance
+                      const SizedBox(width: 32),
+                    ],
+                  ),
+                ),
+
+                // DROP FIELD - Enhanced
                 Row(
                   children: [
-                    const Icon(
-                      Icons.location_on,
-                      color: AppColors.primary,
-                      size: 20,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 16,
+                      ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 10),
                     const Text(
-                      'Drop',
+                      'To',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: Colors.black87,
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
                 Focus(
                   onFocusChange: (hasFocus) {
                     setState(() {
@@ -1543,23 +2407,54 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   },
                   child: TextField(
                     controller: dropController,
-                    style: const TextStyle(color: Colors.black),
+                    style: const TextStyle(color: Colors.black87, fontSize: 15),
                     decoration: InputDecoration(
-                      hintText: 'Where are you going?',
+                      hintText: 'Enter destination',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 14,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey[800],
+                        size: 20,
+                      ),
+                      suffixIcon: dropController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.clear,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  dropController.clear();
+                                  dropAutocompleteSuggestions.clear();
+                                });
+                              },
+                            )
+                          : null,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.divider),
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: const Color.fromARGB(199, 237, 237, 237)),
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: Colors.grey[100],
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                     onTap: () {
                       setState(() {
@@ -1614,6 +2509,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                               ),
                             ),
                             onTap: () {
+                              HapticFeedback.selectionClick();
                               setState(() {
                                 dropController.text = suggestion['description'];
                                 showDropSuggestions = false;
@@ -1628,75 +2524,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       ],
                     ),
 
-                  // Show nearby locations when no search or no results
-                  if (!isLoadingDropSuggestions &&
-                      dropAutocompleteSuggestions.isEmpty &&
-                      dropController.text.length <= 2)
-                    Column(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            'Nearby Locations',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                        ...nearbyLocations.map(
-                          (loc) => ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(
-                              Icons.location_pin,
-                              color: AppColors.primary,
-                            ),
-                            title: Text(
-                              loc["title"]!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${loc["subtitle"]!}\n${loc["distance"]!}',
-                              style: const TextStyle(color: Colors.black54),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                dropController.text = loc["title"]!;
-                                showDropSuggestions = false;
-                                FocusScope.of(context).unfocus();
-                              });
-                              // Auto-navigate to booking after selection
-                              _autoNavigateToBooking();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                
 
-                  const Divider(height: 20),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.bookmark_outline,
-                      color: AppColors.primary,
-                    ),
-                    title: const Text(
-                      'Saved Addresses',
-                      style: TextStyle(color: Colors.black54),
-                    ),
-                    onTap: () {
-                      // Handle saved addresses
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Saved addresses feature'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(
@@ -1719,6 +2548,59 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       FocusScope.of(context).unfocus();
                       _navigateToMapForLocation(isPickup: false);
                     },
+                  ),
+                ],
+
+                // Search Trips Button
+                if (!showPickupSuggestions && !showDropSuggestions) ...[
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed:
+                          (pickupController.text.isEmpty ||
+                              dropController.text.isEmpty)
+                          ? null
+                          : () {
+                              HapticFeedback.lightImpact();
+                              FocusScope.of(context).unfocus();
+                              _autoNavigateToBooking();
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey[300],
+                        disabledForegroundColor: Colors.grey[500],
+                        elevation:
+                            (pickupController.text.isEmpty ||
+                                dropController.text.isEmpty)
+                            ? 0
+                            : 4,
+                        shadowColor: AppColors.primary.withOpacity(0.4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.search_rounded, size: 24),
+                          const SizedBox(width: 12),
+                          Text(
+                            (pickupController.text.isEmpty ||
+                                    dropController.text.isEmpty)
+                                ? 'Enter locations to search'
+                                : 'Search Trips',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ],

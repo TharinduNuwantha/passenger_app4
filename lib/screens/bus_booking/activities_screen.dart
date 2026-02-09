@@ -343,7 +343,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             BlueHeader(
-              padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 28),
+              padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -362,7 +362,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                       color: AppColors.textLight.withOpacity(0.8),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.white.withOpacity(0.14),
@@ -373,7 +373,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                       isScrollable: true,
                       tabAlignment: TabAlignment.start,
                       padding: EdgeInsets.zero,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 29),
                       indicator: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(10),

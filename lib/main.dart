@@ -14,7 +14,7 @@ import 'screens/auth/otp_verification_screen.dart';
 import 'screens/auth/phone_input_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
-import 'screens/profile/help and support.dart';
+import 'screens/profile/help_support.dart';
 import 'screens/profile/privacy_policy.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/splash_screen.dart';

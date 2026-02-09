@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import '../models/notification_model.dart';
 import '../services/notification_service.dart';
+import '../theme/app_colors.dart';
 
 class NotificationBell extends StatefulWidget {
   final String userId;
-  final VoidCallback onNotificationTap;
+  final VoidCallback onTap;
+  final int? initialCount;
 
   const NotificationBell({
     Key? key,
     required this.userId,
-    required this.onNotificationTap,
+    required this.onTap,
+    this.initialCount,
   }) : super(key: key);
 
   @override
@@ -20,64 +21,73 @@ class NotificationBell extends StatefulWidget {
 class _NotificationBellState extends State<NotificationBell> {
   late NotificationService _notificationService;
   int _unreadCount = 0;
-  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _notificationService = NotificationService();
-    _loadUnreadCount();
-    
-    // Auto-refresh unread count every minute
-    _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      if (mounted) {
-        _loadUnreadCount();
-      }
-    });
+    _unreadCount = widget.initialCount ?? 0;
+    if (widget.initialCount == null) {
+      _loadUnreadCount();
+    }
   }
 
   @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
+  void didUpdateWidget(NotificationBell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialCount != oldWidget.initialCount && widget.initialCount != null) {
+      setState(() {
+        _unreadCount = widget.initialCount!;
+      });
+    }
   }
 
   Future<void> _loadUnreadCount() async {
+    if (widget.userId.isEmpty) return;
     final count = await _notificationService.getUnreadCount(widget.userId);
-    setState(() {
-      _unreadCount = count;
-    });
+    if (mounted) {
+      setState(() {
+        _unreadCount = count;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.notifications, color: Colors.grey),
-          onPressed: widget.onNotificationTap,
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        if (_unreadCount > 0)
-          Positioned(
-            right: 8,
-            top: 8,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                _unreadCount.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+        child: Badge(
+          isLabelVisible: _unreadCount > 0,
+          label: Text(
+            _unreadCount > 9 ? '9+' : '$_unreadCount',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
             ),
           ),
-      ],
+          backgroundColor: const Color(0xFFFF4B4B),
+          largeSize: 18,
+          child: Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.primary,
+            size: 24,
+          ),
+        ),
+      ),
     );
   }
 }

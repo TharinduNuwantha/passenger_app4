@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../providers/booking_intent_provider.dart';
 import '../../theme/app_colors.dart';
 import '../bus_booking/booking_intent_flow_screen.dart';
@@ -78,10 +77,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
-      // Standard mobile browser User Agent
-      ..setUserAgent(
-        'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
-      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -110,11 +105,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
             return NavigationDecision.navigate;
           },
           onWebResourceError: (WebResourceError error) {
-            _logger.e('Web error: ${error.description} | Type: ${error.errorType} | URL: ${error.url}');
-
+            _logger.e('Web error: ${error.description}');
             setState(() {
-              _errorMessage =
-                  'Failed to load: ${error.description}\nURL: ${error.url ?? 'unknown'}\nPlease check your internet and try again.';
+              _errorMessage = 'Failed to load payment page';
               _isLoading = false;
             });
           },
@@ -415,59 +408,22 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _errorMessage = null;
-                      _isLoading = true;
-                    });
-                    _controller.reload();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                  ),
-                  child: const Text('Try Again'),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton(
-                  onPressed: _openInBrowser,
-                  child: const Text('Open in Browser'),
-                ),
-              ],
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _errorMessage = null;
+                  _isLoading = true;
+                });
+                _controller.reload();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('Try Again'),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _openInBrowser() async {
-    final uri = Uri.parse(widget.paymentUrl);
-    try {
-      // On some Android versions, canLaunchUrl returns false even if launchUrl would work.
-      // Trying to launch directly with fallback.
-      bool launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!launched) {
-        _logger.w('launchUrl returned false for: ${widget.paymentUrl}');
-        // Try fallback to platform default launch if externalApplication fails
-        launched = await launchUrl(uri);
-      }
-
-      if (!launched && mounted) {
-        setState(() {
-          _errorMessage = 'Unable to open payment page in browser. Please check your internet connection and browser settings.';
-        });
-      }
-    } catch (e) {
-      _logger.e('Error launching payment URL: $e');
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'An error occurred while trying to open the payment page.';
-        });
-      }
-    }
   }
 }

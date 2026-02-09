@@ -4,7 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/booking_models.dart';
 import '../../theme/app_colors.dart';
 import '../payment/payment_method_screen.dart';
-import '../lounge/LoungesDetailsScreen.dart';
+import '../lounge/lounge_list_screen.dart';
 
 /// Success screen after booking is created, shows booking details and QR code
 class BookingSuccessScreenV2 extends StatelessWidget {
@@ -271,8 +271,8 @@ class BookingSuccessScreenV2 extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      const LoungesDetailsScreen(),
+                                    builder: (context) =>
+                                      const LoungeListScreen(),
                                 ),
                               );
                             },
