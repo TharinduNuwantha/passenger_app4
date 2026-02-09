@@ -7,9 +7,6 @@ class ErrorHandler {
 
   // Handle API errors
   static String handleError(dynamic error) {
-    if (error is String) {
-      return error;
-    }
     if (error is DioException) {
       return _handleDioError(error);
     } else if (error is Exception) {
