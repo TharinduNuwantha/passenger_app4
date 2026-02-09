@@ -1,7 +1,7 @@
-import 'dart:ui';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
+import '../../widgets/blue_header.dart';
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
@@ -14,138 +14,184 @@ class ContactUsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        elevation: 0,
-        title: const Text(
-          "Contact Us",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Get in Touch",
-                style: AppTextStyles.h1.copyWith(color: AppColors.primary),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "We’d love to hear from you! Please fill out the form below or contact us directly.",
-                style: TextStyle(color: Colors.black54),
-              ),
-              const SizedBox(height: 20),
-              const ListTile(
-                leading: Icon(Icons.phone, color: AppColors.primary),
-                title: Text("Phone", style: TextStyle(color: Colors.black87)),
-                subtitle: Text(
-                  "+94 78 595 7049",
-                  style: TextStyle(color: Colors.black54),
+      body: Column(
+        children: [
+          BlueHeader(
+            bottomRadius: 30,
+            padding: const EdgeInsets.only(top: 50, bottom: 20),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  onPressed: () => Navigator.pop(context),
                 ),
-              ),
-              const ListTile(
-                leading: Icon(Icons.email, color: AppColors.primary),
-                title: Text("Email", style: TextStyle(color: Colors.black87)),
-                subtitle: Text(
-                  "support@passengerapp.com",
-                  style: TextStyle(color: Colors.black54),
-                ),
-              ),
-              const Divider(color: Color.fromARGB(136, 0, 0, 0)),
-              const SizedBox(height: 15),
-              Text(
-                "Send us a message",
-                style: AppTextStyles.h2.copyWith(color: Colors.black87),
-              ),
-              const SizedBox(height: 10),
-              _buildContactField(nameController, "Your Name"),
-              const SizedBox(height: 10),
-              _buildContactField(emailController, "Your Email"),
-              const SizedBox(height: 10),
-              _buildContactField(messageController, "Message", maxLines: 4),
-              const SizedBox(height: 20),
-              Center(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("✅ Your message has been sent!"),
-                        backgroundColor: AppColors.secondary,
-                      ),
-                    );
-                    nameController.clear();
-                    emailController.clear();
-                    messageController.clear();
-                  },
-                  child: const Text(
-                    "Submit",
+                const Expanded(
+                  child: Text(
+                    'Contact Us',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 48),
+              ],
+            ),
           ),
-        ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Get in Touch",
+                    style: AppTextStyles.h1.copyWith(color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "We'd love to hear from you! Please fill out the form below or contact us directly.",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 15, height: 1.5),
+                  ),
+                  const SizedBox(height: 30),
+                  
+                  // Contact Cards
+                  _buildContactMethod(
+                    icon: Icons.phone_android_rounded,
+                    title: "Phone",
+                    value: "+94 78 595 7049",
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 12),
+                  _buildContactMethod(
+                    icon: Icons.alternate_email_rounded,
+                    title: "Email",
+                    value: "support@passengerapp.com",
+                    onTap: () {},
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  Text(
+                    "Send us a message",
+                    style: AppTextStyles.h2.copyWith(fontSize: 18),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildModernField(nameController, "Your Name", Icons.person_outline),
+                  const SizedBox(height: 16),
+                  _buildModernField(emailController, "Your Email", Icons.email_outlined),
+                  const SizedBox(height: 16),
+                  _buildModernField(messageController, "Message", Icons.chat_bubble_outline_rounded, maxLines: 4),
+                  
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 2,
+                      ),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("✅ Your message has been sent!"),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        nameController.clear();
+                        emailController.clear();
+                        messageController.clear();
+                      },
+                      child: const Text(
+                        "Submit Message",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildContactField(
+  Widget _buildContactMethod({
+    required IconData icon,
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.05),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 24),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey),
+        ),
+        subtitle: Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+    );
+  }
+
+  Widget _buildModernField(
     TextEditingController controller,
-    String label, {
+    String label,
+    IconData icon, {
     int maxLines = 1,
   }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      style: const TextStyle(color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.black54),
+        labelStyle: TextStyle(color: Colors.grey[500]),
+        prefixIcon: Icon(icon, color: AppColors.primary, size: 22),
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       ),
     );
   }
