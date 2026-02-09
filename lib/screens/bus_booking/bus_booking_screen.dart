@@ -143,35 +143,105 @@ class _BusListScreenState extends State<BusListScreen> {
 
     // Empty state
     if (trips.isEmpty) {
+      // Get search details for more context
+      final searchDetails = searchProvider.searchResponse?.searchDetails;
+      final message = searchProvider.searchResponse?.message ?? 
+          'No buses available for this route on the selected date.';
+      
+      final fromMatched = searchDetails?.fromStop.matched ?? false;
+      final toMatched = searchDetails?.toStop.matched ?? false;
+      final fromName = searchDetails?.fromStop.name ?? widget.pickup;
+      final toName = searchDetails?.toStop.name ?? widget.drop;
+      
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.search_off, color: AppColors.primaryLight, size: 64),
+              Icon(
+                fromMatched && toMatched 
+                    ? Icons.event_busy 
+                    : Icons.location_off,
+                color: AppColors.primaryLight, 
+                size: 64,
+              ),
               const SizedBox(height: 16),
               Text(
-                'No Trips Found',
+                fromMatched && toMatched 
+                    ? 'No Scheduled Trips'
+                    : 'Route Not Found',
                 style: AppTextStyles.h2,
               ),
               const SizedBox(height: 8),
               Text(
-                'No buses available for this route on the selected date.',
+                message,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              // Show matched stops
+              if (fromMatched || toMatched) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            fromMatched ? Icons.check_circle : Icons.error,
+                            color: fromMatched ? Colors.green : Colors.orange,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'From: $fromName',
+                              style: TextStyle(
+                                color: fromMatched ? Colors.black87 : Colors.orange,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            toMatched ? Icons.check_circle : Icons.error,
+                            color: toMatched ? Colors.green : Colors.orange,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'To: $toName',
+                              style: TextStyle(
+                                color: toMatched ? Colors.black87 : Colors.orange,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondary,
                   foregroundColor: const Color.fromARGB(255, 250, 250, 250),
                 ),
-                
                 child: const Text('Change Search'),
-               
-
               ),
             ],
           ),
