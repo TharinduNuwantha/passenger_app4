@@ -184,7 +184,7 @@ class _SplashScreenState extends State<SplashScreen>
               FadeTransition(
                 opacity: _fade,
                 child: Text(
-                  'V2.0.0 • © 2026 BusLounge',
+                  'V2.6.3 • © 2026 BusLounge',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.6),
