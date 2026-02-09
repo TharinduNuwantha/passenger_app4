@@ -48,14 +48,14 @@ class UserService {
     try {
       _logger.i('Updating user profile');
 
-      // Prepare update data - backend requires first_name, last_name, email, address
+      // Prepare update data - backend requires non-empty address fields
       final Map<String, dynamic> updateData = {
         'first_name': firstName,
         'last_name': lastName,
         'email': email,
-        'address': address ?? '',
-        'city': city ?? '',
-        'postal_code': postalCode ?? '',
+        'address': address != null && address.isNotEmpty ? address : 'N/A',
+        'city': city != null && city.isNotEmpty ? city : 'N/A',
+        'postal_code': postalCode != null && postalCode.isNotEmpty ? postalCode : '00000',
       };
 
       final response = await _apiService.put(
@@ -68,9 +68,11 @@ class UserService {
 
         final data = response.data as Map<String, dynamic>;
 
-        // Extract user from response
+        // Extract user from response - backend returns profile under 'profile' key
         UserModel user;
-        if (data.containsKey('user')) {
+        if (data.containsKey('profile')) {
+          user = UserModel.fromJson(data['profile'] as Map<String, dynamic>);
+        } else if (data.containsKey('user')) {
           user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
         } else {
           user = UserModel.fromJson(data);
