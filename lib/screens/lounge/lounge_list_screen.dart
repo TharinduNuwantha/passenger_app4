@@ -7,7 +7,7 @@ import 'lounge_detail_screen.dart';
 import '../../widgets/blue_header.dart';
 
 /// Main lounge marketplace screen - displays available lounges
-/// By default loads 5 random lounges, allows search by state
+/// Loads full lounge catalog and allows search by state
 class LoungeListScreen extends StatefulWidget {
   const LoungeListScreen({super.key});
 
@@ -31,7 +31,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
     _loadInitialData();
   }
 
-  /// Load initial data: 5 random lounges + available states for dropdown
+  /// Load initial data: full lounge list + available states for dropdown
   Future<void> _loadInitialData() async {
     setState(() {
       _isLoading = true;
@@ -41,7 +41,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
     try {
       // Load both in parallel
       final results = await Future.wait([
-        _loungeService.searchLounges(limit: 5),
+        _loungeService.searchLounges(includeAllStatuses: true),
         _loungeService.getAvailableStates(),
       ]);
 
@@ -69,7 +69,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
     try {
       final lounges = await _loungeService.searchLounges(
         state: state,
-        limit: state == null ? 5 : null, // Only limit if no state filter
+        includeAllStatuses: true,
       );
 
       setState(() {
@@ -95,7 +95,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             BlueHeader(
-              padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 18),
+              padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 33),
               title: 'Lounges',
               subtitle: 'Discover and book premium lounges',
             ),
@@ -106,9 +106,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
             ),
 
             // Content
-            Expanded(
-              child: _buildContent(),
-            ),
+            Expanded(child: _buildContent()),
           ],
         ),
       ),
@@ -117,48 +115,136 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
 
   Widget _buildStateFilter() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(250, 254, 254, 255),
-        borderRadius: BorderRadius.circular(30),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.15),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.location_on, color: const Color.fromARGB(255, 3, 123, 243)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedState,
-                hint: const Text(
-                  'Select State / Province',
-                  style: TextStyle(color: Color.fromARGB(255, 4, 158, 235)),
-                ),
-                isExpanded: true,
-                icon: Icon(Icons.arrow_drop_down, color: AppColors.primary),
-                items: [
-                  // "All States" option
-                  const DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('All States (Random 5)'),
-                  ),
-                  // Dynamic states from API
-                  ..._availableStates.map((state) {
-                    return DropdownMenuItem<String>(
-                      value: state,
-                      child: Text(state),
-                    );
-                  }),
+          // Location icon with gradient background
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary,
+                  AppColors.primary.withOpacity(0.7),
                 ],
-                onChanged: _isSearching ? null : _searchByState,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.location_on,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Filter by Province',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedState,
+                    hint: Text(
+                      'All Provinces',
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    isExpanded: true,
+                    isDense: true,
+                    icon: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    style: TextStyle(
+                      color: Colors.grey[800],
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    items: [
+                      // "All Provinces" option
+                      DropdownMenuItem<String>(
+                        value: null,
+                        child: Row(
+                          children: [
+                           
+                            const SizedBox(width: 0),
+                            const Text('All Provinces'),
+                          ],
+                        ),
+                      ),
+                      // Dynamic states from API
+                      ..._availableStates.map((state) {
+                        return DropdownMenuItem<String>(
+                          value: state,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.place_outlined,
+                                size: 18,
+                                color: AppColors.primary.withOpacity(0.7),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(state),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    onChanged: _isSearching ? null : _searchByState,
+                  ),
+                ),
+              ],
             ),
           ),
           if (_isSearching)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+            Container(
+              width: 24,
+              height: 24,
+              padding: const EdgeInsets.all(2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
             ),
         ],
       ),
@@ -184,11 +270,8 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
                 size: 64,
                 color: AppColors.warning,
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Failed to load lounges',
-                style: AppTextStyles.h3,
-              ),
+              const SizedBox(height: 12),
+              Text('Failed to load lounges', style: AppTextStyles.h3),
               const SizedBox(height: 8),
               Text(
                 _error!,
@@ -267,10 +350,13 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
               _selectedState != null
                   ? '${_lounges.length} lounge(s) in $_selectedState'
                   : 'Showing ${_lounges.length} lounges',
-              style: const TextStyle(color: Colors.grey, fontSize: 14), // Changed from white70 to grey
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ), // Changed from white70 to grey
             ),
           ),
-          
+
           // Lounge list
           Expanded(
             child: ListView.builder(
@@ -304,10 +390,7 @@ class _LoungeCard extends StatelessWidget {
   final Lounge lounge;
   final VoidCallback onTap;
 
-  const _LoungeCard({
-    required this.lounge,
-    required this.onTap,
-  });
+  const _LoungeCard({required this.lounge, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -315,9 +398,7 @@ class _LoungeCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       color: Colors.white, // Explicitly white background
       surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
       child: InkWell(
         onTap: onTap,
@@ -403,6 +484,9 @@ class _LoungeCard extends StatelessWidget {
                     const SizedBox(height: 12),
                   ],
 
+                  _buildStatusAndCapacity(lounge),
+                  const SizedBox(height: 12),
+
                   // Price and Status
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -412,10 +496,7 @@ class _LoungeCard extends StatelessWidget {
                         children: [
                           const Text(
                             'Starting from',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
                           ),
                           Text(
                             lounge.formattedPrice1Hour,
@@ -476,10 +557,7 @@ class _LoungeCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Lounge',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.grey[500], fontSize: 14),
           ),
         ],
       ),
@@ -489,18 +567,11 @@ class _LoungeCard extends StatelessWidget {
   Widget _buildRating(double rating) {
     return Row(
       children: [
-        const Icon(
-          Icons.star,
-          size: 18,
-          color: Colors.amber,
-        ),
+        const Icon(Icons.star, size: 18, color: Colors.amber),
         const SizedBox(width: 4),
         Text(
           rating.toStringAsFixed(1),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
       ],
     );
@@ -540,17 +611,15 @@ class _LoungeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1), // Consistent with bus feature chips
+        color: AppColors.primary.withOpacity(
+          0.1,
+        ), // Consistent with bus feature chips
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: AppColors.primary,
-          ),
+          Icon(icon, size: 14, color: AppColors.primary),
           const SizedBox(width: 4),
           Text(
             amenity,
@@ -562,6 +631,69 @@ class _LoungeCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    final normalized = status.toLowerCase();
+    Color background;
+    Color foreground;
+
+    switch (normalized) {
+      case 'approved':
+        background = Colors.green.withOpacity(0.12);
+        foreground = Colors.green[700] ?? Colors.green;
+        break;
+      case 'pending':
+        background = Colors.orange.withOpacity(0.12);
+        foreground = Colors.orange[700] ?? Colors.orange;
+        break;
+      case 'rejected':
+      case 'inactive':
+        background = Colors.red.withOpacity(0.12);
+        foreground = Colors.red[700] ?? Colors.red;
+        break;
+      default:
+        background = Colors.blueGrey.withOpacity(0.12);
+        foreground = Colors.blueGrey[700] ?? Colors.blueGrey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: foreground,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusAndCapacity(Lounge lounge) {
+    return Row(
+      children: [
+        _buildStatusChip(lounge.status),
+        if (lounge.capacity != null) ...[
+          const SizedBox(width: 8),
+          Icon(Icons.people_alt, size: 14, color: Colors.grey[600]),
+          const SizedBox(width: 4),
+          Text(
+            '${lounge.capacity} pax',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
