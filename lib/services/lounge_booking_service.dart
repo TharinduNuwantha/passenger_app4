@@ -139,6 +139,8 @@ class LoungeBookingService {
     int? limit,
     String? routeId,
     String? city,
+    bool includeAllStatuses = false,
+    String? status,
   }) async {
     try {
       _logger.i(
@@ -157,6 +159,12 @@ class LoungeBookingService {
       }
       if (city != null) {
         queryParams['city'] = city;
+      }
+      if (includeAllStatuses) {
+        queryParams['include_all'] = 'true';
+      }
+      if (status != null && status.isNotEmpty) {
+        queryParams['status'] = status;
       }
 
       final response = await _apiService.get(
@@ -388,10 +396,7 @@ class LoungeBookingService {
         'Fetching user lounge bookings (status: $status, page: $page, limit: $limit)',
       );
 
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'limit': limit,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'limit': limit};
       if (status != null) {
         queryParams['status'] = status;
       }
@@ -429,7 +434,9 @@ class LoungeBookingService {
     int limit = 50,
   }) async {
     try {
-      _logger.i('Fetching upcoming lounge bookings (page: $page, limit: $limit)');
+      _logger.i(
+        'Fetching upcoming lounge bookings (page: $page, limit: $limit)',
+      );
 
       final response = await _apiService.get(
         '/api/v1/lounge-bookings/upcoming',
@@ -639,7 +646,9 @@ class LoungeBookingService {
     } on DioException catch (e) {
       // Handle 404 gracefully - lounge-only bookings without pre-orders won't have an orders endpoint
       if (e.response?.statusCode == 404) {
-        _logger.i('No orders endpoint for booking (404) - returning empty list');
+        _logger.i(
+          'No orders endpoint for booking (404) - returning empty list',
+        );
         return [];
       }
       _logger.e('Failed to get booking orders: ${e.message}');
