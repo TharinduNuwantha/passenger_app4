@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 
@@ -101,7 +102,9 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
         markerId: const MarkerId('user'),
         position: LatLng(position.latitude, position.longitude),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-        infoWindow: const InfoWindow(title: 'Your Location'),
+        infoWindow: InfoWindow(
+          title: AppLocalization.tr(context, 'yourLocation'),
+        ),
       ),
     );
   }
@@ -143,13 +146,15 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return Scaffold(
       backgroundColor: AppColors.surfaceWhite,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,
-        title: const Text(
-          'Bus Tracking',
+        title: Text(
+          t('busTracking'),
           style: TextStyle(
             color: AppColors.white,
             fontSize: 20,
@@ -204,7 +209,10 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                             width: double.infinity,
                             decoration: BoxDecoration(
                               color: AppColors.surfaceWhite,
-                              border: Border.all(color: AppColors.divider ?? Colors.grey.shade300),
+                              border: Border.all(
+                                color:
+                                    AppColors.divider ?? Colors.grey.shade300,
+                              ),
                             ),
                             child: Center(
                               child: Column(
@@ -217,7 +225,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'Location permission required',
+                                    t('locationPermissionRequired'),
                                     style: AppTextStyles.bodyLarge.copyWith(
                                       color: AppColors.textSecondary,
                                     ),
@@ -228,8 +236,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                     ),
-                                    child: const Text(
-                                      'Enable Location',
+                                    child: Text(
+                                      t('enableLocation'),
                                       style: TextStyle(color: AppColors.white),
                                     ),
                                   ),
@@ -280,17 +288,17 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                               // Active Booking Info
                               _buildInfoRow(
                                 icon: Icons.directions_bus,
-                                label: 'Status',
+                                label: t('status'),
                                 value: _isTracking
-                                    ? 'Tracking Active'
-                                    : 'Ready to Track',
+                                    ? t('trackingActive')
+                                    : t('readyToTrack'),
                               ),
                               const SizedBox(height: 12),
                               _buildInfoRow(
                                 icon: Icons.route,
-                                label: 'Route',
+                                label: t('route'),
                                 value:
-                                    '${_activeBooking!['from'] ?? 'N/A'} → ${_activeBooking!['to'] ?? 'N/A'}',
+                                    '${_activeBooking!['from'] ?? t('notAvailable')} → ${_activeBooking!['to'] ?? t('notAvailable')}',
                               ),
                               const SizedBox(height: 20),
 
@@ -307,8 +315,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                   ),
                                   label: Text(
                                     _isTracking
-                                        ? 'Stop Tracking'
-                                        : 'Start Tracking',
+                                        ? t('stopTracking')
+                                        : t('startTracking'),
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -340,14 +348,14 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      'No Active Booking',
+                                      t('noActiveBooking'),
                                       style: AppTextStyles.h3.copyWith(
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Book a bus to start tracking',
+                                      t('bookBusToStartTracking'),
                                       style: AppTextStyles.bodyMedium.copyWith(
                                         color: AppColors.textTertiary,
                                       ),
@@ -370,8 +378,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                           ),
                                         ),
                                       ),
-                                      child: const Text(
-                                        'Book a Bus',
+                                      child: Text(
+                                        t('bookABus'),
                                         style: TextStyle(
                                           color: AppColors.white,
                                           fontWeight: FontWeight.bold,

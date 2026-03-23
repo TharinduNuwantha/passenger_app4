@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../localization/app_localization.dart';
 import '../../config/constants.dart';
 import '../../config/theme_config.dart' hide AppColors;
 import '../../providers/auth_provider.dart';
@@ -38,6 +39,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   }
 
   Future<void> _submitProfile() async {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -75,9 +78,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     } else {
       ErrorDialog.show(
         context: context,
-        message:
-            authProvider.error ??
-            'Failed to complete profile. Please try again.',
+        message: authProvider.error ?? t('failedToCompleteProfile'),
         onRetry: _submitProfile,
       );
     }
@@ -85,11 +86,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return LoadingOverlay(
           isLoading: authProvider.isLoading,
-          message: 'Saving...',
+          message: t('saving'),
           child: Scaffold(
             backgroundColor: AppColors.background,
             body: SafeArea(
@@ -145,7 +148,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       // Title
                       Center(
                         child: Text(
-                          'Complete Your Profile',
+                          t('completeYourProfile'),
                           style: AppTextStyles.h1.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,
@@ -158,8 +161,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       // Subtitle
                       Center(
                         child: Text(
-                          'Please enter your name to get started',
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                          t('enterNameToStart'),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -168,7 +173,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
                       // First Name Field
                       Text(
-                        'First Name',
+                        t('firstName'),
                         style: AppTextStyles.bodyMedium.copyWith(
                           fontWeight: FontWeight.w600,
                           color: AppColors.primary,
@@ -178,11 +183,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       TextFormField(
                         controller: _firstNameController,
                         focusNode: _firstNameFocusNode,
-                        style: const TextStyle(color: Colors.black, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                        ),
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
-                          hintText: 'Enter your first name',
+                          hintText: t('enterFirstName'),
                           hintStyle: TextStyle(color: Colors.grey.shade400),
                           filled: true,
                           fillColor: AppColors.surfaceWhite,
@@ -192,11 +200,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: const Color.fromARGB(255, 36, 100, 237)),
+                            borderSide: BorderSide(
+                              color: const Color.fromARGB(255, 36, 100, 237),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                            borderSide: BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -205,10 +218,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your first name';
+                            return t('pleaseEnterFirstName');
                           }
                           if (value.trim().length < 2) {
-                            return 'First name must be at least 2 characters';
+                            return t('firstNameMinChars');
                           }
                           return null;
                         },
@@ -223,7 +236,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
                       // Last Name Field
                       Text(
-                        'Last Name',
+                        t('lastName'),
                         style: AppTextStyles.bodyMedium.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -233,11 +246,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       TextFormField(
                         controller: _lastNameController,
                         focusNode: _lastNameFocusNode,
-                        style: const TextStyle(color: Colors.black, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                        ),
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.done,
                         decoration: InputDecoration(
-                          hintText: 'Enter your Last Name',
+                          hintText: t('enterLastName'),
                           hintStyle: TextStyle(color: Colors.grey.shade400),
                           filled: true,
                           fillColor: AppColors.surfaceWhite,
@@ -247,11 +263,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: const Color.fromARGB(255, 36, 100, 237)),
+                            borderSide: BorderSide(
+                              color: const Color.fromARGB(255, 36, 100, 237),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                            borderSide: BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -260,10 +281,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your last name';
+                            return t('pleaseEnterLastName');
                           }
                           if (value.trim().length < 2) {
-                            return 'Last name must be at least 2 characters';
+                            return t('lastNameMinChars');
                           }
                           return null;
                         },
@@ -297,9 +318,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text(
-                                  'Continue',
-                                  style: TextStyle(
+                              : Text(
+                                  t('continue'),
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -312,7 +333,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       // Info text
                       Center(
                         child: Text(
-                          'You can add more details later in your profile settings',
+                          t('addMoreDetailsLater'),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../localization/app_localization.dart';
 import '../intro/get_started_screen.dart';
 import '../../config/constants.dart';
 import '../../config/theme_config.dart';
@@ -50,7 +51,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   Future<void> _checkFirstRun() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Check ifintro seen or if user is authenticated
     final bool hasSeenIntro = prefs.getBool('has_seen_intro') ?? false;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -84,6 +85,8 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
   }
 
   Future<void> _sendOtp() async {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     // Dismiss keyboard when Send OTP is tapped
     FocusScope.of(context).unfocus();
 
@@ -92,10 +95,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     }
 
     if (!_isValid) {
-      ErrorDialog.show(
-        context: context,
-        message: 'Please enter a valid mobile number',
-      );
+      ErrorDialog.show(context: context, message: t('pleaseEnterValidMobile'));
       return;
     }
 
@@ -107,10 +107,10 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     if (success) {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification code sent! Check your SMS.'),
+        SnackBar(
+          content: Text(t('verificationCodeSent')),
           backgroundColor: AppColors.success,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
 
@@ -121,11 +121,11 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
       );
     } else {
       final isRateLimit = authProvider.error?.contains('Too many') ?? false;
-      
+
       ErrorDialog.show(
         context: context,
-        title: isRateLimit ? 'Too Many Requests' : 'Error',
-        message: authProvider.error ?? 'Failed to send verification code',
+        title: isRateLimit ? t('tooManyRequests') : t('error'),
+        message: authProvider.error ?? t('failedToSendCode'),
         onRetry: isRateLimit ? null : _sendOtp,
       );
     }
@@ -133,6 +133,8 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     if (_isChecking) {
       return const Scaffold(backgroundColor: Colors.white);
     }
@@ -141,7 +143,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
       builder: (context, authProvider, child) {
         return LoadingOverlay(
           isLoading: authProvider.isLoading,
-          message: 'Processing...',
+          message: t('processing'),
           child: Scaffold(
             backgroundColor: Colors.white,
             body: Stack(
@@ -174,19 +176,19 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              'Log In',
-                              style: TextStyle(
+                            Text(
+                              t('loginTitle'),
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 10),
-                            const Text(
-                              'Log in to continue your seamless journey',
+                            Text(
+                              t('loginSubtitle'),
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Color.fromARGB(255, 139, 139, 139),
                                 fontSize: 14,
                               ),
@@ -196,25 +198,36 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                             IntlPhoneField(
                               controller: _phoneController,
                               style: const TextStyle(color: Colors.black),
-                              dropdownTextStyle: const TextStyle(color: Colors.black),
+                              dropdownTextStyle: const TextStyle(
+                                color: Colors.black,
+                              ),
                               inputFormatters: [NoLeadingZeroFormatter()],
                               cursorColor: AppColors.primary,
                               decoration: InputDecoration(
-                                hintText: 'Mobile Number',
-                                hintStyle: const TextStyle(color: Colors.black38),
+                                hintText: t('mobileNumber'),
+                                hintStyle: const TextStyle(
+                                  color: Colors.black38,
+                                ),
                                 filled: true,
                                 fillColor: Colors.grey.shade100,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 2,
+                                  ),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20,
@@ -230,7 +243,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                               },
                               validator: (phone) {
                                 if (phone == null || phone.number.isEmpty) {
-                                  return 'Please enter your mobile number';
+                                  return t('pleaseEnterMobileNumber');
                                 }
                                 return null;
                               },
@@ -248,9 +261,9 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                   ),
                                 ),
                                 onPressed: _sendOtp,
-                                child: const Text(
-                                  'Login',
-                                  style: TextStyle(
+                                child: Text(
+                                  t('loginButton'),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
@@ -258,8 +271,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20)
-        
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
