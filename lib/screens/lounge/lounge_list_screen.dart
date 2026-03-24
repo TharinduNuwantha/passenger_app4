@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/lounge_booking_models.dart';
 import '../../services/lounge_booking_service.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import 'lounge_detail_screen.dart';
@@ -86,6 +87,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: Colors.white, // Standardize to white background
@@ -96,8 +98,8 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
           children: [
             BlueHeader(
               padding: EdgeInsets.fromLTRB(20, topInset + 18, 20, 33),
-              title: 'Lounges',
-              subtitle: 'Discover and book premium lounges',
+              title: t('lounges'),
+              subtitle: t('discoverBookPremiumLounges'),
             ),
             // State Filter Dropdown
             Padding(
@@ -114,6 +116,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
   }
 
   Widget _buildStateFilter() {
+    final t = (String key) => AppLocalization.tr(context, key);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -138,20 +141,13 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.primary.withOpacity(0.7),
-                ],
+                colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.location_on,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: const Icon(Icons.location_on, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -160,7 +156,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Filter by Province',
+                  t('filterByProvince'),
                   style: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 11,
@@ -172,7 +168,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
                   child: DropdownButton<String>(
                     value: _selectedState,
                     hint: Text(
-                      'All Provinces',
+                      t('allProvinces'),
                       style: TextStyle(
                         color: Colors.grey[800],
                         fontSize: 15,
@@ -206,9 +202,8 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
                         value: null,
                         child: Row(
                           children: [
-                           
                             const SizedBox(width: 0),
-                            const Text('All Provinces'),
+                            Text(t('allProvinces')),
                           ],
                         ),
                       ),
@@ -252,6 +247,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
   }
 
   Widget _buildContent() {
+    final t = (String key) => AppLocalization.tr(context, key);
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -271,7 +267,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
                 color: AppColors.warning,
               ),
               const SizedBox(height: 12),
-              Text('Failed to load lounges', style: AppTextStyles.h3),
+              Text(t('failedToLoadLounges'), style: AppTextStyles.h3),
               const SizedBox(height: 8),
               Text(
                 _error!,
@@ -282,7 +278,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
               ElevatedButton.icon(
                 onPressed: _loadInitialData,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(t('retry')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: AppColors.primary,
@@ -309,24 +305,26 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
               const SizedBox(height: 16),
               Text(
                 _selectedState != null
-                    ? 'No lounges in $_selectedState'
-                    : 'No lounges available',
+                    ? AppLocalization.trWithArgs(context, 'noLoungesInState', {
+                        'state': _selectedState!,
+                      })
+                    : t('noLoungesAvailable'),
                 style: AppTextStyles.h3,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 _selectedState != null
-                    ? 'Try selecting a different state'
-                    : 'Check back later for available lounges',
+                    ? t('tryDifferentState')
+                    : t('checkBackLaterLounges'),
                 style: AppTextStyles.body,
               ),
               if (_selectedState != null) ...[
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => _searchByState(null),
-                  child: const Text(
-                    'Show All Lounges',
+                  child: Text(
+                    t('showAllLounges'),
                     style: TextStyle(color: AppColors.primary),
                   ),
                 ),
@@ -348,8 +346,13 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               _selectedState != null
-                  ? '${_lounges.length} lounge(s) in $_selectedState'
-                  : 'Showing ${_lounges.length} lounges',
+                  ? AppLocalization.trWithArgs(context, 'loungesInStateCount', {
+                      'count': '${_lounges.length}',
+                      'state': _selectedState!,
+                    })
+                  : AppLocalization.trWithArgs(context, 'showingLoungesCount', {
+                      'count': '${_lounges.length}',
+                    }),
               style: const TextStyle(
                 color: Colors.grey,
                 fontSize: 14,
@@ -394,6 +397,7 @@ class _LoungeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       color: Colors.white, // Explicitly white background
@@ -417,9 +421,10 @@ class _LoungeCard extends StatelessWidget {
                       height: 150,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                      errorBuilder: (_, __, ___) =>
+                          _buildPlaceholderImage(t('lounges')),
                     )
-                  : _buildPlaceholderImage(),
+                  : _buildPlaceholderImage(t('lounges')),
             ),
 
             // Content
@@ -494,9 +499,12 @@ class _LoungeCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Starting from',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          Text(
+                            t('startingFrom'),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
                           ),
                           Text(
                             lounge.formattedPrice1Hour,
@@ -520,7 +528,7 @@ class _LoungeCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          lounge.isOperational ? 'Available' : 'Closed',
+                          lounge.isOperational ? t('available') : t('closed'),
                           style: TextStyle(
                             color: lounge.isOperational
                                 ? Colors.green[700]
@@ -541,7 +549,7 @@ class _LoungeCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholderImage() {
+  Widget _buildPlaceholderImage(String title) {
     return Container(
       height: 150,
       width: double.infinity,
@@ -555,10 +563,7 @@ class _LoungeCard extends StatelessWidget {
             color: Colors.grey[400],
           ),
           const SizedBox(height: 8),
-          Text(
-            'Lounge',
-            style: TextStyle(color: Colors.grey[500], fontSize: 14),
-          ),
+          Text(title, style: TextStyle(color: Colors.grey[500], fontSize: 14)),
         ],
       ),
     );

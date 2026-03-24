@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../localization/app_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_colors.dart';
@@ -60,6 +61,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveUserData() async {
+    final t = (String key) => AppLocalization.tr(context, key);
+    
     setState(() {
       isSaving = true;
     });
@@ -76,8 +79,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         authProvider.updateUser(updatedUser);
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
+          SnackBar(
+            content: Text(t('profileUpdatedSuccessfully')),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -88,7 +91,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save profile: $e'),
+            content: Text(t('failedToSaveProfile')),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),

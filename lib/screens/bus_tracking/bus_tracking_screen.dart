@@ -298,7 +298,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                 icon: Icons.route,
                                 label: t('route'),
                                 value:
-                                    '${_activeBooking!['from'] ?? t('notAvailable')} → ${_activeBooking!['to'] ?? t('notAvailable')}',
+                                    '${_activeBooking!['from'] ?? t('na')} → ${_activeBooking!['to'] ?? t('na')}',
                               ),
                               const SizedBox(height: 20),
 

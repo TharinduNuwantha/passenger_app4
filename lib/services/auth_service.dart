@@ -47,6 +47,9 @@ class AuthService {
       throw 'Failed to send OTP';
     } catch (e) {
       _logger.e('Send OTP error: $e');
+      if (e is String) {
+        rethrow;
+      }
       throw ErrorHandler.handleError(e);
     }
   }
@@ -158,6 +161,9 @@ class AuthService {
       throw 'Failed to verify OTP';
     } catch (e) {
       _logger.e('Verify OTP error: $e');
+      if (e is String) {
+        rethrow;
+      }
       throw ErrorHandler.handleError(e);
     }
   }

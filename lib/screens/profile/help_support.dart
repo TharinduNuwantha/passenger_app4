@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
@@ -8,6 +9,7 @@ class HelpSupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -21,10 +23,10 @@ class HelpSupportScreen extends StatelessWidget {
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
                   onPressed: () => Navigator.pop(context),
                 ),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Help & Support',
-                    style: TextStyle(
+                    t('helpAndSupport'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -43,34 +45,34 @@ class HelpSupportScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'How can we help?',
+                    t('howCanWeHelp'),
                     style: AppTextStyles.h1.copyWith(color: AppColors.primary),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Find answers to your questions or get in touch with our team.',
+                    t('findAnswersOrGetInTouch'),
                     style: TextStyle(color: Colors.grey[600], fontSize: 15),
                   ),
                   const SizedBox(height: 32),
                   
                   _buildSupportCard(
                     icon: Icons.question_answer_outlined,
-                    title: 'Frequently Asked Questions',
-                    subtitle: 'Quick answers to common issues',
+                    title: t('frequentlyAskedQuestions'),
+                    subtitle: t('quickAnswersToCommonIssues'),
                     onTap: () {},
                   ),
                   const SizedBox(height: 16),
                   _buildSupportCard(
                     icon: Icons.chat_outlined,
-                    title: 'Live Chat',
-                    subtitle: 'Chat with our support team',
+                    title: t('liveChat'),
+                    subtitle: t('chatWithOurSupportTeam'),
                     onTap: () {},
                   ),
                   const SizedBox(height: 16),
                   _buildSupportCard(
                     icon: Icons.bug_report_outlined,
-                    title: 'Report a Problem',
-                    subtitle: 'Let us know if something is wrong',
+                    title: t('reportAProblem'),
+                    subtitle: t('letUsKnowIfSomethingIsWrong'),
                     onTap: () {},
                   ),
                   
@@ -87,13 +89,13 @@ class HelpSupportScreen extends StatelessWidget {
                       children: [
                         const Icon(Icons.headset_mic_outlined, color: AppColors.primary, size: 40),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Still need help?',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        Text(
+                          t('stillNeedHelp'),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Our support team is available 24/7 to assist you with any inquiries.',
+                          t('supportTeamAvailable24X7'),
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.grey[600], height: 1.5),
                         ),
@@ -108,7 +110,7 @@ class HelpSupportScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text('Contact Support Now', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text(t('contactSupportButton'), style: const TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],

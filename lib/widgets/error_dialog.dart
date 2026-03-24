@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme_config.dart';
+import '../localization/app_localization.dart';
 
 class ErrorDialog extends StatelessWidget {
   final String title;
@@ -17,6 +18,7 @@ class ErrorDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
@@ -34,14 +36,14 @@ class ErrorDialog extends StatelessWidget {
               Navigator.of(context).pop();
               onRetry!();
             },
-            child: const Text('Retry'),
+            child: Text(t('retryButton')),
           ),
         TextButton(
           onPressed: () {
             Navigator.of(context).pop();
             onDismiss?.call();
           },
-          child: const Text('OK'),
+          child: Text(t('ok')),
         ),
       ],
     );

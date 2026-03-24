@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/booking_intent_models.dart';
 import '../../models/search_models.dart';
 import '../../theme/app_colors.dart';
+import '../../localization/app_localization.dart';
 
 /// Success screen after booking is confirmed via intent flow
 /// Supports combined bus + lounge bookings with multiple QR codes
@@ -209,9 +210,9 @@ class BookingSuccessScreen extends StatelessWidget {
                   // TODO: Navigate to My Bookings screen
                   Navigator.of(context).popUntil((route) => route.isFirst);
                 },
-                child: const Text(
-                  'View My Bookings',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                child: Text(
+                  AppLocalization.tr(context, 'viewMyBookings'),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ),
 

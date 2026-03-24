@@ -1,8 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:async';
-import '../../localization/app_localization.dart';
 import '../../models/notification_model.dart';
 import '../../services/notification_service.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
@@ -57,7 +57,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t('allNotificationsMarkedRead')),
+          content: Text(t('allNotificationsMarkedAsRead')),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -126,7 +126,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: Text(t('deleteNotification')),
-                              content: Text(t('removeNotificationConfirm')),
+                              content: Text(t('removeNotificationPermanently')),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -190,7 +190,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         onPressed: () => Navigator.pop(context),
       ),
       title: t('notifications'),
-      subtitle: _showUnreadOnly ? t('showingUnreadOnly') : t('recentUpdates'),
+      subtitle: _showUnreadOnly
+          ? t('showingUnreadOnly')
+          : t('yourRecentUpdates'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -292,7 +294,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _showUnreadOnly ? t('caughtUp') : t('notifyWhenUpdatesArrive'),
+            _showUnreadOnly ? t('youAreAllCaughtUp') : t('updatesWhenArrive'),
             style: AppTextStyles.body.copyWith(color: const Color(0xFF64748B)),
           ),
         ],
@@ -315,7 +317,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               color: Colors.redAccent,
             ),
             const SizedBox(height: 16),
-            Text(t('oopsSomethingWrong'), style: AppTextStyles.h3),
+            Text(t('oopsSomethingWentWrong'), style: AppTextStyles.h3),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadNotifications,
