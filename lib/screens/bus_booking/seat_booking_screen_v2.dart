@@ -31,6 +31,10 @@ class SeatBookingScreenV2 extends StatefulWidget {
   /// Use new intent-based booking flow (with TTL seat holding)
   final bool useIntentFlow;
 
+  /// Origin city from the user's search (e.g. "Colombo").
+  /// Forwarded through the booking flow to filter boarding lounges.
+  final String? originCity;
+
   const SeatBookingScreenV2({
     super.key,
     required this.trip,
@@ -40,6 +44,7 @@ class SeatBookingScreenV2 extends StatefulWidget {
     this.alightingStopId,
     this.masterRouteId,
     this.useIntentFlow = true, // Default to new flow
+    this.originCity,
   });
 
   @override
@@ -388,6 +393,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             userName: user?.fullName ?? '',
             userPhone: user?.phoneNumber ?? '',
             userEmail: user?.email,
+            originCity: widget.originCity,
           ),
         ),
       );
