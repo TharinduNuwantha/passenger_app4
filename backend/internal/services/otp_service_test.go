@@ -36,12 +36,12 @@ func TestGenerateOTP(t *testing.T) {
 		WithArgs(phone).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	// Expect insert query
+	// Expect insert query (phone, otp, expires_at, max_attempts, ip, user_agent)
 	mock.ExpectExec("INSERT INTO otp_verifications").
-		WithArgs(phone, sqlmock.AnyArg(), sqlmock.AnyArg(), MaxOTPAttempts).
+		WithArgs(phone, sqlmock.AnyArg(), sqlmock.AnyArg(), MaxOTPAttempts, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	otp, err := service.GenerateOTP(phone)
+	otp, err := service.GenerateOTP(phone, "127.0.0.1", "test-user-agent")
 	require.NoError(t, err)
 	assert.Len(t, otp, 6)
 	assert.Regexp(t, "^[0-9]{6}$", otp)
@@ -68,10 +68,10 @@ func TestGenerateOTP_Uniqueness(t *testing.T) {
 
 		// Expect insert query
 		mock.ExpectExec("INSERT INTO otp_verifications").
-			WithArgs(phone, sqlmock.AnyArg(), sqlmock.AnyArg(), MaxOTPAttempts).
+			WithArgs(phone, sqlmock.AnyArg(), sqlmock.AnyArg(), MaxOTPAttempts, sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		otp, err := service.GenerateOTP(phone)
+		otp, err := service.GenerateOTP(phone, "127.0.0.1", "test-user-agent")
 		require.NoError(t, err)
 		otps[otp] = true
 	}

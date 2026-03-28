@@ -410,6 +410,87 @@ class LoungeCategory {
 }
 
 // ============================================================================
+// LOUNGE TRANSPORT (pickup locations + per-vehicle prices)
+// ============================================================================
+
+class LoungeTransportLocationOption {
+  final String id;
+  final String location;
+  final double latitude;
+  final double longitude;
+  final int? estDurationMinutes;
+  final double? distanceKm;
+  final double threeWheelerPrice;
+  final double carPrice;
+  final double vanPrice;
+
+  LoungeTransportLocationOption({
+    required this.id,
+    required this.location,
+    required this.latitude,
+    required this.longitude,
+    this.estDurationMinutes,
+    this.distanceKm,
+    required this.threeWheelerPrice,
+    required this.carPrice,
+    required this.vanPrice,
+  });
+
+  factory LoungeTransportLocationOption.fromJson(Map<String, dynamic> json) {
+    return LoungeTransportLocationOption(
+      id: _stringOrNull(json['location_id']) ?? '',
+      location: json['location'] as String? ?? '',
+      latitude: _numToDouble(json['latitude']),
+      longitude: _numToDouble(json['longitude']),
+      estDurationMinutes: _parseOptionalInt(json['est_duration_minutes']),
+      distanceKm: _parseOptionalDouble(json['distance_km']),
+      threeWheelerPrice: _numToDouble(json['three_wheeler_price']),
+      carPrice: _numToDouble(json['car_price']),
+      vanPrice: _numToDouble(json['van_price']),
+    );
+  }
+
+  static String? _stringOrNull(dynamic v) {
+    if (v == null) return null;
+    if (v is String) return v;
+    return v.toString();
+  }
+
+  static double _numToDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
+  static int? _parseOptionalInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.round();
+    return int.tryParse(v.toString());
+  }
+
+  static double? _parseOptionalDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
+  /// [type] is `tuktuk`, `car`, or `van` (matches app UI keys).
+  double priceForVehicleType(String type) {
+    switch (type) {
+      case 'tuktuk':
+        return threeWheelerPrice;
+      case 'car':
+        return carPrice;
+      case 'van':
+        return vanPrice;
+      default:
+        return 0;
+    }
+  }
+}
+
+// ============================================================================
 // LOUNGE PRODUCT MODEL
 // ============================================================================
 

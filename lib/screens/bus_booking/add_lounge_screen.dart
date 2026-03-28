@@ -149,30 +149,6 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   SelectedLoungeData? _selectedPreTripLounge;
   SelectedLoungeData? _selectedPostTripLounge;
 
-  // Transport selection for Pre-Trip
-  String? _preTripTransportType;
-  String? _preTripPickupLocation;
-
-  // Transport selection for Post-Trip
-  String? _postTripTransportType;
-  String? _postTripPickupLocation;
-
-  // Transport locations (5 popular areas)
-  final List<Map<String, String>> _transportLocations = [
-    {'id': '1', 'name': 'City Center', 'icon': '🏙️'},
-    {'id': '2', 'name': 'Airport', 'icon': '✈️'},
-    {'id': '3', 'name': 'Railway Station', 'icon': '🚂'},
-    {'id': '4', 'name': 'Hotel District', 'icon': '🏨'},
-    {'id': '5', 'name': 'Shopping Mall', 'icon': '🛍️'},
-  ];
-
-  // Transport pricing
-  final Map<String, double> _transportPricing = {
-    'van': 2500.0,
-    'car': 1800.0,
-    'tuktuk': 800.0,
-  };
-
   @override
   void initState() {
     super.initState();
@@ -1273,21 +1249,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   String? _postTripTransportType;
   String? _postTripPickupLocation;
 
-  // Transport locations (5 popular areas)
-  final List<Map<String, String>> _transportLocations = [
-    {'id': '1', 'name': 'City Center', 'icon': '🏙️'},
-    {'id': '2', 'name': 'Airport', 'icon': '✈️'},
-    {'id': '3', 'name': 'Railway Station', 'icon': '🚂'},
-    {'id': '4', 'name': 'Hotel District', 'icon': '🏨'},
-    {'id': '5', 'name': 'Shopping Mall', 'icon': '🛍️'},
-  ];
+  List<LoungeTransportLocationOption> _transportOptions = [];
+  bool _isLoadingTransport = true;
+  String? _transportLoadError;
 
-  // Transport pricing
-  final Map<String, double> _transportPricing = {
-    'van': 2500.0,
-    'car': 1800.0,
-    'tuktuk': 800.0,
-  };
+  static const List<String> _locationIconPool = [
+    '📍',
+    '🏙️',
+    '✈️',
+    '🚂',
+    '🏨',
+    '🛍️',
+  ];
 
   @override
   void initState() {
@@ -1301,6 +1274,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       ),
     );
     _loadProducts();
+    _loadTransportOptions();
   }
 
   @override
@@ -1321,6 +1295,76 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     } catch (e) {
       setState(() => _isLoadingProducts = false);
     }
+  }
+
+  Future<void> _loadTransportOptions() async {
+    setState(() {
+      _isLoadingTransport = true;
+      _transportLoadError = null;
+    });
+    try {
+      final list = await _loungeService.getLoungeTransportOptions(
+        widget.lounge.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _transportOptions = list;
+        _isLoadingTransport = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTransport = false;
+        _transportLoadError = e.toString();
+      });
+    }
+  }
+
+  LoungeTransportLocationOption? _optionById(String? id) {
+    if (id == null) return null;
+    for (final o in _transportOptions) {
+      if (o.id == id) return o;
+    }
+    return null;
+  }
+
+  bool _offersVehicle(String type) => _transportOptions.any(
+    (o) => o.priceForVehicleType(type) > 0,
+  );
+
+  bool get _anyTransportConfigured =>
+      _transportOptions.isNotEmpty &&
+      _transportOptions.any(
+        (o) =>
+            o.threeWheelerPrice > 0 || o.carPrice > 0 || o.vanPrice > 0,
+      );
+
+  double _minPriceForVehicle(String type) {
+    double? best;
+    for (final o in _transportOptions) {
+      final p = o.priceForVehicleType(type);
+      if (p <= 0) continue;
+      if (best == null || p < best) {
+        best = p;
+      }
+    }
+    return best ?? 0;
+  }
+
+  String _vehiclePriceLabel(String type) {
+    if (!_offersVehicle(type)) return '';
+    final locId = widget.isPreTrip
+        ? _preTripPickupLocation
+        : _postTripPickupLocation;
+    final opt = _optionById(locId);
+    if (opt != null) {
+      final p = opt.priceForVehicleType(type);
+      if (p <= 0) return '';
+      return 'LKR ${p.toStringAsFixed(0)}';
+    }
+    final min = _minPriceForVehicle(type);
+    if (min <= 0) return '';
+    return 'from LKR ${min.toStringAsFixed(0)}';
   }
 
   double _getPriceForType(String? type) {
@@ -1345,12 +1389,16 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       _cart.values.fold(0, (sum, item) => sum + item.totalPrice);
 
   double get _transportCost {
-    if (widget.isPreTrip && _preTripTransportType != null) {
-      return _transportPricing[_preTripTransportType] ?? 0.0;
-    } else if (!widget.isPreTrip && _postTripTransportType != null) {
-      return _transportPricing[_postTripTransportType] ?? 0.0;
-    }
-    return 0.0;
+    final type = widget.isPreTrip
+        ? _preTripTransportType
+        : _postTripTransportType;
+    final locId = widget.isPreTrip
+        ? _preTripPickupLocation
+        : _postTripPickupLocation;
+    if (type == null || locId == null) return 0.0;
+    final opt = _optionById(locId);
+    if (opt == null) return 0.0;
+    return opt.priceForVehicleType(type);
   }
 
   double get _totalPrice => _basePrice + _preOrderTotal + _transportCost;
@@ -1403,6 +1451,21 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       return;
     }
 
+    final t = widget.isPreTrip
+        ? _preTripTransportType
+        : _postTripTransportType;
+    final p = widget.isPreTrip
+        ? _preTripPickupLocation
+        : _postTripPickupLocation;
+    if (t != null && p == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a pickup location for transport'),
+        ),
+      );
+      return;
+    }
+
     // Calculate check-in time based on pre-trip or post-trip
     final DateTime tripDateTime = widget.isPreTrip
         ? widget.busDepartureTime
@@ -1431,16 +1494,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           ? _preTripTransportType
           : _postTripTransportType,
       pickupLocation: widget.isPreTrip
-          ? (_preTripPickupLocation != null
-                ? _transportLocations.firstWhere(
-                    (l) => l['id'] == _preTripPickupLocation,
-                  )['name']
-                : null)
-          : (_postTripPickupLocation != null
-                ? _transportLocations.firstWhere(
-                    (l) => l['id'] == _postTripPickupLocation,
-                  )['name']
-                : null),
+          ? _optionById(_preTripPickupLocation)?.location
+          : _optionById(_postTripPickupLocation)?.location,
       transportCost: _transportCost,
     );
 
@@ -2041,7 +2096,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
                   Text(
-                    'LKR ${_transportPricing[_preTripTransportType]!.toStringAsFixed(0)}',
+                    _preTripPickupLocation != null
+                        ? 'LKR ${_transportCost.toStringAsFixed(0)}'
+                        : 'Select pickup',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ],
@@ -2057,7 +2114,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
                   Text(
-                    'LKR ${_transportPricing[_postTripTransportType]!.toStringAsFixed(0)}',
+                    _postTripPickupLocation != null
+                        ? 'LKR ${_transportCost.toStringAsFixed(0)}'
+                        : 'Select pickup',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ],
@@ -2114,6 +2173,54 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   }
 
   Widget _buildTransportSection() {
+    if (_isLoadingTransport) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_transportLoadError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Could not load transport options.',
+            style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          SelectableText(
+            'Lounge ID: ${widget.lounge.id}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade800,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: 6),
+          SelectableText(
+            _transportLoadError!,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          ),
+          TextButton(
+            onPressed: _loadTransportOptions,
+            child: const Text('Retry'),
+          ),
+        ],
+      );
+    }
+    if (_transportOptions.isEmpty) {
+      return Text(
+        'No transport pickup locations are currently available for this lounge.',
+        style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+      );
+    }
+    if (!_anyTransportConfigured) {
+      return Text(
+        'Transport locations exist but prices are not set for any vehicle type.',
+        style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+      );
+    }
+
     final selectedTransport = widget.isPreTrip
         ? _preTripTransportType
         : _postTripTransportType;
@@ -2121,113 +2228,161 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         ? _preTripPickupLocation
         : _postTripPickupLocation;
 
+    final locsForPickup = selectedTransport == null
+        ? _transportOptions
+        : _transportOptions
+              .where(
+                (o) => o.priceForVehicleType(selectedTransport) > 0,
+              )
+              .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Vehicle selection
         Row(
           children: [
-            _buildVehicleOption('van', '🚐', 'Van', 'Up to 8 people', 2500.0),
-            const SizedBox(width: 12),
-            _buildVehicleOption('car', '🚗', 'Car', 'Up to 4 people', 1800.0),
-            const SizedBox(width: 12),
-            _buildVehicleOption(
-              'tuktuk',
-              '🛺',
-              'Tuk Tuk',
-              'Up to 3 people',
-              800.0,
-            ),
+            if (_offersVehicle('van')) ...[
+              Expanded(
+                child: _buildVehicleOption(
+                  'van',
+                  '🚐',
+                  'Van',
+                  'Up to 8 people',
+                ),
+              ),
+              if (_offersVehicle('car') || _offersVehicle('tuktuk'))
+                const SizedBox(width: 12),
+            ],
+            if (_offersVehicle('car')) ...[
+              Expanded(
+                child: _buildVehicleOption(
+                  'car',
+                  '🚗',
+                  'Car',
+                  'Up to 4 people',
+                ),
+              ),
+              if (_offersVehicle('tuktuk')) const SizedBox(width: 12),
+            ],
+            if (_offersVehicle('tuktuk'))
+              Expanded(
+                child: _buildVehicleOption(
+                  'tuktuk',
+                  '🛺',
+                  'Tuk Tuk',
+                  'Up to 3 people',
+                ),
+              ),
           ],
         ),
 
-        // Location selection (show only if transport is selected)
         if (selectedTransport != null) ...[
-          const SizedBox(height: 16),
-          const Text(
-            'Pickup Location',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _transportLocations.map((location) {
-              final isSelected = selectedLocation == location['id'];
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (widget.isPreTrip) {
-                      _preTripPickupLocation = location['id'];
-                    } else {
-                      _postTripPickupLocation = location['id'];
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFFFFC300)
-                        : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
+          if (locsForPickup.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                'No pickup locations have a price for this vehicle type.',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              ),
+            )
+          else ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Pickup Location',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: locsForPickup.asMap().entries.map((entry) {
+                final index = entry.key;
+                final location = entry.value;
+                final isSelected = selectedLocation == location.id;
+                final icon =
+                    _locationIconPool[index % _locationIconPool.length];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (widget.isPreTrip) {
+                        _preTripPickupLocation = location.id;
+                      } else {
+                        _postTripPickupLocation = location.id;
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
                       color: isSelected
                           ? const Color(0xFFFFC300)
-                          : Colors.grey.shade300,
-                      width: isSelected ? 2 : 1,
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFFFFC300)
+                            : Colors.grey.shade300,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          icon,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          location.location,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        location['icon']!,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        location['name']!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade200),
+                );
+              }).toList(),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 18, color: Colors.blue.shade700),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Driver will contact you 30 minutes before pickup',
-                    style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: Colors.blue.shade700,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Driver will contact you 30 minutes before pickup',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ],
     );
@@ -2238,74 +2393,85 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     String emoji,
     String name,
     String capacity,
-    double price,
   ) {
     final isSelected = widget.isPreTrip
         ? _preTripTransportType == type
         : _postTripTransportType == type;
+    final priceLabel = _vehiclePriceLabel(type);
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            if (widget.isPreTrip) {
-              if (_preTripTransportType == type) {
-                _preTripTransportType = null;
-                _preTripPickupLocation = null;
-              } else {
-                _preTripTransportType = type;
-              }
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (widget.isPreTrip) {
+            if (_preTripTransportType == type) {
+              _preTripTransportType = null;
+              _preTripPickupLocation = null;
             } else {
-              if (_postTripTransportType == type) {
-                _postTripTransportType = null;
-                _postTripPickupLocation = null;
-              } else {
-                _postTripTransportType = type;
-              }
+              _preTripTransportType = type;
+              _preTripPickupLocation = null;
             }
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
+          } else {
+            if (_postTripTransportType == type) {
+              _postTripTransportType = null;
+              _postTripPickupLocation = null;
+            } else {
+              _postTripTransportType = type;
+              _postTripPickupLocation = null;
+            }
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFFFC300).withOpacity(0.2)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
             color: isSelected
-                ? const Color(0xFFFFC300).withOpacity(0.2)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFFFFC300)
-                  : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFFFFC300).withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
+                ? const Color(0xFFFFC300)
+                : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
           ),
-          child: Column(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 32)),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFFFC300).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 32)),
+            const SizedBox(height: 4),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+            Text(
+              capacity,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+            ),
+            if (priceLabel.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                name,
+                priceLabel,
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: AppColors.primary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
                 ),
               ),
-              Text(
-                capacity,
-                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-              ),
             ],
-          ),
+          ],
         ),
       ),
     );

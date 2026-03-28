@@ -89,6 +89,52 @@ func (h *LoungeBookingHandler) GetLoungeProducts(c *gin.Context) {
 	})
 }
 
+// GetLoungeTransportOptions handles GET /api/v1/lounges/:id/transport-options
+func (h *LoungeBookingHandler) GetLoungeTransportOptions(c *gin.Context) {
+	loungeIDStr := c.Param("id")
+	loungeID, err := uuid.Parse(loungeIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error:   "invalid_id",
+			Message: "Invalid lounge ID format",
+		})
+		return
+	}
+
+	lounge, err := h.loungeRepo.GetLoungeByID(loungeID)
+	if err != nil {
+		log.Printf("ERROR: Failed to verify lounge %s: %v", loungeID, err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error:   "database_error",
+			Message: "Failed to retrieve lounge",
+		})
+		return
+	}
+	if lounge == nil {
+		c.JSON(http.StatusNotFound, ErrorResponse{
+			Error:   "not_found",
+			Message: "Lounge not found",
+		})
+		return
+	}
+
+	locations, err := h.loungeRepo.GetLoungeTransportOptions(loungeID)
+	if err != nil {
+		log.Printf("ERROR: Failed to get transport options for lounge %s: %v", loungeID, err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error:   "database_error",
+			Message: "Failed to retrieve transport options",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"lounge_id": loungeID,
+		"locations": locations,
+		"total":     len(locations),
+	})
+}
+
 // CreateProductRequest represents the request to create a product
 type CreateProductRequest struct {
 	CategoryID             string   `json:"category_id" binding:"required"`

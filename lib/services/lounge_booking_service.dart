@@ -126,6 +126,46 @@ class LoungeBookingService {
     }
   }
 
+  /// Active pickup locations with prices from [lounge_transport_locations]
+  /// joined with [lounge_transport_location_prices].
+  Future<List<LoungeTransportLocationOption>> getLoungeTransportOptions(
+    String loungeId,
+  ) async {
+    try {
+      _logger.i('Fetching transport options for lounge: $loungeId');
+
+      final response = await _apiService.get(
+        '/api/v1/lounges/$loungeId/transport-options',
+      );
+
+      final list =
+          (response.data['locations'] as List<dynamic>?)
+              ?.map(
+                (e) => LoungeTransportLocationOption.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
+              .toList() ??
+          [];
+
+      _logger.i('Fetched ${list.length} transport location(s)');
+      return list;
+    } on DioException catch (e) {
+      _logger.e(
+        'Failed to get transport options (lounge $loungeId): ${e.message}',
+      );
+      final detail = ErrorHandler.handleError(e);
+      throw Exception('Transport options failed (lounge $loungeId): $detail');
+    } catch (e) {
+      _logger.e(
+        'Unexpected error getting transport options (lounge $loungeId): $e',
+      );
+      throw Exception(
+        'Transport options failed (lounge $loungeId): $e',
+      );
+    }
+  }
+
   /// Search/filter lounges (for marketplace)
   ///
   /// [state] - Optional filter by state/province

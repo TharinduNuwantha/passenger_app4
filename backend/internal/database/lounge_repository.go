@@ -9,6 +9,19 @@ import (
 	"github.com/smarttransit/sms-auth-backend/internal/models"
 )
 
+// loungeTransportScanRow is used to scan nullable distance/duration from Postgres.
+type loungeTransportScanRow struct {
+	LocationID        uuid.UUID       `db:"location_id"`
+	Location          string          `db:"location"`
+	Latitude          float64         `db:"latitude"`
+	Longitude         float64         `db:"longitude"`
+	EstDuration       sql.NullInt64   `db:"est_duration_minutes"`
+	DistanceKm        sql.NullFloat64 `db:"distance_km"`
+	ThreeWheelerPrice float64         `db:"three_wheeler_price"`
+	CarPrice          float64         `db:"car_price"`
+	VanPrice          float64         `db:"van_price"`
+}
+
 // LoungeRepository handles database operations for lounges
 type LoungeRepository struct {
 	db *sqlx.DB
@@ -478,4 +491,52 @@ func (r *LoungeRepository) GetPendingLounges(limit int, offset int) ([]models.Lo
 		return nil, fmt.Errorf("failed to get pending lounges: %w", err)
 	}
 	return lounges, nil
+}
+
+// GetLoungeTransportOptions returns active pickup locations with prices for a lounge.
+func (r *LoungeRepository) GetLoungeTransportOptions(loungeID uuid.UUID) ([]models.LoungeTransportOption, error) {
+	query := `
+		SELECT
+			ltl.id AS location_id,
+			ltl.location,
+			ltl.latitude,
+			ltl.longitude,
+			ltl.est_duration AS est_duration_minutes,
+			ltl.distance AS distance_km,
+			COALESCE(ltlp.three_wheeler_price, 0)::double precision AS three_wheeler_price,
+			COALESCE(ltlp.car_price, 0)::double precision AS car_price,
+			COALESCE(ltlp.van_price, 0)::double precision AS van_price
+		FROM lounge_transport_locations ltl
+		LEFT JOIN lounge_transport_location_prices ltlp
+			ON ltlp.lounge_id = ltl.lounge_id AND ltlp.location_id = ltl.id
+		WHERE ltl.lounge_id = $1
+			AND ltl.status = 'active'
+		ORDER BY ltl.location ASC
+	`
+	var rows []loungeTransportScanRow
+	if err := r.db.Select(&rows, query, loungeID); err != nil {
+		return nil, fmt.Errorf("failed to get lounge transport options: %w", err)
+	}
+	out := make([]models.LoungeTransportOption, 0, len(rows))
+	for _, row := range rows {
+		opt := models.LoungeTransportOption{
+			LocationID:        row.LocationID,
+			Location:          row.Location,
+			Latitude:          row.Latitude,
+			Longitude:         row.Longitude,
+			ThreeWheelerPrice: row.ThreeWheelerPrice,
+			CarPrice:          row.CarPrice,
+			VanPrice:          row.VanPrice,
+		}
+		if row.EstDuration.Valid {
+			v := int(row.EstDuration.Int64)
+			opt.EstDurationMins = &v
+		}
+		if row.DistanceKm.Valid {
+			v := row.DistanceKm.Float64
+			opt.DistanceKm = &v
+		}
+		out = append(out, opt)
+	}
+	return out, nil
 }
