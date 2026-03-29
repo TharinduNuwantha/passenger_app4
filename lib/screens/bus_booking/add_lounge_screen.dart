@@ -2507,21 +2507,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       onTap: () {
         setState(() {
           if (widget.isPreTrip) {
-            if (_preTripTransportType == type) {
-              _preTripTransportType = null;
-              _preTripPickupLocation = null;
-            } else {
-              _preTripTransportType = type;
-              _preTripPickupLocation = null;
-            }
+            _preTripTransportType = (_preTripTransportType == type) ? null : type;
           } else {
-            if (_postTripTransportType == type) {
-              _postTripTransportType = null;
-              _postTripPickupLocation = null;
-            } else {
-              _postTripTransportType = type;
-              _postTripPickupLocation = null;
-            }
+            _postTripTransportType = (_postTripTransportType == type) ? null : type;
           }
         });
       },
