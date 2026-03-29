@@ -44,11 +44,18 @@ class ApiService {
               options.path.contains('/auth/send-otp') ||
               options.path.contains('/auth/verify-otp');
 
-          print('🔐 [API] Request to: ${options.path}');
-          print('🔐 [API] Is public: $isPublicAuthEndpoint');
+          // Read-only lounge transport discovery (same as SQL used by the app)
+          final isPublicLoungeTransportOptions =
+              options.path.contains('/transport-options');
 
-          // Add access token to headers if available (except for public auth endpoints)
-          if (!isPublicAuthEndpoint) {
+          final skipAuthHeader =
+              isPublicAuthEndpoint || isPublicLoungeTransportOptions;
+
+          print('🔐 [API] Request to: ${options.path}');
+          print('🔐 [API] Is public: $skipAuthHeader');
+
+          // Add access token to headers if available (except for public endpoints)
+          if (!skipAuthHeader) {
             final token = await _storage.getAccessToken();
             print('🔐 [API] Token check: ${token != null ? "EXISTS (${token.length} chars)" : "NULL"}');
             _logger.i('🔑 TOKEN CHECK for ${options.path}: token=${token != null ? "EXISTS (${token.length} chars)" : "NULL"}');
