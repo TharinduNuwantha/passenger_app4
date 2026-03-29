@@ -44,9 +44,9 @@ class ApiService {
               options.path.contains('/auth/send-otp') ||
               options.path.contains('/auth/verify-otp');
 
-          // Read-only lounge transport discovery (same as SQL used by the app)
+          // Skip auth for transport discovery (must match paths in main.go)
           final isPublicLoungeTransportOptions =
-              options.path.contains('/transport-options') ||
+              options.path.contains('/transport-options/') ||
               options.path.contains('/lounges/transport/');
 
           final skipAuthHeader =

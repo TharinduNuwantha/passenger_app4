@@ -591,8 +591,8 @@ func main() {
 			lounges.GET("/by-route/:routeId", loungeHandler.GetLoungesByRoute)
 			logger.Info("  ✅ GET /api/v1/lounges/near-stop/:routeId/:stopId (public)")
 			lounges.GET("/near-stop/:routeId/:stopId", loungeHandler.GetLoungesNearStop)
-			logger.Info("  ✅ GET /api/v1/lounges/:id/transport-options (public)")
-			lounges.GET("/:id/transport-options", loungeBookingHandler.GetLoungeTransportOptions)
+			// Use a static prefix to avoid conflicts with /:id and match working path patterns
+			lounges.GET("/transport-options/lounge/:id", loungeBookingHandler.GetLoungeTransportOptions)
 			// Fallback route to debug gateway issues
 			lounges.GET("/transport/:id", loungeBookingHandler.GetLoungeTransportOptions)
 
