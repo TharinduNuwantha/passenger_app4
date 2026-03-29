@@ -185,8 +185,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       _loadDepartureLoungesByOriginCity();
     }
     // Priority 3: all lounges on this route (broadest fallback)
-    else if (widget.masterRouteId != null &&
-        widget.masterRouteId!.isNotEmpty) {
+    else if (widget.masterRouteId != null && widget.masterRouteId!.isNotEmpty) {
       _loadDepartureLoungesByRoute();
     } else {
       setState(() {
@@ -296,9 +295,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         );
       }
 
-      _logger.i(
-        'Found ${lounges.length} boarding lounges for origin city',
-      );
+      _logger.i('Found ${lounges.length} boarding lounges for origin city');
 
       if (lounges.isEmpty && widget.masterRouteId != null) {
         // Soft fallback: try the full route list so we never show an empty
@@ -306,8 +303,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         _logger.w(
           'No city-filtered lounges found; falling back to route-wide list',
         );
-        final fallback =
-            await _loungeService.getLoungesByRoute(widget.masterRouteId!);
+        final fallback = await _loungeService.getLoungesByRoute(
+          widget.masterRouteId!,
+        );
         setState(() {
           _departureLounges = fallback;
           _isLoadingDeparture = false;
@@ -455,7 +453,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
-                  color:  AppColors.primarySurface,
+                  color: AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 indicatorPadding: const EdgeInsets.all(4),
@@ -621,7 +619,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 Text(
                   'LKR ${widget.busFare.toStringAsFixed(0)}',
                   style: const TextStyle(
-                    color:AppColors.primarySurface,
+                    color: AppColors.primarySurface,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -906,7 +904,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primarySurface : const Color.fromARGB(255, 76, 149, 246),
+            color: isSelected
+                ? AppColors.primarySurface
+                : const Color.fromARGB(255, 76, 149, 246),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
@@ -963,7 +963,12 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 236, 235, 234).withOpacity(0.2),
+                            color: const Color.fromARGB(
+                              255,
+                              236,
+                              235,
+                              234,
+                            ).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -972,7 +977,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                               const Icon(
                                 Icons.star,
                                 size: 14,
-                                color:AppColors.primarySurface,
+                                color: AppColors.primarySurface,
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -1328,15 +1333,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     return null;
   }
 
-  bool _offersVehicle(String type) => _transportOptions.any(
-    (o) => o.priceForVehicleType(type) > 0,
-  );
+  bool _offersVehicle(String type) =>
+      _transportOptions.any((o) => o.priceForVehicleType(type) > 0);
 
   bool get _anyTransportConfigured =>
       _transportOptions.isNotEmpty &&
       _transportOptions.any(
-        (o) =>
-            o.threeWheelerPrice > 0 || o.carPrice > 0 || o.vanPrice > 0,
+        (o) => o.threeWheelerPrice > 0 || o.carPrice > 0 || o.vanPrice > 0,
       );
 
   double _minPriceForVehicle(String type) {
@@ -1451,9 +1454,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       return;
     }
 
-    final t = widget.isPreTrip
-        ? _preTripTransportType
-        : _postTripTransportType;
+    final t = widget.isPreTrip ? _preTripTransportType : _postTripTransportType;
     final p = widget.isPreTrip
         ? _preTripPickupLocation
         : _postTripPickupLocation;
@@ -2175,49 +2176,69 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   Widget _buildTransportSection() {
     if (_isLoadingTransport) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(child: CircularProgressIndicator()),
       );
     }
     if (_transportLoadError != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Could not load transport options.',
-            style: TextStyle(color: Colors.red.shade700, fontSize: 13),
-          ),
-          const SizedBox(height: 4),
-          SelectableText(
-            'Lounge ID: ${widget.lounge.id}',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade800,
-              fontFamily: 'monospace',
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.errorSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.errorLight.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Could not load transport options.',
+                  style: TextStyle(
+                    color: AppColors.errorDark,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 6),
-          SelectableText(
-            _transportLoadError!,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-          ),
-          TextButton(
-            onPressed: _loadTransportOptions,
-            child: const Text('Retry'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              _transportLoadError!,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+            TextButton.icon(
+              onPressed: _loadTransportOptions,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Try Again'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            ),
+          ],
+        ),
       );
     }
     if (_transportOptions.isEmpty) {
-      return Text(
-        'No transport pickup locations are currently available for this lounge.',
-        style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-      );
-    }
-    if (!_anyTransportConfigured) {
-      return Text(
-        'Transport locations exist but prices are not set for any vehicle type.',
-        style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.map_outlined, color: Colors.grey.shade400),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'No transport pickup locations are currently available for this lounge.',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
@@ -2231,159 +2252,242 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     final locsForPickup = selectedTransport == null
         ? _transportOptions
         : _transportOptions
-              .where(
-                (o) => o.priceForVehicleType(selectedTransport) > 0,
-              )
+              .where((o) => o.priceForVehicleType(selectedTransport) > 0)
               .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 1. Pickup Location Selection
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            if (_offersVehicle('van')) ...[
-              Expanded(
-                child: _buildVehicleOption(
-                  'van',
-                  '🚐',
-                  'Van',
-                  'Up to 8 people',
+            const Text(
+              'Select Pick-up Station',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${_transportOptions.length} Available',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
                 ),
               ),
-              if (_offersVehicle('car') || _offersVehicle('tuktuk'))
-                const SizedBox(width: 12),
-            ],
-            if (_offersVehicle('car')) ...[
-              Expanded(
-                child: _buildVehicleOption(
-                  'car',
-                  '🚗',
-                  'Car',
-                  'Up to 4 people',
-                ),
-              ),
-              if (_offersVehicle('tuktuk')) const SizedBox(width: 12),
-            ],
-            if (_offersVehicle('tuktuk'))
-              Expanded(
-                child: _buildVehicleOption(
-                  'tuktuk',
-                  '🛺',
-                  'Tuk Tuk',
-                  'Up to 3 people',
-                ),
-              ),
+            ),
           ],
         ),
-
-        if (selectedTransport != null) ...[
-          if (locsForPickup.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                'No pickup locations have a price for this vehicle type.',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+        const SizedBox(height: 12),
+        ..._transportOptions.asMap().entries.map((entry) {
+          final index = entry.key;
+          final location = entry.value;
+          final isSelected = selectedLocation == location.id;
+          final icon = _locationIconPool[index % _locationIconPool.length];
+          
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                if (widget.isPreTrip) {
+                  _preTripPickupLocation = isSelected ? null : location.id;
+                  // Reset transport type if location changes
+                  if (_preTripPickupLocation == null) _preTripTransportType = null;
+                } else {
+                  _postTripPickupLocation = isSelected ? null : location.id;
+                  // Reset transport type if location changes
+                  if (_postTripPickupLocation == null) _postTripTransportType = null;
+                }
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : Colors.grey.shade200,
+                  width: isSelected ? 2 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected 
+                      ? AppColors.primary.withOpacity(0.1) 
+                      : Colors.black.withOpacity(0.04),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-            )
-          else ...[
-            const SizedBox(height: 16),
-            const Text(
-              'Pickup Location',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: locsForPickup.asMap().entries.map((entry) {
-                final index = entry.key;
-                final location = entry.value;
-                final isSelected = selectedLocation == location.id;
-                final icon =
-                    _locationIconPool[index % _locationIconPool.length];
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (widget.isPreTrip) {
-                        _preTripPickupLocation = location.id;
-                      } else {
-                        _postTripPickupLocation = location.id;
-                      }
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFFFFC300)
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(20),
+                      color: isSelected ? AppColors.primarySurface : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFFFFC300)
-                            : Colors.grey.shade300,
-                        width: isSelected ? 2 : 1,
+                        color: isSelected ? AppColors.primary.withOpacity(0.2) : Colors.transparent,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Center(
+                      child: Text(icon, style: const TextStyle(fontSize: 22)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          icon,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(width: 6),
                         Text(
                           location.location,
                           style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.black87,
+                            fontSize: 15,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            color: isSelected ? AppColors.primary : AppColors.textPrimary,
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.directions_walk, size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${location.distanceKm?.toStringAsFixed(1) ?? '0.0'} km',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(Icons.history, size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${location.estDurationMinutes ?? '--'} mins',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 18,
-                    color: Colors.blue.shade700,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Driver will contact you 30 minutes before pickup',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue.shade900,
-                      ),
-                    ),
-                  ),
+                  if (isSelected) 
+                    const Icon(Icons.check_circle, color: AppColors.primary, size: 24)
+                  else
+                    Icon(Icons.arrow_forward_ios, color: Colors.grey.shade300, size: 14),
                 ],
               ),
             ),
-          ],
-        ],
+          );
+        }).toList(),
+
+        // 2. Vehicle Selection (Only visible when a location is selected)
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          child: selectedLocation != null ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              const Divider(height: 1),
+              const SizedBox(height: 20),
+              const Text(
+                'Select Vehicle Type',
+                style: TextStyle(
+                  fontSize: 15, 
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (_offersVehicle('van')) ...[
+                    Expanded(
+                      child: _buildVehicleOption(
+                        'van',
+                        '🚐',
+                        'Van',
+                        '8 Seats',
+                      ),
+                    ),
+                    if (_offersVehicle('car') || _offersVehicle('tuktuk'))
+                      const SizedBox(width: 10),
+                  ],
+                  if (_offersVehicle('car')) ...[
+                    Expanded(
+                      child: _buildVehicleOption(
+                        'car',
+                        '🚗',
+                        'Car',
+                        '4 Seats',
+                      ),
+                    ),
+                    if (_offersVehicle('tuktuk')) const SizedBox(width: 10),
+                  ],
+                  if (_offersVehicle('tuktuk'))
+                    Expanded(
+                      child: _buildVehicleOption(
+                        'tuktuk',
+                        '🛺',
+                        'Tuk Tuk',
+                        '3 Seats',
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE3F2FD),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: Colors.blue.shade700,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Driver will contact you once the booking is confirmed for specific pickup timing.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF0D47A1),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ) : Padding(
+            padding: const EdgeInsets.only(top: 8.0, bottom: 20.0),
+            child: Center(
+              child: Text(
+                'Select a pick-up station to see available transport prices',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -2421,53 +2525,62 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           }
         });
       },
-      child: Container(
-        padding: const EdgeInsets.all(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFFFC300).withOpacity(0.2)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFFFFC300)
-                : Colors.grey.shade300,
+            color: isSelected ? AppColors.primary : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFFFFC300).withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ]
               : [],
         ),
         child: Column(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 32)),
-            const SizedBox(height: 4),
+            Text(emoji, style: const TextStyle(fontSize: 28)),
+            const SizedBox(height: 8),
             Text(
               name,
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: AppColors.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
               ),
             ),
+            const SizedBox(height: 2),
             Text(
               capacity,
-              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+              ),
             ),
             if (priceLabel.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                priceLabel,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade800,
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white.withOpacity(0.2) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  priceLabel,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : Colors.grey.shade800,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
