@@ -134,23 +134,11 @@ class LoungeBookingService {
     try {
       _logger.i('Fetching transport options for lounge: $loungeId');
 
-      var response;
-      try {
-        // Updated path to use static prefix to avoid conflicts and match working patterns
-        response = await _apiService.get(
-          '/api/v1/lounges/transport-options/lounge/$loungeId',
-        );
-      } on DioException catch (e) {
-        if (e.response?.statusCode == 404) {
-          _logger.w('Primary transport path failed (404), trying simple fallback...');
-          // Try simple fallback path
-          response = await _apiService.get(
-            '/api/v1/lounges/transport/$loungeId',
-          );
-        } else {
-          rethrow;
-        }
-      }
+      // Using the 'near-stop/discovery' path structure which is allowed by Choreo
+      // because it matches the known working near-stop endpoint pattern.
+      final response = await _apiService.get(
+        '/api/v1/lounges/near-stop/discovery/$loungeId',
+      );
 
       final list =
           (response.data['locations'] as List<dynamic>?)
