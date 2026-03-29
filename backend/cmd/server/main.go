@@ -593,6 +593,8 @@ func main() {
 			lounges.GET("/near-stop/:routeId/:stopId", loungeHandler.GetLoungesNearStop)
 			logger.Info("  ✅ GET /api/v1/lounges/:id/transport-options (public)")
 			lounges.GET("/:id/transport-options", loungeBookingHandler.GetLoungeTransportOptions)
+			// Fallback route to debug gateway issues
+			lounges.GET("/transport/:id", loungeBookingHandler.GetLoungeTransportOptions)
 
 			// Protected routes (require JWT authentication)
 			loungesProtected := lounges.Group("")

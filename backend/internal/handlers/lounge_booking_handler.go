@@ -92,6 +92,8 @@ func (h *LoungeBookingHandler) GetLoungeProducts(c *gin.Context) {
 // GetLoungeTransportOptions handles GET /api/v1/lounges/:id/transport-options
 func (h *LoungeBookingHandler) GetLoungeTransportOptions(c *gin.Context) {
 	loungeIDStr := c.Param("id")
+	log.Printf("INFO: Fetching transport options for lounge ID: %s", loungeIDStr)
+
 	loungeID, err := uuid.Parse(loungeIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -128,6 +130,7 @@ func (h *LoungeBookingHandler) GetLoungeTransportOptions(c *gin.Context) {
 		return
 	}
 
+	log.Printf("INFO: Successfully retrieved %d transport location(s) for lounge %s", len(locations), loungeID)
 	c.JSON(http.StatusOK, gin.H{
 		"lounge_id": loungeID,
 		"locations": locations,

@@ -46,7 +46,8 @@ class ApiService {
 
           // Read-only lounge transport discovery (same as SQL used by the app)
           final isPublicLoungeTransportOptions =
-              options.path.contains('/transport-options');
+              options.path.contains('/transport-options') ||
+              options.path.contains('/lounges/transport/');
 
           final skipAuthHeader =
               isPublicAuthEndpoint || isPublicLoungeTransportOptions;

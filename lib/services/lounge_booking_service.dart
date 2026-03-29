@@ -134,9 +134,22 @@ class LoungeBookingService {
     try {
       _logger.i('Fetching transport options for lounge: $loungeId');
 
-      final response = await _apiService.get(
-        '/api/v1/lounges/$loungeId/transport-options',
-      );
+      var response;
+      try {
+        response = await _apiService.get(
+          '/api/v1/lounges/$loungeId/transport-options',
+        );
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 404) {
+          _logger.w('Primary transport path failed (404), trying fallback...');
+          // Try fallback path added to backend
+          response = await _apiService.get(
+            '/api/v1/lounges/transport/$loungeId',
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       final list =
           (response.data['locations'] as List<dynamic>?)

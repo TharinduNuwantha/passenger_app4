@@ -13,16 +13,16 @@ class LoungeBookingScreen extends StatefulWidget {
   final Lounge lounge;
   final List<LoungeProduct> products;
   final String? busBookingId;
-  
+
   /// Type of booking: 'standalone', 'pre_trip', or 'post_trip'
   final String bookingType;
-  
+
   /// Bus departure time (for pre_trip - lounge session should end before this)
   final DateTime? busDepartureTime;
-  
+
   /// Bus arrival time (for post_trip - lounge session can start after this)
   final DateTime? busArrivalTime;
-  
+
   /// Bus booking reference for display
   final String? busBookingReference;
 
@@ -50,15 +50,15 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
   LoungePricingType? _selectedPricingType;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
-  
+
   // Guests
   final List<GuestEntry> _guests = [];
   final TextEditingController _guestNameController = TextEditingController();
   final TextEditingController _guestNicController = TextEditingController();
-  
+
   // Pre-orders
   final Map<String, CartItem> _cart = {};
-  
+
   // State
   bool _isLoading = false;
   int _currentStep = 0;
@@ -71,7 +71,10 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
   }
 
   double get _totalPreOrderPrice {
-    return _cart.values.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+    return _cart.values.fold(
+      0,
+      (sum, item) => sum + (item.product.price * item.quantity),
+    );
   }
 
   double get _grandTotal => _totalGuestPrice + _totalPreOrderPrice;
@@ -123,15 +126,12 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
         children: [
           // Progress indicator
           _buildProgressIndicator(),
-          
+
           // Content
           Expanded(
-            child: Form(
-              key: _formKey,
-              child: _buildCurrentStep(),
-            ),
+            child: Form(key: _formKey, child: _buildCurrentStep()),
           ),
-          
+
           // Bottom buttons
           _buildBottomButtons(),
         ],
@@ -160,7 +160,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
   Widget _buildStepIndicator(int step, String label) {
     final isActive = _currentStep >= step;
     final isCurrent = _currentStep == step;
-    
+
     return Expanded(
       child: Column(
         children: [
@@ -170,7 +170,9 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isActive ? AppColors.primary : Colors.grey[300],
-              border: isCurrent ? Border.all(color: AppColors.primary, width: 2) : null,
+              border: isCurrent
+                  ? Border.all(color: AppColors.primary, width: 2)
+                  : null,
             ),
             child: Center(
               child: isActive && !isCurrent
@@ -240,7 +242,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             style: TextStyle(color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
-          
+
           if (widget.lounge.price1Hour != null)
             _buildPricingOption(
               LoungePricingType.oneHour,
@@ -269,7 +271,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
               Icons.directions_bus,
               widget.lounge.priceUntilBus!,
               isHighlighted: true,
-              subtitle: widget.busBookingId != null 
+              subtitle: widget.busBookingId != null
                   ? 'Perfect for your bus booking!'
                   : 'Stay until your bus departure',
             ),
@@ -287,7 +289,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
     String? subtitle,
   }) {
     final isSelected = _selectedPricingType == type;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -298,18 +300,18 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? AppColors.primary.withOpacity(0.1) 
-              : isHighlighted 
-                  ? Colors.amber.withOpacity(0.05)
-                  : Colors.white,
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.1)
+              : isHighlighted
+              ? Colors.amber.withOpacity(0.05)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected 
-                ? AppColors.primary 
-                : isHighlighted 
-                    ? Colors.amber
-                    : Colors.grey[300]!,
+            color: isSelected
+                ? AppColors.primary
+                : isHighlighted
+                ? Colors.amber
+                : Colors.grey[300]!,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -318,7 +320,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isSelected 
+                color: isSelected
                     ? AppColors.primary.withOpacity(0.2)
                     : Colors.grey[100],
                 shape: BoxShape.circle,
@@ -340,13 +342,18 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: isSelected ? AppColors.primary : Colors.black87,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.black87,
                         ),
                       ),
                       if (isHighlighted) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.amber,
                             borderRadius: BorderRadius.circular(10),
@@ -367,10 +374,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ],
@@ -412,14 +416,11 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             style: TextStyle(color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
-          
+
           // Date picker
           Text(
             'Date',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
           InkWell(
@@ -448,14 +449,11 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Time picker
           Text(
             'Time',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
           InkWell(
@@ -484,7 +482,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Summary
           Container(
             padding: const EdgeInsets.all(16),
@@ -497,10 +495,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
               children: [
                 const Text(
                   'Your Visit',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -543,9 +538,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
-            ),
+            colorScheme: ColorScheme.light(primary: AppColors.primary),
           ),
           child: child!,
         );
@@ -565,9 +558,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
-            ),
+            colorScheme: ColorScheme.light(primary: AppColors.primary),
           ),
           child: child!,
         );
@@ -597,7 +588,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             style: TextStyle(color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
-          
+
           // Existing guests
           if (_guests.isNotEmpty) ...[
             ...List.generate(_guests.length, (index) {
@@ -652,7 +643,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             }),
             const SizedBox(height: 16),
           ],
-          
+
           // Add guest form
           Container(
             padding: const EdgeInsets.all(16),
@@ -708,7 +699,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Pricing summary
           Container(
             padding: const EdgeInsets.all(16),
@@ -767,19 +758,21 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
 
   void _addGuest() {
     if (_guestNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter guest name')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter guest name')));
       return;
     }
-    
+
     setState(() {
-      _guests.add(GuestEntry(
-        guestName: _guestNameController.text.trim(),
-        guestPhone: _guestNicController.text.trim().isNotEmpty 
-            ? _guestNicController.text.trim() 
-            : null,
-      ));
+      _guests.add(
+        GuestEntry(
+          guestName: _guestNameController.text.trim(),
+          guestPhone: _guestNicController.text.trim().isNotEmpty
+              ? _guestNicController.text.trim()
+              : null,
+        ),
+      );
       _guestNameController.clear();
       _guestNicController.clear();
     });
@@ -808,7 +801,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
             style: TextStyle(color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
-          
+
           if (widget.products.isEmpty)
             Container(
               padding: const EdgeInsets.all(32),
@@ -819,7 +812,11 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.restaurant_menu, size: 48, color: Colors.grey[400]),
+                    Icon(
+                      Icons.restaurant_menu,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       'No menu items available',
@@ -847,9 +844,9 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                 ],
               );
             }),
-          
+
           const SizedBox(height: 24),
-          
+
           // Order summary
           if (_cart.isNotEmpty)
             Container(
@@ -874,7 +871,9 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                           Text('${item.quantity}x'),
                           const SizedBox(width: 8),
                           Expanded(child: Text(item.product.name)),
-                          Text('LKR ${(item.product.price * item.quantity).toStringAsFixed(0)}'),
+                          Text(
+                            'LKR ${(item.product.price * item.quantity).toStringAsFixed(0)}',
+                          ),
                         ],
                       ),
                     );
@@ -899,9 +898,9 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                 ],
               ),
             ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Grand total
           Container(
             padding: const EdgeInsets.all(16),
@@ -914,10 +913,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
               children: [
                 const Text(
                   'Grand Total',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 Text(
                   'LKR ${_grandTotal.toStringAsFixed(0)}',
@@ -965,7 +961,9 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                           height: 60,
                           color: Colors.grey[100],
                           child: Icon(
-                            product.isService ? Icons.room_service : Icons.fastfood,
+                            product.isService
+                                ? Icons.room_service
+                                : Icons.fastfood,
                             color: Colors.grey[400],
                           ),
                         ),
@@ -975,7 +973,9 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                         height: 60,
                         color: Colors.grey[100],
                         child: Icon(
-                          product.isService ? Icons.room_service : Icons.fastfood,
+                          product.isService
+                              ? Icons.room_service
+                              : Icons.fastfood,
                           color: Colors.grey[400],
                         ),
                       ),
@@ -997,7 +997,10 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                         // Product type badge
                         if (product.isService)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.blue[50],
                               borderRadius: BorderRadius.circular(4),
@@ -1034,7 +1037,10 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                           const SizedBox(width: 8),
                           Text(
                             '• ${product.serviceDurationMinutes} min',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ],
@@ -1094,7 +1100,11 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                           color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.add, color: Colors.white, size: 16),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                       constraints: const BoxConstraints(),
                       padding: EdgeInsets.zero,
@@ -1186,7 +1196,12 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
     );
   }
 
-  Widget _buildInfoBadge(IconData icon, String label, Color textColor, Color bgColor) {
+  Widget _buildInfoBadge(
+    IconData icon,
+    String label,
+    Color textColor,
+    Color bgColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -1299,7 +1314,7 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
         return;
       }
     }
-    
+
     if (_currentStep < 3) {
       setState(() {
         _currentStep++;

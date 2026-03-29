@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -495,6 +496,7 @@ func (r *LoungeRepository) GetPendingLounges(limit int, offset int) ([]models.Lo
 
 // GetLoungeTransportOptions returns active pickup locations with prices for a lounge.
 func (r *LoungeRepository) GetLoungeTransportOptions(loungeID uuid.UUID) ([]models.LoungeTransportOption, error) {
+	log.Printf("DEBUG: Querying transport options for lounge %s", loungeID)
 	query := `
 		SELECT
 			ltl.id AS location_id,
