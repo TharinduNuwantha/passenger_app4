@@ -162,7 +162,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false, // Prevent map resizing and artifacts
+      resizeToAvoidBottomInset: true, // Allow layout to adjust for keyboard
       body: Stack(
         children: [
           // The Map

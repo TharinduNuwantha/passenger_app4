@@ -535,17 +535,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (data['status'] == 'OK' && data['results'].isNotEmpty) {
-            // Traverse results for the most useful name
-            for (var result in data['results']) {
-              final types = result['types'] as List;
-              if (types.contains('locality') || 
-                  types.contains('neighborhood') || 
-                  types.contains('administrative_area_level_2')) {
-                name = result['formatted_address'];
-                break;
-              }
-            }
-            name ??= data['results'][0]['formatted_address'];
+            name = data['results'][0]['formatted_address'];
           }
         }
       } catch (e) {
@@ -573,7 +563,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         context,
         MaterialPageRoute(
           builder: (context) => MapSelectionScreen(
-            apiKey: 'AIzaSyAuA_RMUaOuqKOasnd5GU8MdYvrDmToXPg',
+            apiKey: dotenv.get('GOOGLE_MAPS_API_KEY'),
           ),
         ),
       );
@@ -1130,7 +1120,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
               ),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
