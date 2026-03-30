@@ -24,12 +24,17 @@ class ContactUsScreen extends StatelessWidget {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 Expanded(
                   child: Text(
                     t('contactUs'),
+                    softWrap: true,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -55,10 +60,15 @@ class ContactUsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     t('contactUsIntro'),
-                    style: TextStyle(color: Colors.grey[600], fontSize: 15, height: 1.5),
+                    softWrap: true,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 30),
-                  
+
                   // Contact Cards
                   _buildContactMethod(
                     icon: Icons.phone_android_rounded,
@@ -73,19 +83,32 @@ class ContactUsScreen extends StatelessWidget {
                     value: "support@passengerapp.com",
                     onTap: () {},
                   ),
-                  
+
                   const SizedBox(height: 40),
                   Text(
                     t('sendUsAMessage'),
                     style: AppTextStyles.h2.copyWith(fontSize: 18),
                   ),
                   const SizedBox(height: 20),
-                  _buildModernField(nameController, t('yourName'), Icons.person_outline),
+                  _buildModernField(
+                    nameController,
+                    t('yourName'),
+                    Icons.person_outline,
+                  ),
                   const SizedBox(height: 16),
-                  _buildModernField(emailController, t('yourEmail'), Icons.email_outlined),
+                  _buildModernField(
+                    emailController,
+                    t('yourEmail'),
+                    Icons.email_outlined,
+                  ),
                   const SizedBox(height: 16),
-                  _buildModernField(messageController, t('message'), Icons.chat_bubble_outline_rounded, maxLines: 4),
-                  
+                  _buildModernField(
+                    messageController,
+                    t('message'),
+                    Icons.chat_bubble_outline_rounded,
+                    maxLines: 4,
+                  ),
+
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
@@ -94,7 +117,9 @@ class ContactUsScreen extends StatelessWidget {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 2,
                       ),
                       onPressed: () {
@@ -111,7 +136,10 @@ class ContactUsScreen extends StatelessWidget {
                       },
                       child: Text(
                         t('submitMessage'),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -155,11 +183,19 @@ class ContactUsScreen extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
         ),
         subtitle: Text(
           value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
@@ -193,7 +229,10 @@ class ContactUsScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 16,
+        ),
       ),
     );
   }

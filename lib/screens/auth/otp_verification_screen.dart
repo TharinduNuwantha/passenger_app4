@@ -244,6 +244,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                               // Title
                               Text(
                                 t('verifyYourNumber'),
+                                softWrap: true,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 26,
@@ -256,6 +257,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                               // Phone Number
                               Text(
                                 '${t('enterSixDigitCode')}\n${PhoneFormatter.formatForDisplay(widget.phoneNumber)}',
+                                softWrap: true,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 14,
@@ -349,6 +351,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                                   children: [
                                     Text(
                                       t('didNotReceiveCode'),
+                                      softWrap: true,
+                                      textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         color: AppColors.textSecondary,
                                         fontSize: 13,

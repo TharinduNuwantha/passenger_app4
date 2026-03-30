@@ -37,9 +37,64 @@ class PhoneInputScreen extends StatefulWidget {
 class _PhoneInputScreenState extends State<PhoneInputScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
+  final RegExp _e164Regex = RegExp(r'^\+[1-9]\d{7,14}$');
+  // Common national number lengths by country ISO code (without country dial code).
+  static const Map<String, List<int>> _countryNationalLengths = {
+    'LK': [9],
+    'IN': [10],
+    'PK': [10],
+    'BD': [10],
+    'NP': [10],
+    'AE': [9],
+    'SA': [9],
+    'QA': [8],
+    'KW': [8],
+    'OM': [8],
+    'BH': [8],
+    'US': [10],
+    'CA': [10],
+    'GB': [10],
+    'AU': [9],
+    'NZ': [8, 9],
+    'MY': [8, 9],
+    'SG': [8],
+  };
   String _completePhoneNumber = '';
+  String _selectedCountryIsoCode = AppConstants.countryISOCode;
+  String _selectedDialCode = AppConstants.countryCode;
   bool _isValid = true;
   bool _isChecking = true; // Gatekeeper flag
+
+  bool _isValidForSelectedCountry({
+    required String countryIso,
+    required String dialCode,
+    required String rawNumber,
+  }) {
+    final cleanedNumber = rawNumber.replaceAll(RegExp(r'\D'), '');
+    if (cleanedNumber.isEmpty) {
+      return false;
+    }
+
+    // National significant number must not start with 0 in this flow.
+    if (cleanedNumber.startsWith('0')) {
+      return false;
+    }
+
+    final allowedLengths = _countryNationalLengths[countryIso.toUpperCase()];
+    if (allowedLengths != null &&
+        !allowedLengths.contains(cleanedNumber.length)) {
+      return false;
+    }
+
+    // Fallback rule for countries not in map.
+    if (allowedLengths == null &&
+        (cleanedNumber.length < 6 || cleanedNumber.length > 12)) {
+      return false;
+    }
+
+    final fullNumber = '$dialCode$cleanedNumber';
+    return _e164Regex.hasMatch(fullNumber);
+  }
 
   @override
   void initState() {
@@ -109,7 +164,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t('verificationCodeSent')),
+          content: Text(t('verificationCodeSent'), softWrap: true),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 3),
         ),
@@ -134,6 +189,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeLanguageCode = context.watch<LanguageProvider>().languageCode;
     final t = (String key) => AppLocalization.tr(context, key);
 
     if (_isChecking) {
@@ -146,6 +202,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
           isLoading: authProvider.isLoading,
           message: t('processing'),
           child: Scaffold(
+            key: ValueKey('phone-input-$activeLanguageCode'),
             backgroundColor: Colors.white,
             appBar: AppBar(
               backgroundColor: Colors.white,
@@ -156,9 +213,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                 // Language Switcher Button
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Center(
-                    child: _buildLanguageSwitcher(context),
-                  ),
+                  child: Center(child: _buildLanguageSwitcher(context)),
                 ),
               ],
             ),
@@ -252,15 +307,53 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                               ),
                               initialCountryCode: AppConstants.countryISOCode,
                               disableLengthCheck: true,
-                              onChanged: (phone) {
+                              onCountryChanged: (country) {
                                 setState(() {
-                                  _completePhoneNumber = phone.completeNumber;
+                                  _selectedCountryIsoCode = country.code;
+                                  _selectedDialCode = '+${country.dialCode}';
+                                  _completePhoneNumber =
+                                      '$_selectedDialCode${_phoneController.text.replaceAll(RegExp(r'\\D'), '')}';
+                                  _isValid = _isValidForSelectedCountry(
+                                    countryIso: _selectedCountryIsoCode,
+                                    dialCode: _selectedDialCode,
+                                    rawNumber: _phoneController.text,
+                                  );
+                                });
+                              },
+                              onChanged: (phone) {
+                                final cleanedNumber = phone.number.replaceAll(
+                                  RegExp(r'\D'),
+                                  '',
+                                );
+                                final fullNumber =
+                                    '${phone.countryCode}$cleanedNumber';
+                                setState(() {
+                                  _selectedCountryIsoCode =
+                                      phone.countryISOCode;
+                                  _selectedDialCode = phone.countryCode;
+                                  _completePhoneNumber = fullNumber;
+                                  _isValid = _isValidForSelectedCountry(
+                                    countryIso: phone.countryISOCode,
+                                    dialCode: phone.countryCode,
+                                    rawNumber: phone.number,
+                                  );
                                 });
                               },
                               validator: (phone) {
-                                if (phone == null || phone.number.isEmpty) {
+                                if (phone == null ||
+                                    phone.number.trim().isEmpty) {
                                   return t('pleaseEnterMobileNumber');
                                 }
+
+                                final isValid = _isValidForSelectedCountry(
+                                  countryIso: phone.countryISOCode,
+                                  dialCode: phone.countryCode,
+                                  rawNumber: phone.number,
+                                );
+                                if (!isValid) {
+                                  return t('pleaseEnterValidMobile');
+                                }
+
                                 return null;
                               },
                             ),
@@ -315,9 +408,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.3),
-              ),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -418,8 +509,10 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
             groupValue: languageProvider.languageCode,
             onChanged: (value) async {
               if (value != null) {
-                await Provider.of<LanguageProvider>(context, listen: false)
-                    .setLocaleByCode(value);
+                await Provider.of<LanguageProvider>(
+                  context,
+                  listen: false,
+                ).setLocaleByCode(value);
                 Navigator.pop(context);
               }
             },
@@ -427,8 +520,10 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
           ),
           title: Text(label),
           onTap: () async {
-            await Provider.of<LanguageProvider>(context, listen: false)
-                .setLocaleByCode(code);
+            await Provider.of<LanguageProvider>(
+              context,
+              listen: false,
+            ).setLocaleByCode(code);
             Navigator.pop(context);
           },
         );

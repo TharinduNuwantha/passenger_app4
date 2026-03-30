@@ -17,6 +17,7 @@ import '../../models/booking_models.dart';
 import '../../services/search_service.dart';
 import '../../theme/app_text_style.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/language_provider.dart';
 import '../bus_booking/activities_screen.dart';
 import '../bus_booking/bus_booking_screen.dart';
 import '../bus_booking/booking_qr_screen.dart' hide CheckInStatusScreen;
@@ -60,6 +61,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   final PageController _adPageController = PageController();
   Timer? _adTimer;
   int _currentAdIndex = 0;
+  String? _lastAdLanguageCode;
 
   // Calendar scroll controller
   final ScrollController _calendarScrollController = ScrollController();
@@ -115,6 +117,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _startAdCarousel();
     _startBookingCarousel();
     _startRefreshTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentLanguageCode = context.read<LanguageProvider>().languageCode;
+    if (_lastAdLanguageCode != currentLanguageCode) {
+      _lastAdLanguageCode = currentLanguageCode;
+      _loadDummyAdvertisements();
+    }
   }
 
   Future<void> _initializeData() async {
@@ -660,35 +672,86 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     return keyword;
   }
 
+  // Normalize common Sinhala/Tamil location names to backend-friendly English terms.
+  String _normalizeLocationForBackendSearch(String location) {
+    final normalized = location.trim().toLowerCase();
+
+    const aliases = <String, String>{
+      // Sinhala
+      'කොළඹ': 'Colombo',
+      'කොළඹ කොටුව': 'Colombo Fort',
+      'ගාල්ල': 'Galle',
+      'මාතර': 'Matara',
+      'මහනුවර': 'Kandy',
+      'නුවර එළිය': 'Nuwara Eliya',
+      'යාපනය': 'Jaffna',
+      'කටුනායක': 'Katunayake',
+      'බණ්ඩාරනායක ගුවන් තොටුපල': 'Bandaranaike International Airport',
+      // Tamil
+      'கொழும்பு': 'Colombo',
+      'கொழும்பு கோட்டை': 'Colombo Fort',
+      'காலி': 'Galle',
+      'மாத்தறை': 'Matara',
+      'கண்டி': 'Kandy',
+      'நுவரெலியா': 'Nuwara Eliya',
+      'யாழ்ப்பாணம்': 'Jaffna',
+      'கட்டுநாயக்க': 'Katunayake',
+      'பண்டாரநாயக்க சர்வதேச விமான நிலையம்':
+          'Bandaranaike International Airport',
+    };
+
+    final exact = aliases[normalized];
+    if (exact != null) {
+      return exact;
+    }
+
+    for (final entry in aliases.entries) {
+      if (normalized.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    return location;
+  }
+
   // Fuzzy match Google location to backend bus stop
   Future<String?> _fuzzyMatchToStop(String googleLocation) async {
     try {
       // Extract keywords from the Google location
       final keywords = _extractKeywords(googleLocation);
+      final normalizedKeywords = _normalizeLocationForBackendSearch(keywords);
 
-      // Call backend autocomplete API with extracted keywords
-      final suggestions = await _searchService.getStopAutocomplete(
-        searchTerm: keywords,
-        limit: 5,
-      );
+      final searchCandidates = <String>{
+        keywords,
+        normalizedKeywords,
+      }.where((value) => value.trim().length >= 2).toList();
 
-      // If we have matches, use the first one (highest relevance)
-      if (suggestions.isNotEmpty) {
-        print(
-          'Fuzzy matched "$googleLocation" → "${suggestions.first.stopName}"',
+      for (final candidate in searchCandidates) {
+        final suggestions = await _searchService.getStopAutocomplete(
+          searchTerm: candidate,
+          limit: 5,
         );
-        return suggestions.first.stopName;
+
+        // If we have matches, use the first one (highest relevance)
+        if (suggestions.isNotEmpty) {
+          print(
+            'Fuzzy matched "$googleLocation" via "$candidate" → "${suggestions.first.stopName}"',
+          );
+          return suggestions.first.stopName;
+        }
       }
 
       // If no match, return the extracted keywords
       print(
-        'No fuzzy match for "$googleLocation", using keywords: "$keywords"',
+        'No fuzzy match for "$googleLocation", using fallback: "$normalizedKeywords"',
       );
-      return keywords;
+      return normalizedKeywords;
     } catch (e) {
       print('Error fuzzy matching: $e');
       // Fallback to extracted keywords
-      return _extractKeywords(googleLocation);
+      return _normalizeLocationForBackendSearch(
+        _extractKeywords(googleLocation),
+      );
     }
   }
 
@@ -797,9 +860,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       print('🔍 Matched Pickup: "$fromStop"');
       print('🔍 Matched Drop: "$toStop"');
 
-      // Dismiss loading dialog
+      // Dismiss loading dialog safely
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+        final rootNav = Navigator.of(context, rootNavigator: true);
+        if (rootNav.canPop()) {
+          rootNav.pop();
+        }
       }
 
       if (fromStop == null || toStop == null) {
@@ -807,7 +873,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(t('couldNotFindBusStops')),
+              content: Text(t('couldNotFindBusStops'), softWrap: true),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -846,14 +912,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     } catch (e) {
       // Dismiss loading dialog on error
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+        final rootNav = Navigator.of(context, rootNavigator: true);
+        if (rootNav.canPop()) {
+          rootNav.pop();
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              AppLocalization.trWithArgs(context, 'searchFailed', {
-                'error': e.toString(),
-              }),
-            ),
+            content: Text(t('searchFailedTitle')),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -872,7 +937,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(t('locationPermissionDenied')),
+                content: Text(t('locationPermissionDenied'), softWrap: true),
                 backgroundColor: Colors.redAccent,
               ),
             );
@@ -885,7 +950,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(t('locationPermissionPermanentlyDenied')),
+              content: Text(
+                t('locationPermissionPermanentlyDenied'),
+                softWrap: true,
+              ),
               backgroundColor: Colors.redAccent,
               duration: const Duration(seconds: 3),
             ),
@@ -965,7 +1033,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(t('failedToGetCurrentLocation')),
+            content: Text(t('failedToGetCurrentLocation'), softWrap: true),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -1469,8 +1537,14 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final activeLanguageCode = context.watch<LanguageProvider>().languageCode;
     final authProvider = Provider.of<AuthProvider>(context);
     final greetingName = _greetingName(authProvider);
+    final greetingText = AppLocalization.trWithArgs(
+      context,
+      'greetingWithName',
+      {'name': greetingName},
+    );
     final topInset = MediaQuery.of(context).padding.top;
 
     var singleChildScrollView = SingleChildScrollView(
@@ -1514,7 +1588,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hello $greetingName! ',
+                          greetingText,
                           style: AppTextStyles.h2.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1765,7 +1839,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           });
                         },
                         child: Container(
-                          width: 70,
+                          width: 82,
                           margin: const EdgeInsets.only(right: 10),
                           decoration: BoxDecoration(
                             color: isSelected
@@ -1783,7 +1857,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                _getMonthName(date).substring(0, 3),
+                                _getMonthName(date),
+                                maxLines: 1,
+                                softWrap: false,
                                 style: TextStyle(
                                   color: isSelected
                                       ? Colors.white
@@ -1827,10 +1903,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildQuickDateButton(
-                        t('today'),
-                        DateTime.now(),
-                      ),
+                      child: _buildQuickDateButton(t('today'), DateTime.now()),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -2615,8 +2688,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           Text(
                             (pickupController.text.isEmpty ||
                                     dropController.text.isEmpty)
-                                ? 'Enter locations to search'
-                                : 'Search Trips',
+                                ? t('enterLocationsToSearch')
+                                : t('searchTrips'),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -2657,10 +2730,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             color: AppColors.secondary,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'No offers right now',
-                              style: TextStyle(
+                              t('noOffersRightNow'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -2764,6 +2837,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     ];
 
     return Scaffold(
+      key: ValueKey('home-$activeLanguageCode'),
       backgroundColor: AppColors.background,
       body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(

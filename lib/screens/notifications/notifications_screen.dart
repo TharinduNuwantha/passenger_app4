@@ -57,7 +57,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t('allNotificationsMarkedAsRead')),
+          content: Text(t('allNotificationsMarkedAsRead'), softWrap: true),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -126,7 +126,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: Text(t('deleteNotification')),
-                              content: Text(t('removeNotificationPermanently')),
+                              content: Text(
+                                t('removeNotificationPermanently'),
+                                softWrap: true,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -155,7 +158,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(t('notificationDeleted')),
+                                  content: Text(
+                                    t('notificationDeleted'),
+                                    softWrap: true,
+                                  ),
                                   behavior: SnackBarBehavior.floating,
                                   duration: const Duration(seconds: 2),
                                 ),

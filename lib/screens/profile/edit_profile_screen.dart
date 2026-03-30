@@ -2,9 +2,9 @@
 import 'package:provider/provider.dart';
 import '../../localization/app_localization.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../services/user_service.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -62,7 +62,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveUserData() async {
     final t = (String key) => AppLocalization.tr(context, key);
-    
+
     setState(() {
       isSaving = true;
     });
@@ -77,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         authProvider.updateUser(updatedUser);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(t('profileUpdatedSuccessfully')),
@@ -108,7 +108,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeLanguageCode = context.watch<LanguageProvider>().languageCode;
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return Scaffold(
+      key: ValueKey('edit-profile-$activeLanguageCode'),
       backgroundColor: AppColors.background,
       body: Column(
         children: [
@@ -118,13 +122,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Edit Profile',
-                    style: TextStyle(
+                    t('editProfile'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -138,9 +146,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
                 : SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 30,
+                    ),
                     child: Column(
                       children: [
                         // Profile Avatar Section
@@ -152,12 +165,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 4),
+                                  border: Border.all(
+                                    color: AppColors.primary.withOpacity(0.1),
+                                    width: 4,
+                                  ),
                                 ),
                                 child: CircleAvatar(
                                   radius: 55,
-                                  backgroundColor: AppColors.primary.withOpacity(0.05),
-                                  child: Icon(Icons.person_rounded, size: 60, color: AppColors.primary.withOpacity(0.4)),
+                                  backgroundColor: AppColors.primary
+                                      .withOpacity(0.05),
+                                  child: Icon(
+                                    Icons.person_rounded,
+                                    size: 60,
+                                    color: AppColors.primary.withOpacity(0.4),
+                                  ),
                                 ),
                               ),
                             ),
@@ -170,37 +191,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   color: AppColors.primary,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 18),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 40),
-                        
+
                         _buildSettingsField(
-                          label: 'First Name',
+                          label: t('firstName'),
                           controller: _firstNameController,
                           icon: Icons.person_outline_rounded,
-                          hintText: 'Enter your first name',
+                          hintText: t('enterFirstName'),
                         ),
                         const SizedBox(height: 20),
                         _buildSettingsField(
-                          label: 'Last Name',
+                          label: t('lastName'),
                           controller: _lastNameController,
                           icon: Icons.person_outline_rounded,
-                          hintText: 'Enter your last name',
+                          hintText: t('enterLastName'),
                         ),
                         const SizedBox(height: 20),
                         _buildSettingsField(
-                          label: 'Email Address',
+                          label: t('emailLabel'),
                           controller: _emailController,
                           icon: Icons.email_outlined,
-                          hintText: 'Enter your email',
+                          hintText: t('yourEmail'),
                           keyboardType: TextInputType.emailAddress,
                         ),
-                        
+
                         const SizedBox(height: 50),
-                        
+
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -209,19 +234,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               elevation: 2,
                             ),
                             child: isSaving
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
                                   )
-                                : const Text(
-                                    'Save Changes',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
+                                : _buildActionButtonChild(context),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -235,29 +262,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _validateAndSave() {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     if (_firstNameController.text.trim().isEmpty) {
-      _showWarning('Please enter your first name');
+      _showWarning(t('pleaseEnterFirstName'));
       return;
     }
     if (_emailController.text.trim().isEmpty) {
-      _showWarning('Please enter your email');
+      _showWarning(t('pleaseEnterYourEmail'));
       return;
     }
     if (!_emailController.text.contains('@')) {
-      _showWarning('Please enter a valid email address');
+      _showWarning(t('pleaseEnterValidEmail'));
       return;
     }
     _saveUserData();
   }
 
-  void _showWarning(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.orange,
-        behavior: SnackBarBehavior.floating,
-      ),
+  Widget _buildSaveButtonText(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+    return Text(
+      t('saveChanges'),
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
     );
+  }
+
+  Widget _buildSavingIndicator() {
+    return const SizedBox(
+      height: 20,
+      width: 20,
+      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+    );
+  }
+
+  Widget _buildActionButtonChild(BuildContext context) {
+    if (isSaving) return _buildSavingIndicator();
+    return _buildSaveButtonText(context);
   }
 
   Widget _buildSettingsField({
@@ -309,13 +349,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  void _showWarning(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 }

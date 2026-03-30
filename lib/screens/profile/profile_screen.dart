@@ -44,7 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       setState(() {
-        errorMessage = e.toString();
+        errorMessage = AppLocalization.tr(context, 'oopsSomethingWentWrong');
         isLoading = false;
       });
     }
@@ -109,8 +109,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 48),
                 child: Text(
                   errorMessage!,
-                  style: AppTextStyles.body.copyWith(color: Colors.grey),
+                  softWrap: true,
                   textAlign: TextAlign.center,
+                  style: AppTextStyles.body.copyWith(color: Colors.grey),
                 ),
               ),
               const SizedBox(height: 32),
@@ -144,6 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : '';
 
     return Scaffold(
+      key: ValueKey('profile-$selectedLanguageCode'),
       backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Column(
@@ -317,6 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
         title,
+        softWrap: true,
         style: TextStyle(
           color: Colors.grey[600],
           fontSize: 12,
@@ -505,7 +508,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.pop(context); // Close loading
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('${t('logoutFailed')}: $e')));
+      ).showSnackBar(SnackBar(content: Text(t('logoutFailed'))));
     }
   }
 

@@ -20,7 +20,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 Expanded(
@@ -49,31 +53,29 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     style: AppTextStyles.h1.copyWith(color: AppColors.primary),
                   ),
                   const SizedBox(height: 16),
-                  _buildPolicyText(
-                    t('privacyPolicyIntro'),
-                  ),
+                  _buildPolicyText(t('privacyPolicyIntro')),
                   const Divider(height: 48),
-                  
+
                   _buildSection(
                     t('privacySection1Title'),
                     t('privacySection1Body'),
                   ),
-                  
+
                   _buildSection(
                     t('privacySection2Title'),
                     t('privacySection2Body'),
                   ),
-                  
+
                   _buildSection(
                     t('privacySection3Title'),
                     t('privacySection3Body'),
                   ),
-                  
+
                   _buildSection(
                     t('privacySection4Title'),
                     t('privacySection4Body'),
                   ),
-                  
+
                   const SizedBox(height: 40),
                   Center(
                     child: Text(
@@ -101,6 +103,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       children: [
         Text(
           title,
+          softWrap: true,
           style: const TextStyle(
             color: Colors.black87,
             fontSize: 16,
@@ -117,11 +120,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
   Widget _buildPolicyText(String text) {
     return Text(
       text,
-      style: TextStyle(
-        color: Colors.grey[700],
-        fontSize: 14,
-        height: 1.6,
-      ),
+      softWrap: true,
+      style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.6),
     );
   }
 }

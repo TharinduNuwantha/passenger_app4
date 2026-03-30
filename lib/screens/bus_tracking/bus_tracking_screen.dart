@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../localization/app_localization.dart';
+import '../../providers/language_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 
@@ -146,9 +148,11 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeLanguageCode = context.watch<LanguageProvider>().languageCode;
     final t = (String key) => AppLocalization.tr(context, key);
 
     return Scaffold(
+      key: ValueKey('bus-tracking-$activeLanguageCode'),
       backgroundColor: AppColors.surfaceWhite,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
@@ -210,8 +214,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                             decoration: BoxDecoration(
                               color: AppColors.surfaceWhite,
                               border: Border.all(
-                                color:
-                                    AppColors.divider ?? Colors.grey.shade300,
+                                color: AppColors.divider,
                               ),
                             ),
                             child: Center(
