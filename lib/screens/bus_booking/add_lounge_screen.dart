@@ -160,7 +160,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   String? _suggestedDepartureLoungeId;
   String? _suggestedArrivalLoungeId;
   String? _smartLocationName;
-  bool _isGettingSmartLocation = false;
+  bool _isGettingLiveLocation = false;
+  bool _isSelectingFromMap = false;
   Map<String, double> _loungeDistances = {}; // loungeId -> distanceKm
 
   @override
@@ -482,8 +483,16 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   }
 
   Future<void> _useCurrentLocationForSmartSuggestion() async {
-    setState(() => _isGettingSmartLocation = true);
+    setState(() => _isGettingLiveLocation = true);
     try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showErrorSnackBar(
+          'Location services are disabled. Please enable GPS in your device settings.',
+        );
+        return;
+      }
+
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -495,12 +504,28 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         );
         return;
       }
+      
+      // If permission is denied again
+      if (permission == LocationPermission.denied) {
+        _showErrorSnackBar('Location permission denied.');
+        return;
+      }
 
+      // Using high accuracy and longer timeout for reliability
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 25),
+      ).catchError((e) async {
+        // Fallback to lower accuracy if best fails
+        return await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 15),
+        );
+      });
 
-      // Optionally get address name for better display
+      _logger.d('Location obtained: ${position.latitude}, ${position.longitude}');
+
+      // Get address name for refined display
       String? name;
       try {
         final apiKey = dotenv.get('GOOGLE_MAPS_API_KEY');
@@ -510,31 +535,39 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           if (data['status'] == 'OK' && data['results'].isNotEmpty) {
-            name = data['results'][0]['formatted_address'];
-            // Simplify address
-            if (name != null && name.length > 30) {
-              name = name.split(',').take(2).join(',');
+            // Traverse results for the most useful name
+            for (var result in data['results']) {
+              final types = result['types'] as List;
+              if (types.contains('locality') || 
+                  types.contains('neighborhood') || 
+                  types.contains('administrative_area_level_2')) {
+                name = result['formatted_address'];
+                break;
+              }
             }
+            name ??= data['results'][0]['formatted_address'];
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        _logger.e('Reverse geocoding failed: $e');
+      }
 
       _updateSmartSuggestions(
         position.latitude,
         position.longitude,
-        locationName: name ?? 'Your Current Location',
+        locationName: name ?? 'Nearby Your Location',
       );
     } catch (e) {
-      _showErrorSnackBar('Failed to get current location: $e');
+      _logger.e('Failed to get location: $e');
+      _showErrorSnackBar('Location Error: Could not pinpoint your position clearly.');
     } finally {
-      setState(() => _isGettingSmartLocation = false);
+      setState(() => _isGettingLiveLocation = false);
     }
   }
 
   Future<void> _selectLocationOnMapForSmartSuggestion() async {
+    setState(() => _isSelectingFromMap = true);
     // Assuming MapSelectionScreen exists and returns LatLng or similar
-    // For now, using a placeholder navigation if MapSelectionScreen is not easily importable
-    // or use a generic approach. Since home_screen uses it, let's assume it's available.
     try {
       final result = await Navigator.push(
         context,
@@ -545,48 +578,20 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         ),
       );
 
-      if (result != null && result is String) {
-        final coords = await _getLatLngFromAddress(result);
-        if (coords != null) {
-          String shortName = result;
-          if (shortName.length > 30) {
-            shortName = shortName.split(',').take(2).join(',');
-          }
-          _updateSmartSuggestions(
-            coords['lat']!,
-            coords['lng']!,
-            locationName: shortName,
-          );
-        }
+      if (result != null && result is Map<String, dynamic>) {
+        _updateSmartSuggestions(
+          result['lat'],
+          result['lng'],
+          locationName: result['address'],
+        );
       }
     } catch (e) {
       _showErrorSnackBar('Map selection failed: $e');
+    } finally {
+      setState(() => _isSelectingFromMap = false);
     }
   }
 
-  Future<Map<String, double>?> _getLatLngFromAddress(String address) async {
-    try {
-      final apiKey = dotenv.get('GOOGLE_MAPS_API_KEY');
-      final encoded = Uri.encodeComponent(address);
-      final url =
-          'https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=$apiKey';
-
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK' && data['results'].isNotEmpty) {
-          final location = data['results'][0]['geometry']['location'];
-          return {
-            'lat': (location['lat'] as num).toDouble(),
-            'lng': (location['lng'] as num).toDouble(),
-          };
-        }
-      }
-    } catch (e) {
-      _logger.e('Geocoding error: $e');
-    }
-    return null;
-  }
 
   void _showErrorSnackBar(String message) {
     if (mounted) {
@@ -1084,64 +1089,51 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.auto_awesome,
-                      color: AppColors.primary,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Smart Selection',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_isGettingSmartLocation)
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(AppColors.primary),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                if (_smartLocationName != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.location_on,
-                            size: 14, color: AppColors.primary),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            _smartLocationName!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+  Row(
+    children: [
+      const Icon(
+        Icons.auto_awesome,
+        color: AppColors.primary,
+        size: 18,
+      ),
+      const SizedBox(width: 8),
+      const Text(
+        'Smart Selection',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: AppColors.primary,
+        ),
+      ),
+    ],
+  ),
+  const SizedBox(height: 10),
+  if (_smartLocationName != null)
+    Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.location_on, size: 14, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              _smartLocationName!,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
                         const SizedBox(width: 6),
                         GestureDetector(
                           onTap: () {
@@ -1168,18 +1160,20 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 Row(
                   children: [
                     Expanded(
-                      child: _buildSmartButton(
+                      child: AnimatedGradientButton(
                         icon: Icons.my_location,
                         label: 'Live Location',
                         onTap: _useCurrentLocationForSmartSuggestion,
+                        isLoading: _isGettingLiveLocation,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: _buildSmartButton(
+                      child: AnimatedGradientButton(
                         icon: Icons.map_outlined,
                         label: 'Select on Map',
                         onTap: _selectLocationOnMapForSmartSuggestion,
+                        isLoading: _isSelectingFromMap,
                       ),
                     ),
                   ],
@@ -1276,46 +1270,6 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     );
   }
 
-  Widget _buildSmartButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 14, color: AppColors.primary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildLoungeCard({
     required Lounge lounge,
@@ -3122,6 +3076,149 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class AnimatedGradientButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isLoading;
+
+  const AnimatedGradientButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  @override
+  State<AnimatedGradientButton> createState() => _AnimatedGradientButtonState();
+}
+
+class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    if (widget.isLoading) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(AnimatedGradientButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isLoading != oldWidget.isLoading) {
+      if (widget.isLoading) {
+        _controller.repeat();
+      } else {
+        _controller.stop();
+        _controller.value = 0.0;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final double gradientOffset = _controller.value;
+        
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: widget.isLoading
+                ? LinearGradient(
+                    colors: [
+                      AppColors.primary.withOpacity(0.05),
+                      AppColors.primary.withOpacity(0.4),
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.4),
+                      AppColors.primary.withOpacity(0.05),
+                    ],
+                    stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+                    begin: Alignment(-2.0 + (gradientOffset * 4), -0.5),
+                    end: Alignment(0.0 + (gradientOffset * 4), 0.5),
+                  )
+                : null,
+            border: !widget.isLoading 
+                ? Border.all(color: AppColors.primary.withOpacity(0.15)) 
+                : null,
+            boxShadow: [
+              if (widget.isLoading)
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.all(widget.isLoading ? 2.0 : 0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.isLoading ? null : widget.onTap,
+                borderRadius: BorderRadius.circular(13),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (widget.isLoading)
+                         const SizedBox(
+                           width: 14,
+                           height: 14,
+                           child: CircularProgressIndicator(
+                             strokeWidth: 2,
+                             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                           ),
+                         )
+                      else
+                        Icon(widget.icon, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.isLoading 
+                           ? (widget.label.contains('Location') ? 'Pinpointing Location...' : 'Selecting from Map...') 
+                           : widget.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: widget.isLoading ? AppColors.primary : Colors.black87,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
