@@ -399,15 +399,18 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
 
       // Ensure notifications list reflects the newly confirmed booking immediately
       try {
-        final departureLabel =
-            DateFormat('MMM d, h:mm a').format(widget.trip.departureTime);
-        final reference = confirmedBooking.busBooking?.reference ??
+        final departureLabel = DateFormat(
+          'MMM d, h:mm a',
+        ).format(widget.trip.departureTime);
+        final reference =
+            confirmedBooking.busBooking?.reference ??
             confirmedBooking.masterReference;
 
         // Add "Payment Successful" notification as requested by user
         final amountFormatter = NumberFormat('#,###');
-        final formattedAmount =
-            amountFormatter.format(confirmedBooking.effectiveTotalAmount);
+        final formattedAmount = amountFormatter.format(
+          confirmedBooking.effectiveTotalAmount,
+        );
 
         await _notificationService.addLocalNotification(
           title: 'Payment Successful',
@@ -1315,9 +1318,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             child: ElevatedButton(
               onPressed: isLoading || isExpired ? null : _proceedToPayment,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isExpired
-                    ? Colors.grey
-                    : AppColors.secondary,
+                backgroundColor: isExpired ? Colors.grey : AppColors.secondary,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -1351,7 +1352,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                         Text(
                           buttonText,
                           style: TextStyle(
-                            color: isExpired ? Colors.grey : const Color.fromARGB(255, 222, 223, 225),
+                            color: isExpired
+                                ? Colors.grey
+                                : const Color.fromARGB(255, 222, 223, 225),
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:convert';
 import '../../models/booking_intent_models.dart';
 import '../../models/booking_models.dart';
 import '../../models/lounge_booking_models.dart';
 import '../../models/search_models.dart';
 import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/map_selection_screen.dart';
 
 /// Data class to hold selected lounge information for combined booking
 class SelectedLoungeData {
@@ -150,6 +155,13 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   // Selected lounges with full booking data
   SelectedLoungeData? _selectedPreTripLounge;
   SelectedLoungeData? _selectedPostTripLounge;
+
+  // Smart Suggestion state
+  String? _suggestedDepartureLoungeId;
+  String? _suggestedArrivalLoungeId;
+  String? _smartLocationName;
+  bool _isGettingSmartLocation = false;
+  Map<String, double> _loungeDistances = {}; // loungeId -> distanceKm
 
   @override
   void initState() {
@@ -362,7 +374,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       );
 
       List<Lounge> lounges;
-      if (widget.destinationCity != null && widget.destinationCity!.isNotEmpty) {
+      if (widget.destinationCity != null &&
+          widget.destinationCity!.isNotEmpty) {
         lounges = await _loungeService.getLoungesByDestinationCity(
           widget.destinationCity!,
         );
@@ -397,6 +410,189 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         _arrivalError = 'No lounges available near your destination city';
         _isLoadingArrival = false;
       });
+    }
+  }
+
+  /// Calculate distance between two points in km
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) / 1000.0;
+  }
+
+  /// Suggest the best lounge based on location and resort lists
+  void _updateSmartSuggestions(double lat, double lng, {String? locationName}) {
+    setState(() {
+      _smartLocationName = locationName ?? 'Current Location';
+
+      // Calculate and store distances for all lounges
+      final allLounges = [..._departureLounges, ..._arrivalLounges];
+      for (final lounge in allLounges) {
+        if (lounge.latitude != null && lounge.longitude != null) {
+          _loungeDistances[lounge.id] = _calculateDistance(
+            lat,
+            lng,
+            lounge.latitude!,
+            lounge.longitude!,
+          );
+        }
+      }
+
+      // Sort and suggest closest departure lounge
+      if (_departureLounges.isNotEmpty) {
+        _departureLounges.sort((a, b) {
+          final distA = _loungeDistances[a.id] ?? double.infinity;
+          final distB = _loungeDistances[b.id] ?? double.infinity;
+          return distA.compareTo(distB);
+        });
+        _suggestedDepartureLoungeId = _departureLounges.first.id;
+      }
+
+      // Sort and suggest closest arrival lounge
+      if (_arrivalLounges.isNotEmpty) {
+        _arrivalLounges.sort((a, b) {
+          final distA = _loungeDistances[a.id] ?? double.infinity;
+          final distB = _loungeDistances[b.id] ?? double.infinity;
+          return distA.compareTo(distB);
+        });
+        _suggestedArrivalLoungeId = _arrivalLounges.first.id;
+      }
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Optimized for $_smartLocationName',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _useCurrentLocationForSmartSuggestion() async {
+    setState(() => _isGettingSmartLocation = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showErrorSnackBar(
+          'Location permission denied permanently. Please enable in settings.',
+        );
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // Optionally get address name for better display
+      String? name;
+      try {
+        final apiKey = dotenv.get('GOOGLE_MAPS_API_KEY');
+        final url =
+            'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$apiKey';
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['status'] == 'OK' && data['results'].isNotEmpty) {
+            name = data['results'][0]['formatted_address'];
+            // Simplify address
+            if (name != null && name.length > 30) {
+              name = name.split(',').take(2).join(',');
+            }
+          }
+        }
+      } catch (_) {}
+
+      _updateSmartSuggestions(
+        position.latitude,
+        position.longitude,
+        locationName: name ?? 'Your Current Location',
+      );
+    } catch (e) {
+      _showErrorSnackBar('Failed to get current location: $e');
+    } finally {
+      setState(() => _isGettingSmartLocation = false);
+    }
+  }
+
+  Future<void> _selectLocationOnMapForSmartSuggestion() async {
+    // Assuming MapSelectionScreen exists and returns LatLng or similar
+    // For now, using a placeholder navigation if MapSelectionScreen is not easily importable
+    // or use a generic approach. Since home_screen uses it, let's assume it's available.
+    try {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapSelectionScreen(
+            apiKey: 'AIzaSyAuA_RMUaOuqKOasnd5GU8MdYvrDmToXPg',
+          ),
+        ),
+      );
+
+      if (result != null && result is String) {
+        final coords = await _getLatLngFromAddress(result);
+        if (coords != null) {
+          String shortName = result;
+          if (shortName.length > 30) {
+            shortName = shortName.split(',').take(2).join(',');
+          }
+          _updateSmartSuggestions(
+            coords['lat']!,
+            coords['lng']!,
+            locationName: shortName,
+          );
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar('Map selection failed: $e');
+    }
+  }
+
+  Future<Map<String, double>?> _getLatLngFromAddress(String address) async {
+    try {
+      final apiKey = dotenv.get('GOOGLE_MAPS_API_KEY');
+      final encoded = Uri.encodeComponent(address);
+      final url =
+          'https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=$apiKey';
+
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'OK' && data['results'].isNotEmpty) {
+          final location = data['results'][0]['geometry']['location'];
+          return {
+            'lat': (location['lat'] as num).toDouble(),
+            'lng': (location['lng'] as num).toDouble(),
+          };
+        }
+      }
+    } catch (e) {
+      _logger.e('Geocoding error: $e');
+    }
+    return null;
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      );
     }
   }
 
@@ -864,7 +1060,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               const SizedBox(height: 8),
               Text(
                 'There are no partner lounges near\n$stopName at this time.',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -875,9 +1071,127 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 
     return Column(
       children: [
+        // Smart Suggestion UI
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Smart Selection',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (_isGettingSmartLocation)
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (_smartLocationName != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.location_on,
+                            size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            _smartLocationName!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _smartLocationName = null;
+                              _suggestedDepartureLoungeId = null;
+                              _suggestedArrivalLoungeId = null;
+                              _loungeDistances.clear();
+                              // Optionally restore original sorting if needed
+                            });
+                          },
+                          child: const Icon(Icons.close,
+                              size: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  const Text(
+                    'Let us find the most convenient lounge for your journey.',
+                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                  ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSmartButton(
+                        icon: Icons.my_location,
+                        label: 'Live Location',
+                        onTap: _useCurrentLocationForSmartSuggestion,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildSmartButton(
+                        icon: Icons.map_outlined,
+                        label: 'Select on Map',
+                        onTap: _selectLocationOnMapForSmartSuggestion,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
         // Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
           child: Row(
             children: [
               Icon(
@@ -899,11 +1213,15 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                       ),
                     ),
                     Text(
-                      'Near $stopName',
+                      _smartLocationName != null
+                          ? 'Sorting by proximity to $_smartLocationName'
+                          : 'Near $stopName',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 12,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -934,12 +1252,22 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
             itemBuilder: (context, index) {
               final lounge = lounges[index];
               final isSelected = selectedLounge?.lounge.id == lounge.id;
+              final isSuggested = isPreTrip
+                  ? _suggestedDepartureLoungeId == lounge.id
+                  : _suggestedArrivalLoungeId == lounge.id;
+              final distance = _loungeDistances[lounge.id];
 
-              return _buildLoungeCard(
-                lounge: lounge,
-                isSelected: isSelected,
-                isPreTrip: isPreTrip,
-                onTap: () => _configureLoungeBooking(lounge, isPreTrip),
+              return AnimatedContainer(
+                duration: Duration(milliseconds: 300 + (index * 100)),
+                curve: Curves.easeOutBack,
+                child: _buildLoungeCard(
+                  lounge: lounge,
+                  isSelected: isSelected,
+                  isSuggested: isSuggested,
+                  isPreTrip: isPreTrip,
+                  distance: distance,
+                  onTap: () => _configureLoungeBooking(lounge, isPreTrip),
+                ),
               );
             },
           ),
@@ -948,10 +1276,53 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     );
   }
 
+  Widget _buildSmartButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLoungeCard({
     required Lounge lounge,
     required bool isSelected,
+    required bool isSuggested,
     required bool isPreTrip,
+    double? distance,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -963,11 +1334,19 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? AppColors.primarySurface
-                : const Color.fromARGB(255, 76, 149, 246),
-            width: isSelected ? 2 : 1,
+                ? AppColors.primary
+                : (isSuggested
+                    ? AppColors.primary.withOpacity(0.5)
+                    : const Color.fromARGB(255, 76, 149, 246).withOpacity(0.3)),
+            width: isSelected || isSuggested ? 2 : 1,
           ),
           boxShadow: [
+            if (isSuggested)
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.1),
+                blurRadius: 10,
+                spreadRadius: 2,
+              ),
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 8,
@@ -975,162 +1354,223 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // Image
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(14),
-              ),
-              child: lounge.images.isNotEmpty
-                  ? Image.network(
-                      lounge.images.first,
-                      height: 100,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-                    )
-                  : _buildImagePlaceholder(),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name and rating
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          lounge.loungeName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (lounge.averageRating != null &&
-                          lounge.averageRating! > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(
-                              255,
-                              236,
-                              235,
-                              234,
-                            ).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                size: 14,
-                                color: AppColors.primarySurface,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                lounge.averageRating!.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color.fromARGB(255, 238, 237, 234),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(14),
                   ),
-                  const SizedBox(height: 6),
-                  // Address
-                  Row(
+                  child: lounge.images.isNotEmpty
+                      ? Image.network(
+                          lounge.images.first,
+                          height: 100,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                        )
+                      : _buildImagePlaceholder(),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: Colors.grey.shade500,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          lounge.address,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Pricing and action
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'From LKR ${(lounge.price1Hour ?? 0).toStringAsFixed(0)}',
+                      // Name and rating
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              lounge.loungeName,
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            Text(
-                              'per hour',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500,
+                          ),
+                          if (lounge.averageRating != null &&
+                              lounge.averageRating! > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(
+                                  255,
+                                  236,
+                                  235,
+                                  234,
+                                ).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.star,
+                                    size: 14,
+                                    color: AppColors.primarySurface,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    lounge.averageRating!.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color.fromARGB(255, 238, 237, 234),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
-                      ElevatedButton(
-                        onPressed: onTap,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isSelected
-                              ? Colors.green
-                              : AppColors.primary,
-                          foregroundColor: isSelected
-                              ? Colors.white
-                              : AppColors.primary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                      const SizedBox(height: 6),
+                      // Address
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 14,
+                            color: Colors.grey.shade500,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              lounge.address,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          isSelected ? 'Selected ✓' : 'Add',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Colors.white,
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Pricing and action
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'From LKR ${(lounge.price1Hour ?? 0).toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'per hour',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                    if (distance != null) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 3,
+                                        height: 3,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade400,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${distance.toStringAsFixed(1)} km away',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
+                          ElevatedButton(
+                            onPressed: onTap,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isSelected
+                                  ? Colors.green
+                                  : AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              isSelected ? 'Selected ✓' : 'Add',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (isSuggested)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, Color(0xFF673AB7)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, color: Colors.white, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Smart Choice',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -2251,7 +2691,11 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           children: [
             Row(
               children: [
-                const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Could not load transport options.',
@@ -2351,18 +2795,20 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           final location = entry.value;
           final isSelected = selectedLocation == location.id;
           final icon = _locationIconPool[index % _locationIconPool.length];
-          
+
           return GestureDetector(
             onTap: () {
               setState(() {
                 if (widget.isPreTrip) {
                   _preTripPickupLocation = isSelected ? null : location.id;
                   // Reset transport type if location changes
-                  if (_preTripPickupLocation == null) _preTripTransportType = null;
+                  if (_preTripPickupLocation == null)
+                    _preTripTransportType = null;
                 } else {
                   _postTripPickupLocation = isSelected ? null : location.id;
                   // Reset transport type if location changes
-                  if (_postTripPickupLocation == null) _postTripTransportType = null;
+                  if (_postTripPickupLocation == null)
+                    _postTripTransportType = null;
                 }
               });
             },
@@ -2372,7 +2818,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                color: isSelected
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.7),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected ? AppColors.primary : Colors.grey.shade200,
@@ -2380,9 +2828,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isSelected 
-                      ? AppColors.primary.withOpacity(0.1) 
-                      : Colors.black.withOpacity(0.04),
+                    color: isSelected
+                        ? AppColors.primary.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                   ),
@@ -2394,10 +2842,14 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primarySurface : Colors.grey.shade50,
+                      color: isSelected
+                          ? AppColors.primarySurface
+                          : Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isSelected ? AppColors.primary.withOpacity(0.2) : Colors.transparent,
+                        color: isSelected
+                            ? AppColors.primary.withOpacity(0.2)
+                            : Colors.transparent,
                       ),
                     ),
                     child: Center(
@@ -2413,35 +2865,61 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                           location.location,
                           style: TextStyle(
                             fontSize: 15,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.directions_walk, size: 14, color: Colors.grey.shade500),
+                            Icon(
+                              Icons.directions_walk,
+                              size: 14,
+                              color: Colors.grey.shade500,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${location.distanceKm?.toStringAsFixed(1) ?? '0.0'} km',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                             const SizedBox(width: 12),
-                            Icon(Icons.history, size: 14, color: Colors.grey.shade500),
+                            Icon(
+                              Icons.history,
+                              size: 14,
+                              color: Colors.grey.shade500,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${location.estDurationMinutes ?? '--'} mins',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  if (isSelected) 
-                    const Icon(Icons.check_circle, color: AppColors.primary, size: 24)
+                  if (isSelected)
+                    const Icon(
+                      Icons.check_circle,
+                      color: AppColors.primary,
+                      size: 24,
+                    )
                   else
-                    Icon(Icons.arrow_forward_ios, color: Colors.grey.shade300, size: 14),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.grey.shade300,
+                      size: 14,
+                    ),
                 ],
               ),
             ),
@@ -2451,100 +2929,103 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         // 2. Vehicle Selection (Only visible when a location is selected)
         AnimatedSize(
           duration: const Duration(milliseconds: 300),
-          child: selectedLocation != null ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              const Divider(height: 1),
-              const SizedBox(height: 20),
-              const Text(
-                'Select Vehicle Type',
-                style: TextStyle(
-                  fontSize: 15, 
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (_offersVehicle('van')) ...[
-                    Expanded(
-                      child: _buildVehicleOption(
-                        'van',
-                        '🚐',
-                        'Van',
-                        '8 Seats',
-                      ),
-                    ),
-                    if (_offersVehicle('car') || _offersVehicle('tuktuk'))
-                      const SizedBox(width: 10),
-                  ],
-                  if (_offersVehicle('car')) ...[
-                    Expanded(
-                      child: _buildVehicleOption(
-                        'car',
-                        '🚗',
-                        'Car',
-                        '4 Seats',
-                      ),
-                    ),
-                    if (_offersVehicle('tuktuk')) const SizedBox(width: 10),
-                  ],
-                  if (_offersVehicle('tuktuk'))
-                    Expanded(
-                      child: _buildVehicleOption(
-                        'tuktuk',
-                        '🛺',
-                        'Tuk Tuk',
-                        '3 Seats',
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue.shade100),
-                ),
-                child: Row(
+          child: selectedLocation != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 18,
-                      color: Colors.blue.shade700,
+                    const SizedBox(height: 20),
+                    const Divider(height: 1),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Select Vehicle Type',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Driver will contact you once the booking is confirmed for specific pickup timing.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF0D47A1),
-                          fontWeight: FontWeight.w500,
-                        ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (_offersVehicle('van')) ...[
+                          Expanded(
+                            child: _buildVehicleOption(
+                              'van',
+                              '🚐',
+                              'Van',
+                              '8 Seats',
+                            ),
+                          ),
+                          if (_offersVehicle('car') || _offersVehicle('tuktuk'))
+                            const SizedBox(width: 10),
+                        ],
+                        if (_offersVehicle('car')) ...[
+                          Expanded(
+                            child: _buildVehicleOption(
+                              'car',
+                              '🚗',
+                              'Car',
+                              '4 Seats',
+                            ),
+                          ),
+                          if (_offersVehicle('tuktuk'))
+                            const SizedBox(width: 10),
+                        ],
+                        if (_offersVehicle('tuktuk'))
+                          Expanded(
+                            child: _buildVehicleOption(
+                              'tuktuk',
+                              '🛺',
+                              'Tuk Tuk',
+                              '3 Seats',
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.blue.shade100),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Colors.blue.shade700,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Driver will contact you once the booking is confirmed for specific pickup timing.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF0D47A1),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 20.0),
+                  child: Center(
+                    child: Text(
+                      'Select a pick-up station to see available transport prices',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ) : Padding(
-            padding: const EdgeInsets.only(top: 8.0, bottom: 20.0),
-            child: Center(
-              child: Text(
-                'Select a pick-up station to see available transport prices',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey.shade500,
-                ),
-              ),
-            ),
-          ),
         ),
       ],
     );
@@ -2565,9 +3046,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       onTap: () {
         setState(() {
           if (widget.isPreTrip) {
-            _preTripTransportType = (_preTripTransportType == type) ? null : type;
+            _preTripTransportType = (_preTripTransportType == type)
+                ? null
+                : type;
           } else {
-            _postTripTransportType = (_postTripTransportType == type) ? null : type;
+            _postTripTransportType = (_postTripTransportType == type)
+                ? null
+                : type;
           }
         });
       },
@@ -2608,7 +3093,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               capacity,
               style: TextStyle(
                 fontSize: 10,
-                color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+                color: isSelected
+                    ? Colors.white.withOpacity(0.8)
+                    : Colors.grey.shade600,
               ),
             ),
             if (priceLabel.isNotEmpty) ...[
@@ -2616,7 +3103,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withOpacity(0.2) : Colors.grey.shade100,
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(

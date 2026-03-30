@@ -31,6 +31,7 @@ import '../advertisements/advertisement_detail_screen.dart';
 import '../bus_tracking/bus_tracking_screen.dart';
 import '../../widgets/blue_header.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/map_selection_screen.dart';
 
 class DashBoard extends StatefulWidget {
   const DashBoard({super.key});
@@ -53,7 +54,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   List<Advertisement> advertisements = [];
   String? userId;
   int _unreadNotifications = 0;
-  int _previousUnreadNotifications = 0; // Track previous count for minimal alerts
+  int _previousUnreadNotifications =
+      0; // Track previous count for minimal alerts
 
   // Upcoming bookings
   List<BookingListItem> _upcomingBookings = [];
@@ -413,12 +415,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   Future<void> _loadNotifications({bool silent = false}) async {
     if (userId != null) {
       final count = await _notificationService.getUnreadCount(userId!);
-      
+
       // If count increased, show a minimal "WhatsApp-style" top banner
       if (!silent && count > _unreadNotifications && mounted) {
         _showMinimalNotificationBanner();
       }
-      
+
       setState(() {
         _previousUnreadNotifications = _unreadNotifications;
         _unreadNotifications = count;
@@ -431,7 +433,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
+            const Icon(
+              Icons.notifications_active_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
@@ -444,7 +450,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 _openNotifications();
               },
-              child: const Text('VIEW', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'VIEW',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -2284,7 +2296,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     },
                   ),
                 ],
-const SizedBox(height: 25),
+                const SizedBox(height: 25),
                 // Swap button and visual connector between From and To
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -2326,13 +2338,15 @@ const SizedBox(height: 25),
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: (pickupController.text.isEmpty &&
+                                  color:
+                                      (pickupController.text.isEmpty &&
                                           dropController.text.isEmpty)
                                       ? Colors.grey[200]
                                       : AppColors.primary.withOpacity(0.1),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: (pickupController.text.isEmpty &&
+                                    color:
+                                        (pickupController.text.isEmpty &&
                                             dropController.text.isEmpty)
                                         ? Colors.grey[400]!
                                         : AppColors.primary.withOpacity(0.3),
@@ -2341,7 +2355,8 @@ const SizedBox(height: 25),
                                 ),
                                 child: Icon(
                                   Icons.swap_vert_rounded,
-                                  color: (pickupController.text.isEmpty &&
+                                  color:
+                                      (pickupController.text.isEmpty &&
                                           dropController.text.isEmpty)
                                       ? Colors.grey[600]
                                       : AppColors.primary,
@@ -2523,8 +2538,6 @@ const SizedBox(height: 25),
                         ),
                       ],
                     ),
-
-                
 
                   ListTile(
                     contentPadding: EdgeInsets.zero,

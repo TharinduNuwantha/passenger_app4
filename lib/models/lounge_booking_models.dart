@@ -301,8 +301,12 @@ class Lounge {
       status: json['status'] as String? ?? 'approved',
       isOperational: json['is_operational'] as bool? ?? true,
       averageRating: _parseDouble(json['average_rating']),
-      createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] as String? ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['created_at'] as String? ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updated_at'] as String? ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
@@ -367,9 +371,7 @@ class Lounge {
 
   String? get primaryImage => images.isNotEmpty ? images.first : null;
 
-  bool get hasWifi => amenities.any(
-    (a) => a.toLowerCase().contains('wifi'),
-  );
+  bool get hasWifi => amenities.any((a) => a.toLowerCase().contains('wifi'));
 
   bool get hasAC => amenities.any(
     (a) => a.toLowerCase().contains('ac') || a.toLowerCase().contains('air'),
@@ -504,7 +506,8 @@ class LoungeProduct {
   final double price;
   final String? imageUrl;
   final String productType; // 'product', 'service', 'package'
-  final String stockStatus; // 'in_stock', 'low_stock', 'out_of_stock', 'discontinued', 'made_to_order'
+  final String
+  stockStatus; // 'in_stock', 'low_stock', 'out_of_stock', 'discontinued', 'made_to_order'
   final bool isAvailable;
   final bool isPreOrderable;
   final bool isVegetarian;
@@ -551,7 +554,7 @@ class LoungeProduct {
         categoryId = (json['category_id'] as Map)['id']?.toString();
       }
     }
-    
+
     return LoungeProduct(
       id: json['id'] as String,
       loungeId: json['lounge_id'] as String,
@@ -571,28 +574,27 @@ class LoungeProduct {
       serviceDurationMinutes: json['service_duration_minutes'] as int?,
       availableFrom: json['available_from'] as String?,
       availableUntil: json['available_until'] as String?,
-      tags: json['tags'] != null 
-          ? List<String>.from(json['tags'] as List)
-          : [],
+      tags: json['tags'] != null ? List<String>.from(json['tags'] as List) : [],
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
   String get formattedPrice => 'LKR ${price.toStringAsFixed(2)}';
-  
+
   // Helper getters
   bool get isProduct => productType == 'product';
   bool get isService => productType == 'service';
   bool get isPackage => productType == 'package';
-  
+
   bool get isMadeToOrder => stockStatus == 'made_to_order';
   bool get isInStock => stockStatus == 'in_stock';
   bool get isOutOfStock => stockStatus == 'out_of_stock';
   bool get isLowStock => stockStatus == 'low_stock';
-  
-  bool get hasTimeRestriction => availableFrom != null && availableUntil != null;
-  
+
+  bool get hasTimeRestriction =>
+      availableFrom != null && availableUntil != null;
+
   String get productTypeLabel {
     switch (productType) {
       case 'product':
@@ -605,7 +607,7 @@ class LoungeProduct {
         return productType;
     }
   }
-  
+
   String get stockStatusLabel {
     switch (stockStatus) {
       case 'in_stock':
@@ -682,12 +684,14 @@ class LoungeBooking {
   factory LoungeBooking.fromJson(Map<String, dynamic> json) {
     // Handle both old and new field names for backwards compatibility
     final checkInTimeStr = json['scheduled_arrival'] ?? json['check_in_time'];
-    final expectedEndTimeStr = json['scheduled_departure'] ?? json['expected_end_time'];
-    final actualCheckOutTimeStr = json['actual_departure'] ?? json['actual_check_out_time'];
+    final expectedEndTimeStr =
+        json['scheduled_departure'] ?? json['expected_end_time'];
+    final actualCheckOutTimeStr =
+        json['actual_departure'] ?? json['actual_check_out_time'];
     final statusStr = json['status'] ?? json['booking_status'];
     final createdAtStr = json['created_at'];
     final updatedAtStr = json['updated_at'];
-    
+
     return LoungeBooking(
       id: json['id'] as String? ?? '',
       loungeId: json['lounge_id'] as String? ?? '',
@@ -697,7 +701,7 @@ class LoungeBooking {
       bookingReference: json['booking_reference'] as String? ?? '',
       pricingType: LoungePricingType.fromJson(json['pricing_type'] as String?),
       numberOfGuests: json['number_of_guests'] as int? ?? 1,
-      checkInTime: checkInTimeStr != null 
+      checkInTime: checkInTimeStr != null
           ? DateTime.parse(checkInTimeStr as String)
           : DateTime.now(),
       expectedEndTime: expectedEndTimeStr != null
@@ -711,23 +715,27 @@ class LoungeBooking {
       paymentStatus: LoungePaymentStatus.fromJson(
         json['payment_status'] as String?,
       ),
-      bookingStatus: LoungeBookingStatus.fromJson(
-        statusStr as String?,
-      ),
+      bookingStatus: LoungeBookingStatus.fromJson(statusStr as String?),
       specialRequests: json['special_requests'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
-      createdAt: createdAtStr != null 
+      createdAt: createdAtStr != null
           ? DateTime.parse(createdAtStr as String)
           : DateTime.now(),
-      updatedAt: updatedAtStr != null 
+      updatedAt: updatedAtStr != null
           ? DateTime.parse(updatedAtStr as String)
           : DateTime.now(),
-      guests: (json['guests'] as List<dynamic>?)
-              ?.map((e) => LoungeBookingGuest.fromJson(e as Map<String, dynamic>))
+      guests:
+          (json['guests'] as List<dynamic>?)
+              ?.map(
+                (e) => LoungeBookingGuest.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
-      preOrders: (json['pre_orders'] as List<dynamic>?)
-              ?.map((e) => LoungePreOrderItem.fromJson(e as Map<String, dynamic>))
+      preOrders:
+          (json['pre_orders'] as List<dynamic>?)
+              ?.map(
+                (e) => LoungePreOrderItem.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       lounge: json['lounge'] != null
@@ -754,7 +762,8 @@ class LoungeBooking {
   LoungeBookingStatus get status => bookingStatus;
 
   /// Get pre-order total
-  double get preOrderTotal => preOrders.fold(0, (sum, item) => sum + item.subtotal);
+  double get preOrderTotal =>
+      preOrders.fold(0, (sum, item) => sum + item.subtotal);
 
   bool get canBeCancelled =>
       bookingStatus == LoungeBookingStatus.pending ||
@@ -797,21 +806,29 @@ class LoungeBookingGuest {
       }
       return null;
     }
-    
+
     // Temporary: Handle sql.NullTime format from backend
     DateTime? parseCheckedInAt(dynamic value) {
       if (value == null) return null;
       if (value is String) {
-        try { return DateTime.parse(value); } catch (_) { return null; }
+        try {
+          return DateTime.parse(value);
+        } catch (_) {
+          return null;
+        }
       }
       if (value is Map<String, dynamic>) {
         if (value['Valid'] == true && value['Time'] != null) {
-          try { return DateTime.parse(value['Time'] as String); } catch (_) { return null; }
+          try {
+            return DateTime.parse(value['Time'] as String);
+          } catch (_) {
+            return null;
+          }
         }
       }
       return null;
     }
-    
+
     return LoungeBookingGuest(
       id: json['id'] as String? ?? '',
       loungeBookingId: json['lounge_booking_id'] as String? ?? '',
@@ -823,7 +840,7 @@ class LoungeBookingGuest {
   }
 
   bool get isCheckedIn => checkedInAt != null;
-  
+
   /// Alias for backwards compatibility
   bool get checkedIn => isCheckedIn;
 }
@@ -837,8 +854,8 @@ class LoungePreOrderItem {
   final String loungeBookingId;
   final String productId;
   final String productName;
-  final String productType;       // Added - snapshot from product
-  final String? productImageUrl;  // Added - snapshot from product
+  final String productType; // Added - snapshot from product
+  final String? productImageUrl; // Added - snapshot from product
   final int quantity;
   final double unitPrice;
   final double totalPrice;
@@ -867,15 +884,16 @@ class LoungePreOrderItem {
       productImageUrl: json['product_image_url'] as String?,
       quantity: json['quantity'] as int? ?? 1,
       unitPrice: Lounge._parseDouble(json['unit_price']) ?? 0.0,
-      totalPrice: Lounge._parseDouble(json['total_price'] ?? json['subtotal']) ?? 0.0,
-      createdAt: json['created_at'] != null 
-          ? DateTime.tryParse(json['created_at'] as String) 
+      totalPrice:
+          Lounge._parseDouble(json['total_price'] ?? json['subtotal']) ?? 0.0,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
           : null,
     );
   }
 
   String get formattedTotalPrice => 'LKR ${totalPrice.toStringAsFixed(2)}';
-  
+
   /// Alias for backwards compatibility
   double get subtotal => totalPrice;
 }
@@ -928,7 +946,8 @@ class LoungeOrder {
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
-      items: (json['items'] as List<dynamic>?)
+      items:
+          (json['items'] as List<dynamic>?)
               ?.map((e) => LoungeOrderItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -975,7 +994,7 @@ class LoungeOrderItem {
       specialInstructions: json['special_instructions'] as String?,
     );
   }
-  
+
   /// Alias for subtotal
   double get totalPrice => subtotal;
 }

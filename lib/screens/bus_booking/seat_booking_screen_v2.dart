@@ -327,7 +327,12 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       return AppColors.secondary; // Selected - Secondary Yellow
     }
     if (seat.isBooked || seat.isBlocked) {
-      return const Color.fromARGB(255, 215, 8, 8).withOpacity(0.5); // Booked - Faded Blue
+      return const Color.fromARGB(
+        255,
+        215,
+        8,
+        8,
+      ).withOpacity(0.5); // Booked - Faded Blue
     }
     if (seat.canBeSelected) {
       return const Color(0xFF4CAF50); // Available - Green
@@ -559,7 +564,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color:  const Color.fromARGB(255, 82, 156, 222),
+          color: const Color.fromARGB(255, 82, 156, 222),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -631,11 +636,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildLegendItem(
-              Icons.event_seat,
-              AppColors.secondary,
-              'Selected',
-            ),
+            _buildLegendItem(Icons.event_seat, AppColors.secondary, 'Selected'),
             const SizedBox(width: 16),
             _buildLegendItem(
               Icons.event_seat_outlined,
@@ -735,7 +736,11 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                     ),
                   ),
                 ),
-                const Icon(Icons.directions_bus, size: 40, color: AppColors.primary),
+                const Icon(
+                  Icons.directions_bus,
+                  size: 40,
+                  color: AppColors.primary,
+                ),
               ],
             ),
           ),
@@ -912,7 +917,9 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                     ? 'Continue ($seatCount ${seatCount == 1 ? 'Seat' : 'Seats'})'
                     : 'Select Seats to Continue',
                 style: TextStyle(
-                  color: seatCount > 0 ? const Color.fromARGB(255, 236, 237, 238) : Colors.grey,
+                  color: seatCount > 0
+                      ? const Color.fromARGB(255, 236, 237, 238)
+                      : Colors.grey,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
