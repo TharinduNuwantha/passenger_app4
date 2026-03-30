@@ -77,19 +77,20 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   // Search locations using Google Places Autocomplete API
   Future<void> _searchLocations(String query) async {
-    if (query.isEmpty) {
-      setState(() => _suggestions = []);
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) {
+      if (mounted) setState(() => _suggestions = []);
       return;
     }
 
     final String url =
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$query&key=${widget.apiKey}&components=country:lk';
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${Uri.encodeComponent(trimmedQuery)}&key=${widget.apiKey}&components=country:lk';
 
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['status'] == 'OK') {
+        if (data['status'] == 'OK' && mounted) {
           setState(() {
             _suggestions = data['predictions'];
           });

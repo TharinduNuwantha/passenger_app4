@@ -1064,198 +1064,202 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       );
     }
 
-    return Column(
-      children: [
+    return CustomScrollView(
+      slivers: [
         // Smart Suggestion UI
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withOpacity(0.1)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-  Row(
-    children: [
-      const Icon(
-        Icons.auto_awesome,
-        color: AppColors.primary,
-        size: 18,
-      ),
-      const SizedBox(width: 8),
-      const Text(
-        'Smart Selection',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-          color: AppColors.primary,
-        ),
-      ),
-    ],
-  ),
-  const SizedBox(height: 10),
-  if (_smartLocationName != null)
-    Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.location_on, size: 14, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              _smartLocationName!,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withOpacity(0.1)),
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.auto_awesome,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Smart Selection',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (_smartLocationName != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              _smartLocationName!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _smartLocationName = null;
+                                _suggestedDepartureLoungeId = null;
+                                _suggestedArrivalLoungeId = null;
+                                _loungeDistances.clear();
+                              });
+                            },
+                            child: const Icon(Icons.close, size: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    const Text(
+                      'Let us find the most convenient lounge for your journey.',
+                      style: TextStyle(fontSize: 11, color: Colors.black54),
+                    ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AnimatedGradientButton(
+                          icon: Icons.my_location,
+                          label: 'Live Location',
+                          onTap: _useCurrentLocationForSmartSuggestion,
+                          isLoading: _isGettingLiveLocation,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: AnimatedGradientButton(
+                          icon: Icons.map_outlined,
+                          label: 'Select on Map',
+                          onTap: _selectLocationOnMapForSmartSuggestion,
+                          isLoading: _isSelectingFromMap,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _smartLocationName = null;
-                              _suggestedDepartureLoungeId = null;
-                              _suggestedArrivalLoungeId = null;
-                              _loungeDistances.clear();
-                              // Optionally restore original sorting if needed
-                            });
-                          },
-                          child: const Icon(Icons.close,
-                              size: 14, color: Colors.grey),
+        ),
+
+        // Header
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: Row(
+              children: [
+                Icon(
+                  isPreTrip ? Icons.weekend : Icons.hotel,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isPreTrip ? 'Lounges at Departure' : 'Lounges at Arrival',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                  )
-                else
-                  const Text(
-                    'Let us find the most convenient lounge for your journey.',
-                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                      Text(
+                        _smartLocationName != null
+                            ? 'Sorting by proximity to $_smartLocationName'
+                            : 'Near $stopName',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AnimatedGradientButton(
-                        icon: Icons.my_location,
-                        label: 'Live Location',
-                        onTap: _useCurrentLocationForSmartSuggestion,
-                        isLoading: _isGettingLiveLocation,
-                      ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${lounges.length} available',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: AnimatedGradientButton(
-                        icon: Icons.map_outlined,
-                        label: 'Select on Map',
-                        onTap: _selectLocationOnMapForSmartSuggestion,
-                        isLoading: _isSelectingFromMap,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
 
-        // Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          child: Row(
-            children: [
-              Icon(
-                isPreTrip ? Icons.weekend : Icons.hotel,
-                color: AppColors.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isPreTrip ? 'Lounges at Departure' : 'Lounges at Arrival',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      _smartLocationName != null
-                          ? 'Sorting by proximity to $_smartLocationName'
-                          : 'Near $stopName',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${lounges.length} available',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
         // Lounge list
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: lounges.length,
-            itemBuilder: (context, index) {
-              final lounge = lounges[index];
-              final isSelected = selectedLounge?.lounge.id == lounge.id;
-              final isSuggested = isPreTrip
-                  ? _suggestedDepartureLoungeId == lounge.id
-                  : _suggestedArrivalLoungeId == lounge.id;
-              final distance = _loungeDistances[lounge.id];
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final lounge = lounges[index];
+                final isSelected = selectedLounge?.lounge.id == lounge.id;
+                final isSuggested = isPreTrip
+                    ? _suggestedDepartureLoungeId == lounge.id
+                    : _suggestedArrivalLoungeId == lounge.id;
+                final distance = _loungeDistances[lounge.id];
 
-              return AnimatedContainer(
-                duration: Duration(milliseconds: 300 + (index * 100)),
-                curve: Curves.easeOutBack,
-                child: _buildLoungeCard(
+                return _buildLoungeCard(
                   lounge: lounge,
                   isSelected: isSelected,
                   isSuggested: isSuggested,
-                  isPreTrip: isPreTrip,
                   distance: distance,
+                  isPreTrip: isPreTrip,
                   onTap: () => _configureLoungeBooking(lounge, isPreTrip),
-                ),
-              );
-            },
+                );
+              },
+              childCount: lounges.length,
+            ),
           ),
         ),
+        
+        // Bottom spacer
+        const SliverToBoxAdapter(child: SizedBox(height: 20)),
       ],
     );
   }
