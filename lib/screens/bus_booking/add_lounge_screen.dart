@@ -109,6 +109,7 @@ class AddLoungeScreen extends StatefulWidget {
   /// Used to filter boarding lounges via master_routes.origin_city.
   /// Falls back to route-based or stop-based queries when null.
   final String? originCity;
+  final String? destinationCity;
 
   const AddLoungeScreen({
     super.key,
@@ -124,6 +125,7 @@ class AddLoungeScreen extends StatefulWidget {
     required this.passengerPhone,
     this.passengerEmail,
     this.originCity,
+    this.destinationCity,
   });
 
   @override
@@ -195,13 +197,22 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     }
 
     // ── Arrival (post-trip) lounges ─────────────────────────────────────────
+    // Priority 1: lounges near the exact alighting stop
     if (widget.masterRouteId != null &&
         widget.masterRouteId!.isNotEmpty &&
         widget.alightingStopId != null &&
         widget.alightingStopId!.isNotEmpty) {
       _loadArrivalLoungesNearStop();
-    } else if (widget.masterRouteId != null &&
-        widget.masterRouteId!.isNotEmpty) {
+    }
+    // Priority 2: city-based filter using master_routes.destination_city
+    else if (widget.masterRouteId != null &&
+        widget.masterRouteId!.isNotEmpty &&
+        widget.destinationCity != null &&
+        widget.destinationCity!.isNotEmpty) {
+      _loadArrivalLoungesByDestinationCity();
+    }
+    // Priority 3: all lounges on this route (broadest fallback)
+    else if (widget.masterRouteId != null && widget.masterRouteId!.isNotEmpty) {
       _loadArrivalLoungesByRoute();
     } else {
       setState(() {
@@ -337,6 +348,53 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     } catch (e) {
       setState(() {
         _arrivalError = 'No lounges available';
+        _isLoadingArrival = false;
+      });
+    }
+  }
+
+  /// Load destination lounges filtered by the destination city of this route.
+  Future<void> _loadArrivalLoungesByDestinationCity() async {
+    try {
+      _logger.i(
+        'Loading arrival lounges by destination city '
+        '(route: ${widget.masterRouteId}, city hint: ${widget.destinationCity})',
+      );
+
+      List<Lounge> lounges;
+      if (widget.destinationCity != null && widget.destinationCity!.isNotEmpty) {
+        lounges = await _loungeService.getLoungesByDestinationCity(
+          widget.destinationCity!,
+        );
+      } else {
+        lounges = await _loungeService.getArrivalLoungesByRouteDestination(
+          widget.masterRouteId!,
+        );
+      }
+
+      _logger.i('Found ${lounges.length} arrival lounges for destination city');
+
+      if (lounges.isEmpty && widget.masterRouteId != null) {
+        _logger.w(
+          'No city-filtered arrival lounges found; falling back to route-wide list',
+        );
+        final fallback = await _loungeService.getLoungesByRoute(
+          widget.masterRouteId!,
+        );
+        setState(() {
+          _arrivalLounges = fallback;
+          _isLoadingArrival = false;
+        });
+      } else {
+        setState(() {
+          _arrivalLounges = lounges;
+          _isLoadingArrival = false;
+        });
+      }
+    } catch (e) {
+      _logger.e('Failed to load arrival lounges by destination city: $e');
+      setState(() {
+        _arrivalError = 'No lounges available near your destination city';
         _isLoadingArrival = false;
       });
     }

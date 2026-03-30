@@ -456,6 +456,91 @@ class LoungeBookingService {
     }
   }
 
+  /// Get arrival lounges filtered by the destination city of a given master route.
+  ///
+  /// The backend looks up [routeId] → master_routes.destination_city, then joins
+  /// lounge_routes → lounges and returns only lounges near the arrival city.
+  /// Results are sorted by average_rating DESC, price_1_hour ASC.
+  ///
+  /// [routeId] - The master route ID (used server-side to resolve destination_city)
+  ///
+  /// Returns list of [Lounge] near the route's destination city
+  Future<List<Lounge>> getArrivalLoungesByRouteDestination(String routeId) async {
+    try {
+      _logger.i(
+        'Fetching arrival lounges for route destination: $routeId',
+      );
+
+      final response = await _apiService.get(
+        '/api/v1/lounges/arrival-by-destination/$routeId',
+      );
+
+      _logger.d('Arrival lounges by destination response: ${response.data}');
+
+      final lounges =
+          (response.data['lounges'] as List<dynamic>?)
+              ?.map((e) => Lounge.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      _logger.i(
+        'Found ${lounges.length} arrival lounges near route destination',
+      );
+
+      return lounges;
+    } on DioException catch (e) {
+      _logger.e('Failed to get arrival lounges by route destination: ${e.message}');
+      return [];
+    } catch (e) {
+      _logger.e('Unexpected error getting arrival lounges by route destination: $e');
+      return [];
+    }
+  }
+
+  /// Get arrival lounges filtered by destination city name.
+  ///
+  /// Calls GET /api/v1/lounges/by-destination-city?city=<destinationCity> which runs:
+  ///   SELECT l.* FROM lounges l
+  ///   JOIN lounge_routes lr ON l.id = lr.lounge_id
+  ///   JOIN master_routes mr ON lr.master_route_id = mr.id
+  ///   WHERE mr.destination_city = :destination_city
+  ///   GROUP BY l.id
+  ///   ORDER BY l.average_rating DESC, l.price_1_hour ASC
+  ///
+  /// [destinationCity] - The city the user selected as the "To" location
+  ///
+  /// Returns list of [Lounge] near the arrival city
+  Future<List<Lounge>> getLoungesByDestinationCity(String destinationCity) async {
+    try {
+      _logger.i('Fetching lounges for destination city: $destinationCity');
+
+      final response = await _apiService.get(
+        '/api/v1/lounges/by-destination-city',
+        queryParameters: {'city': destinationCity},
+      );
+
+      _logger.d('Lounges by destination city response: ${response.data}');
+
+      final lounges =
+          (response.data['lounges'] as List<dynamic>?)
+              ?.map((e) => Lounge.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      _logger.i(
+        'Found ${lounges.length} lounges for destination city $destinationCity',
+      );
+
+      return lounges;
+    } on DioException catch (e) {
+      _logger.e('Failed to get lounges by destination city: ${e.message}');
+      return [];
+    } catch (e) {
+      _logger.e('Unexpected error getting lounges by destination city: $e');
+      return [];
+    }
+  }
+
   // ============================================================================
   // LOUNGE BOOKINGS
   // ============================================================================

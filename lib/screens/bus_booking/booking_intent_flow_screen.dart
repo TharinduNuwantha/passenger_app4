@@ -35,9 +35,8 @@ class BookingIntentFlowScreen extends StatefulWidget {
   final String userPhone;
   final String? userEmail;
 
-  /// Origin city from the user's search (e.g. "Colombo").
-  /// Forwarded to AddLoungeScreen to filter boarding lounges by departure city.
   final String? originCity;
+  final String? destinationCity;
 
   const BookingIntentFlowScreen({
     super.key,
@@ -53,6 +52,7 @@ class BookingIntentFlowScreen extends StatefulWidget {
     required this.userPhone,
     this.userEmail,
     this.originCity,
+    this.destinationCity,
   });
 
   @override
@@ -290,6 +290,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                 ? _emailController.text.trim()
                 : null,
             originCity: widget.originCity,
+            destinationCity: widget.destinationCity,
           ),
         ),
       );

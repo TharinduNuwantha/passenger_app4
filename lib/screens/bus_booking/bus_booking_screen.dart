@@ -866,8 +866,8 @@ class _BusListScreenState extends State<BusListScreen> {
           alightingStopId: alightingStopId,
           masterRouteId: trip.masterRouteId,
           // Pass the raw "From" city the user typed in the search box so that
-          // the Add Lounge screen can filter boarding lounges by origin city.
-          originCity: widget.pickup,
+          originCity: _cleanLocation(widget.pickup),
+          destinationCity: _cleanLocation(widget.drop),
         ),
       ),
     );
