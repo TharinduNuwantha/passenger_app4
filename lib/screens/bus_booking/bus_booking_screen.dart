@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../providers/search_provider.dart';
@@ -27,6 +28,16 @@ class BusListScreen extends StatefulWidget {
 
 class _BusListScreenState extends State<BusListScreen> {
   String _selectedBusType = 'All';
+  bool _localizedFilterInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_localizedFilterInitialized) {
+      _selectedBusType = AppLocalization.tr(context, 'all');
+      _localizedFilterInitialized = true;
+    }
+  }
 
   @override
   void initState() {
@@ -49,9 +60,10 @@ class _BusListScreenState extends State<BusListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
     final formattedDate = widget.date != null
         ? "${widget.date!.day} ${_getMonthName(widget.date!.month)} ${widget.date!.year}"
-        : "No Date Selected";
+        : t('noDateSelected');
 
     return SafeArea(
       child: Scaffold(
@@ -61,7 +73,7 @@ class _BusListScreenState extends State<BusListScreen> {
           builder: (context, searchProvider, child) {
             // Get filtered trips based on bus type
             List<TripResult> trips = searchProvider.tripResults;
-            if (_selectedBusType != 'All') {
+            if (_selectedBusType != 'All' && _selectedBusType != t('all')) {
               trips = trips
                   .where((trip) => trip.busType == _selectedBusType)
                   .toList();
@@ -85,17 +97,22 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   Widget _buildBody(SearchProvider searchProvider, List<TripResult> trips) {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     // Loading state
     if (searchProvider.isSearching) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: AppColors.secondary),
+            const CircularProgressIndicator(color: AppColors.secondary),
             SizedBox(height: 16),
             Text(
-              'Searching for trips...',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+              t('searchingTrips'),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -117,8 +134,10 @@ class _BusListScreenState extends State<BusListScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Search Failed',
-                style: AppTextStyles.h2.merge(TextStyle(color: AppColors.warning)),
+                t('searchFailedTitle'),
+                style: AppTextStyles.h2.merge(
+                  TextStyle(color: AppColors.warning),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -133,7 +152,12 @@ class _BusListScreenState extends State<BusListScreen> {
                   backgroundColor: AppColors.secondary,
                   foregroundColor: AppColors.primary,
                 ),
-                child: const Text('Retry', style: TextStyle(color: Color.fromARGB(255, 227, 230, 232))),
+                child: Text(
+                  t('retry'),
+                  style: const TextStyle(
+                    color: Color.fromARGB(255, 227, 230, 232),
+                  ),
+                ),
               ),
             ],
           ),
@@ -145,14 +169,14 @@ class _BusListScreenState extends State<BusListScreen> {
     if (trips.isEmpty) {
       // Get search details for more context
       final searchDetails = searchProvider.searchResponse?.searchDetails;
-      final message = searchProvider.searchResponse?.message ?? 
-          'No buses available for this route on the selected date.';
-      
+      final message =
+          searchProvider.searchResponse?.message ?? t('noBusesForRouteDate');
+
       final fromMatched = searchDetails?.fromStop.matched ?? false;
       final toMatched = searchDetails?.toStop.matched ?? false;
       final fromName = searchDetails?.fromStop.name ?? widget.pickup;
       final toName = searchDetails?.toStop.name ?? widget.drop;
-      
+
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -160,17 +184,17 @@ class _BusListScreenState extends State<BusListScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                fromMatched && toMatched 
-                    ? Icons.event_busy 
+                fromMatched && toMatched
+                    ? Icons.event_busy
                     : Icons.location_off,
-                color: AppColors.primaryLight, 
+                color: AppColors.primaryLight,
                 size: 64,
               ),
               const SizedBox(height: 16),
               Text(
-                fromMatched && toMatched 
-                    ? 'No Scheduled Trips'
-                    : 'Route Not Found',
+                fromMatched && toMatched
+                    ? t('noScheduledTrips')
+                    : t('routeNotFound'),
                 style: AppTextStyles.h2,
               ),
               const SizedBox(height: 8),
@@ -200,9 +224,15 @@ class _BusListScreenState extends State<BusListScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'From: $fromName',
+                              AppLocalization.trWithArgs(
+                                context,
+                                'fromPrefix',
+                                {'value': fromName},
+                              ),
                               style: TextStyle(
-                                color: fromMatched ? Colors.black87 : Colors.orange,
+                                color: fromMatched
+                                    ? Colors.black87
+                                    : Colors.orange,
                                 fontSize: 13,
                               ),
                             ),
@@ -220,9 +250,13 @@ class _BusListScreenState extends State<BusListScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'To: $toName',
+                              AppLocalization.trWithArgs(context, 'toPrefix', {
+                                'value': toName,
+                              }),
                               style: TextStyle(
-                                color: toMatched ? Colors.black87 : Colors.orange,
+                                color: toMatched
+                                    ? Colors.black87
+                                    : Colors.orange,
                                 fontSize: 13,
                               ),
                             ),
@@ -241,7 +275,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   backgroundColor: AppColors.secondary,
                   foregroundColor: const Color.fromARGB(255, 250, 250, 250),
                 ),
-                child: const Text('Change Search'),
+                child: Text(t('changeSearch')),
               ),
             ],
           ),
@@ -264,6 +298,7 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   Widget _buildTripCard(BuildContext context, TripResult trip) {
+    final t = (String key) => AppLocalization.tr(context, key);
     // Check if the trip is today
     final now = DateTime.now();
     final tripDate = trip.departureTime;
@@ -279,9 +314,9 @@ class _BusListScreenState extends State<BusListScreen> {
     // Format the date display
     String dateLabel;
     if (isToday) {
-      dateLabel = 'Today';
+      dateLabel = t('today');
     } else if (isTomorrow) {
-      dateLabel = 'Tomorrow';
+      dateLabel = t('tomorrow');
     } else {
       dateLabel = DateFormat(
         'EEE, MMM d',
@@ -341,7 +376,9 @@ class _BusListScreenState extends State<BusListScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Departs ${DateFormat('h:mm a').format(trip.departureTime)}',
+                    AppLocalization.trWithArgs(context, 'departsAt', {
+                      'time': DateFormat('h:mm a').format(trip.departureTime),
+                    }),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -406,7 +443,7 @@ class _BusListScreenState extends State<BusListScreen> {
                     Text(
                       trip.boardingPoint.isNotEmpty
                           ? trip.boardingPoint
-                          : 'Departure',
+                          : t('departure'),
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
@@ -485,7 +522,7 @@ class _BusListScreenState extends State<BusListScreen> {
                     Text(
                       trip.droppingPoint.isNotEmpty
                           ? trip.droppingPoint
-                          : 'Arrival',
+                          : t('arrival'),
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
@@ -549,7 +586,12 @@ class _BusListScreenState extends State<BusListScreen> {
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
-                        foregroundColor: const Color.fromARGB(255, 241, 242, 243),
+                        foregroundColor: const Color.fromARGB(
+                          255,
+                          241,
+                          242,
+                          243,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -558,9 +600,9 @@ class _BusListScreenState extends State<BusListScreen> {
                           vertical: 10,
                         ),
                       ),
-                      child: const Text(
-                        'Book',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: Text(
+                        t('book'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -599,6 +641,7 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   void _showStopSelectionSheet(BuildContext context, TripResult trip) {
+    final t = (String key) => AppLocalization.tr(context, key);
     final searchProvider = context.read<SearchProvider>();
     final searchDetails = searchProvider.searchResponse?.searchDetails;
 
@@ -666,7 +709,7 @@ class _BusListScreenState extends State<BusListScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Select Stops',
+                        t('selectStops'),
                         style: AppTextStyles.h2.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
@@ -685,7 +728,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   ),
                   const Divider(height: 24),
                   Text(
-                    'Boarding Point',
+                    t('boardingPoint'),
                     style: AppTextStyles.body.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
@@ -752,7 +795,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Alighting Point',
+                    t('alightingPoint'),
                     style: AppTextStyles.body.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
@@ -829,9 +872,9 @@ class _BusListScreenState extends State<BusListScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Continue to Seat Selection',
-                        style: TextStyle(
+                      child: Text(
+                        t('continueToSeatSelection'),
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -893,7 +936,9 @@ class _BusListScreenState extends State<BusListScreen> {
           child: Text(
             type,
             style: TextStyle(
-              color: isSelected ? const Color.fromARGB(255, 242, 243, 244) : AppColors.white,
+              color: isSelected
+                  ? const Color.fromARGB(255, 242, 243, 244)
+                  : AppColors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -908,13 +953,14 @@ class _BusListScreenState extends State<BusListScreen> {
     int busCount,
     bool isLoading,
   ) {
+    final t = (String key) => AppLocalization.tr(context, key);
     // Get unique bus types from search results
     final searchProvider = context.watch<SearchProvider>();
     final uniqueBusTypes = searchProvider.tripResults
         .map((trip) => trip.busType)
         .toSet()
         .toList();
-    final List<String> filterOptions = ['All', ...uniqueBusTypes];
+    final List<String> filterOptions = [t('all'), ...uniqueBusTypes];
 
     return Container(
       width: double.infinity,
@@ -953,7 +999,11 @@ class _BusListScreenState extends State<BusListScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            isLoading ? 'Searching...' : '$busCount trips found',
+            isLoading
+                ? t('searching')
+                : AppLocalization.trWithArgs(context, 'tripsFound', {
+                    'count': '$busCount',
+                  }),
             style: AppTextStyles.body.copyWith(color: AppColors.white70),
           ),
           if (!isLoading && filterOptions.isNotEmpty) ...[

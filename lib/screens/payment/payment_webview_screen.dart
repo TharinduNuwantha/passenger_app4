@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:provider/provider.dart';
+import '../../localization/app_localization.dart';
 import '../../providers/booking_intent_provider.dart';
 import '../../theme/app_colors.dart';
 import '../bus_booking/booking_intent_flow_screen.dart';
@@ -187,22 +188,24 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   }
 
   Future<void> _cancelPayment() async {
+    final t = (String key) => AppLocalization.tr(context, key);
+    
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel Payment?'),
+        title: Text(t('cancelPaymentQuestion')),
         content: const Text(
           'Are you sure you want to cancel? Your seat reservation will still be held until it expires.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Continue Payment'),
+            child: Text(t('continuePayment')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Cancel'),
+            child: Text(t('cancel')),
           ),
         ],
       ),
@@ -222,6 +225,8 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+    
     return WillPopScope(
       onWillPop: () async {
         await _cancelPayment();
@@ -234,9 +239,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
             icon: const Icon(Icons.close, color: Colors.white),
             onPressed: _cancelPayment,
           ),
-          title: const Text(
-            'Complete Payment',
-            style: TextStyle(color: Colors.white),
+          title: Text(
+            t('continuePayment'),
+            style: const TextStyle(color: Colors.white),
           ),
           centerTitle: true,
           actions: [

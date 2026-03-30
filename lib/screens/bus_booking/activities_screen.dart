@@ -7,6 +7,7 @@ import '../../theme/app_text_style.dart';
 import 'booking_detail_screen.dart';
 import '../lounge/lounge_booking_detail_screen.dart';
 import '../../widgets/blue_header.dart';
+import '../../localization/app_localization.dart';
 
 /// Redesigned Activities/Bookings screen with tabs for Upcoming, Completed, Cancelled
 class ActivitiesScreen extends StatefulWidget {
@@ -348,7 +349,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'My Bookings',
+                    AppLocalization.tr(context, 'myBookings'),
                     style: AppTextStyles.h2.copyWith(
                       color: AppColors.textLight,
                       fontSize: 26,

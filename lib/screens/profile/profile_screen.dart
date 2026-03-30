@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../localization/app_localization.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../services/user_service.dart';
 import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
@@ -42,7 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       setState(() {
-        errorMessage = e.toString();
+        errorMessage = AppLocalization.tr(context, 'oopsSomethingWentWrong');
         isLoading = false;
       });
     }
@@ -61,12 +63,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedLanguageCode = context.watch<LanguageProvider>().languageCode;
+    final t = (String key) => AppLocalization.tr(context, key);
+
     if (isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: AppColors.primary,
-          title: const Text('Profile'),
+          title: Text(t('profile')),
           centerTitle: true,
           elevation: 0,
         ),
@@ -81,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: AppColors.background,
         appBar: AppBar(
           backgroundColor: AppColors.primary,
-          title: const Text('Profile'),
+          title: Text(t('profile')),
           centerTitle: true,
           elevation: 0,
         ),
@@ -89,10 +94,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 64),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.orange,
+                size: 64,
+              ),
               const SizedBox(height: 24),
               Text(
-                'Something went wrong',
+                t('somethingWentWrong'),
                 style: AppTextStyles.h2.copyWith(color: AppColors.primary),
               ),
               const SizedBox(height: 8),
@@ -100,20 +109,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 48),
                 child: Text(
                   errorMessage!,
-                  style: AppTextStyles.body.copyWith(color: Colors.grey),
+                  softWrap: true,
                   textAlign: TextAlign.center,
+                  style: AppTextStyles.body.copyWith(color: Colors.grey),
                 ),
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: _loadUserData,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
+                label: Text(t('tryAgain')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -122,10 +137,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final displayName = _user?.fullName.isNotEmpty == true ? _user!.fullName : 'Passenger';
-    final displayPhone = _user != null ? _formatPhoneNumber(_user!.phoneNumber) : '';
+    final displayName = _user?.fullName.isNotEmpty == true
+        ? _user!.fullName
+        : t('passenger');
+    final displayPhone = _user != null
+        ? _formatPhoneNumber(_user!.phoneNumber)
+        : '';
 
     return Scaffold(
+      key: ValueKey('profile-$selectedLanguageCode'),
       backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Column(
@@ -133,7 +153,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Modern Header with Profile Info
             BlueHeader(
               bottomRadius: 30,
-              padding: const EdgeInsets.only(top: 60, bottom: 40, left: 24, right: 24),
+              padding: const EdgeInsets.only(
+                top: 60,
+                bottom: 40,
+                left: 24,
+                right: 24,
+              ),
               child: Column(
                 children: [
                   Hero(
@@ -183,11 +208,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle('Account Management'),
+                  _buildSectionTitle(t('accountManagement')),
                   _buildModernCard([
                     _buildSettingsTile(
                       Icons.person_outline_rounded,
-                      'Edit Profile',
+                      t('editProfile'),
                       onTap: () async {
                         final result = await Navigator.pushNamed(
                           context,
@@ -198,21 +223,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         }
                       },
                     ),
+                    _buildSettingsTile(
+                      Icons.language_rounded,
+                      t('language'),
+                      subtitle: AppLocalization.languageName(
+                        context,
+                        selectedLanguageCode,
+                      ),
+                      onTap: () => _showLanguageBottomSheet(context),
+                    ),
                   ]),
 
                   const SizedBox(height: 24),
-                  _buildSectionTitle('Support & Legal'),
+                  _buildSectionTitle(t('supportLegal')),
                   _buildModernCard([
                     _buildSettingsTile(
                       Icons.help_outline_rounded,
-                      'Help & Support',
+                      t('helpSupport'),
                       onTap: () {
                         Navigator.pushNamed(context, '/help-support');
                       },
                     ),
                     _buildSettingsTile(
                       Icons.contact_support_outlined,
-                      'Contact Us',
+                      t('contactUs'),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -224,7 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     _buildSettingsTile(
                       Icons.privacy_tip_outlined,
-                      'Privacy Policy',
+                      t('privacyPolicy'),
                       onTap: () {
                         Navigator.pushNamed(context, '/privacy-policy');
                       },
@@ -239,14 +273,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.red.shade300, width: 1.5),
+                        side: BorderSide(
+                          color: Colors.red.shade300,
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      icon: Icon(Icons.logout_rounded, color: Colors.red.shade400),
+                      icon: Icon(
+                        Icons.logout_rounded,
+                        color: Colors.red.shade400,
+                      ),
                       label: Text(
-                        'Logout Account',
+                        t('logoutAccount'),
                         style: TextStyle(
                           color: Colors.red.shade400,
                           fontWeight: FontWeight.bold,
@@ -258,10 +298,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   // Version info
-                  const Center(
+                  Center(
                     child: Text(
-                      'App Version 2.6.3 (Build 312)',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      '${t('appVersion')} 2.6.3 (Build 312)',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -278,7 +318,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
-        title.toUpperCase(),
+        title,
+        softWrap: true,
         style: TextStyle(
           color: Colors.grey[600],
           fontSize: 12,
@@ -318,7 +359,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSettingsTile(IconData icon, String title, {VoidCallback? onTap}) {
+  Widget _buildSettingsTile(
+    IconData icon,
+    String title, {
+    String? subtitle,
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -336,31 +382,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: Colors.black87,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle,
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        color: Colors.grey,
+        size: 20,
+      ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 
+  Future<void> _showLanguageBottomSheet(BuildContext context) async {
+    final provider = context.read<LanguageProvider>();
+    final t = (String key) => AppLocalization.tr(context, key);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        final selectedCode = sheetContext
+            .watch<LanguageProvider>()
+            .languageCode;
+
+        Widget option(String code, String labelKey) {
+          return RadioListTile<String>(
+            value: code,
+            groupValue: selectedCode,
+            activeColor: AppColors.primary,
+            title: Text(AppLocalization.tr(context, labelKey)),
+            onChanged: (value) async {
+              if (value == null) return;
+              await provider.setLocaleByCode(value);
+              if (!sheetContext.mounted) return;
+              Navigator.pop(sheetContext);
+            },
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(
+              top: 12,
+              left: 8,
+              right: 8,
+              bottom: 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t('selectLanguage'), style: AppTextStyles.h3),
+                const SizedBox(height: 8),
+                option('en', 'englishLabel'),
+                option('si', 'sinhalaLabel'),
+                option('ta', 'tamilLabel'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _handleLogout(BuildContext context) async {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to sign out?'),
+        title: Text(t('logout')),
+        content: Text(t('logoutConfirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Stay Signed In', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              t('staySignedIn'),
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+            child: Text(
+              t('signOut'),
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -387,9 +506,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t('logoutFailed'))));
     }
   }
 

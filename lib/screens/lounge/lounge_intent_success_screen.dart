@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/booking_intent_models.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
+import '../../localization/app_localization.dart';
 
 /// Success screen after lounge booking confirmation
 class LoungeIntentSuccessScreen extends StatelessWidget {
@@ -180,7 +181,7 @@ class LoungeIntentSuccessScreen extends StatelessWidget {
                 );
                 // TODO: Navigate to My Bookings tab
               },
-              child: const Text('View My Bookings'),
+              child: Text(AppLocalization.tr(context, 'viewMyBookings')),
             ),
           ],
         ),

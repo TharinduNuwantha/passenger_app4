@@ -138,7 +138,10 @@ class _SplashScreenState extends State<SplashScreen>
                   builder: (context, child) {
                     // shimmer effect
                     final shimmerValue =
-                        (0.5 + (0.5 * (1 + sin(_controller.value * 6.28))));
+                        ((1 + sin(_controller.value * 6.28)) / 2).clamp(
+                          0.0,
+                          1.0,
+                        );
                     return Opacity(
                       opacity: shimmerValue,
                       child: Text(

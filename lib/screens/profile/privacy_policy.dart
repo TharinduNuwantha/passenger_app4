@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
@@ -8,6 +9,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -18,13 +20,17 @@ class PrivacyPolicyScreen extends StatelessWidget {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Privacy Policy',
-                    style: TextStyle(
+                    t('privacyPolicy'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -43,31 +49,37 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Your Privacy Matters',
+                    t('yourPrivacyMatters'),
                     style: AppTextStyles.h1.copyWith(color: AppColors.primary),
                   ),
                   const SizedBox(height: 16),
-                  _buildPolicyText(
-                    'This Privacy Policy describes how your personal information is collected, used, and shared when you use our Passenger Application.',
-                  ),
+                  _buildPolicyText(t('privacyPolicyIntro')),
                   const Divider(height: 48),
-                  
-                  _buildSection('1. Information Collection', 
-                    'We collect information that you provide directly to us, such as when you create or modify your account, request services, contact customer support, or otherwise communicate with us. This information may include: name, email, phone number, postal address, profile picture, payment method, and other information you choose to provide.'),
-                  
-                  _buildSection('2. How We Use Information', 
-                    'We use the information we collect to provide, maintain, and improve our services, such as to facilitate payments, send receipts, provide products and services you request, and develop new features.'),
-                  
-                  _buildSection('3. Information Sharing', 
-                    'We may share the information we collect about you as described in this statement or at the time of collection or sharing, including with third-party service providers who provide services on our behalf.'),
-                  
-                  _buildSection('4. Data Security', 
-                    'We take reasonable measures to help protect information about you from loss, theft, misuse and unauthorized access, disclosure, alteration and destruction.'),
-                  
+
+                  _buildSection(
+                    t('privacySection1Title'),
+                    t('privacySection1Body'),
+                  ),
+
+                  _buildSection(
+                    t('privacySection2Title'),
+                    t('privacySection2Body'),
+                  ),
+
+                  _buildSection(
+                    t('privacySection3Title'),
+                    t('privacySection3Body'),
+                  ),
+
+                  _buildSection(
+                    t('privacySection4Title'),
+                    t('privacySection4Body'),
+                  ),
+
                   const SizedBox(height: 40),
                   Center(
                     child: Text(
-                      'Last updated: February, 2026',
+                      t('privacyLastUpdated'),
                       style: TextStyle(
                         color: Colors.grey[500],
                         fontSize: 12,
@@ -91,6 +103,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       children: [
         Text(
           title,
+          softWrap: true,
           style: const TextStyle(
             color: Colors.black87,
             fontSize: 16,
@@ -107,11 +120,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
   Widget _buildPolicyText(String text) {
     return Text(
       text,
-      style: TextStyle(
-        color: Colors.grey[700],
-        fontSize: 14,
-        height: 1.6,
-      ),
+      softWrap: true,
+      style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.6),
     );
   }
 }

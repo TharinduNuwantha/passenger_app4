@@ -233,4 +233,23 @@ class StorageService {
       return null;
     }
   }
+
+  // Save language code
+  Future<void> saveLanguageCode(String languageCode) async {
+    try {
+      await _storage.write(key: AppConstants.languageKey, value: languageCode);
+    } catch (e) {
+      _logger.e('Error saving language code: $e');
+    }
+  }
+
+  // Get language code
+  Future<String?> getLanguageCode() async {
+    try {
+      return await _storage.read(key: AppConstants.languageKey);
+    } catch (e) {
+      _logger.e('Error reading language code: $e');
+      return null;
+    }
+  }
 }

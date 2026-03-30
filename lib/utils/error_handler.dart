@@ -9,6 +9,10 @@ class ErrorHandler {
   static String handleError(dynamic error) {
     if (error is DioException) {
       return _handleDioError(error);
+    } else if (error is String) {
+      // Preserve pre-formatted user-facing messages from lower layers.
+      _logger.w('Handled string error: $error');
+      return error;
     } else if (error is Exception) {
       return _handleException(error);
     } else {

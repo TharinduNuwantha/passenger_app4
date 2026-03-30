@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 
@@ -14,6 +15,8 @@ class PaymentSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -35,7 +38,7 @@ class PaymentSuccessScreen extends StatelessWidget {
 
               // Success Title
               Text(
-                'Payment Successful!',
+                t('bookingConfirmed'),
                 style: AppTextStyles.h1.copyWith(fontSize: 26),
                 textAlign: TextAlign.center,
               ),
@@ -70,7 +73,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Payment Details',
+                      t('bookingDetails'),
                       style: AppTextStyles.h2.copyWith(fontSize: 20),
                     ),
                     const SizedBox(height: 16),
@@ -128,8 +131,8 @@ class PaymentSuccessScreen extends StatelessWidget {
                   onPressed: () {
                     // Navigate to receipt screen or download receipt
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Receipt will be sent to your email'),
+                      SnackBar(
+                        content: Text(t('receiptWillBeSent')),
                         backgroundColor: AppColors.success,
                       ),
                     );

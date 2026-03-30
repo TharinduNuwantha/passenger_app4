@@ -2,6 +2,7 @@
 import 'dart:async';
 import '../../models/notification_model.dart';
 import '../../services/notification_service.dart';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
@@ -26,7 +27,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.initState();
     _notificationService = NotificationService();
     _loadNotifications();
-    
+
     // Auto-refresh notifications every 30 seconds while on this screen
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (mounted) {
@@ -50,15 +51,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _markAllAsRead() async {
+    final t = (String key) => AppLocalization.tr(context, key);
     await _notificationService.markAllAsRead(widget.userId);
     _loadNotifications();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('All notifications marked as read'),
+          content: Text(t('allNotificationsMarkedAsRead'), softWrap: true),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -67,6 +71,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Column(
@@ -76,7 +82,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             child: FutureBuilder<List<NotificationModel>>(
               future: _notificationsFuture,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   );
@@ -118,32 +125,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           final bool? confirm = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('Delete Notification'),
-                              content: const Text('Remove this notification permanently?'),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              title: Text(t('deleteNotification')),
+                              content: Text(
+                                t('removeNotificationPermanently'),
+                                softWrap: true,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('Cancel'),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: Text(t('cancel')),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, true),
-                                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                  child: const Text('Delete'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  child: Text(t('delete')),
                                 ),
                               ],
                             ),
                           );
 
                           if (confirm == true) {
-                            await _notificationService.deleteNotification(notif.id);
+                            await _notificationService.deleteNotification(
+                              notif.id,
+                            );
                             _loadNotifications();
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Notification deleted'),
+                                SnackBar(
+                                  content: Text(
+                                    t('notificationDeleted'),
+                                    softWrap: true,
+                                  ),
                                   behavior: SnackBarBehavior.floating,
-                                  duration: Duration(seconds: 2),
+                                  duration: const Duration(seconds: 2),
                                 ),
                               );
                             }
@@ -162,64 +182,76 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return BlueHeader(
       bottomRadius: 0,
       padding: const EdgeInsets.fromLTRB(8, 60, 16, 18),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 22),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: Colors.white,
+          size: 22,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
-      title: 'Notifications',
-      subtitle: _showUnreadOnly ? 'Showing unread only' : 'Your recent updates',
+      title: t('notifications'),
+      subtitle: _showUnreadOnly
+          ? t('showingUnreadOnly')
+          : t('yourRecentUpdates'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             icon: Icon(
-              _showUnreadOnly ? Icons.filter_list_off_rounded : Icons.filter_list_rounded,
+              _showUnreadOnly
+                  ? Icons.filter_list_off_rounded
+                  : Icons.filter_list_rounded,
               color: Colors.white,
             ),
             onPressed: () => setState(() => _showUnreadOnly = !_showUnreadOnly),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(17),
+            ),
             onSelected: (value) async {
               if (value == 'mark_all_read') _markAllAsRead();
               if (value == 'refresh') _loadNotifications();
               if (value == 'simulate') {
                 await _notificationService.addLocalNotification(
-                  title: 'Welcome!',
-                  message: 'Your notification system is now minimal and modern.',
+                  title: t('welcome'),
+                  message: t('notificationSystemReady'),
                   type: 'system',
                 );
                 _loadNotifications();
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'mark_all_read',
                 child: ListTile(
                   leading: Icon(Icons.done_all_rounded, size: 20),
-                  title: Text('Mark all read'),
+                  title: Text(t('markAllRead')),
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'refresh',
                 child: ListTile(
                   leading: Icon(Icons.refresh_rounded, size: 20),
-                  title: Text('Refresh'),
+                  title: Text(t('refresh')),
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'simulate',
                 child: ListTile(
                   leading: Icon(Icons.add_alert_rounded, size: 20),
-                  title: Text('Test Notification'),
+                  title: Text(t('testNotification')),
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                 ),
@@ -232,6 +264,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -250,19 +284,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ],
             ),
             child: Icon(
-              _showUnreadOnly ? Icons.notifications_none_rounded : Icons.notifications_off_outlined,
+              _showUnreadOnly
+                  ? Icons.notifications_none_rounded
+                  : Icons.notifications_off_outlined,
               size: 64,
               color: AppColors.primary.withOpacity(0.4),
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            _showUnreadOnly ? 'No unread notifications' : 'No notifications yet',
+            _showUnreadOnly
+                ? t('noUnreadNotifications')
+                : t('noNotificationsYet'),
             style: AppTextStyles.h3.copyWith(color: const Color(0xFF1E293B)),
           ),
           const SizedBox(height: 8),
           Text(
-            _showUnreadOnly ? 'You\'re all caught up!' : 'We\'ll notify you when updates arrive',
+            _showUnreadOnly ? t('youAreAllCaughtUp') : t('updatesWhenArrive'),
             style: AppTextStyles.body.copyWith(color: const Color(0xFF64748B)),
           ),
         ],
@@ -271,25 +309,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildErrorState() {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 64, color: Colors.redAccent),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 64,
+              color: Colors.redAccent,
+            ),
             const SizedBox(height: 16),
-            const Text('Oops! Something went wrong', style: AppTextStyles.h3),
+            Text(t('oopsSomethingWentWrong'), style: AppTextStyles.h3),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadNotifications,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Try Again'),
+              child: Text(t('tryAgain')),
             ),
           ],
         ),
@@ -327,7 +376,7 @@ class NotificationCard extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: isUnread 
+        border: isUnread
             ? Border.all(color: AppColors.primary.withOpacity(0.1), width: 1)
             : null,
       ),
@@ -367,9 +416,13 @@ class NotificationCard extends StatelessWidget {
                               child: Text(
                                 notification.title,
                                 style: TextStyle(
-                                  fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
+                                  fontWeight: isUnread
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
                                   fontSize: 15,
-                                  color: isUnread ? const Color(0xFF0F172A) : const Color(0xFF475569),
+                                  color: isUnread
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFF475569),
                                 ),
                               ),
                             ),
@@ -395,7 +448,7 @@ class NotificationCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _formatTime(notification.createdAt),
+                          _formatTime(context, notification.createdAt),
                           style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xFF94A3B8),
@@ -416,31 +469,54 @@ class NotificationCard extends StatelessWidget {
 
   IconData _getTypeIcon(String type) {
     switch (type.toLowerCase()) {
-      case 'booking': return Icons.directions_car_rounded;
-      case 'payment': return Icons.account_balance_wallet_rounded;
-      case 'offer': return Icons.local_offer_rounded;
-      case 'system': return Icons.settings_suggest_rounded;
-      default: return Icons.notifications_rounded;
+      case 'booking':
+        return Icons.directions_car_rounded;
+      case 'payment':
+        return Icons.account_balance_wallet_rounded;
+      case 'offer':
+        return Icons.local_offer_rounded;
+      case 'system':
+        return Icons.settings_suggest_rounded;
+      default:
+        return Icons.notifications_rounded;
     }
   }
 
   Color _getTypeColor(String type) {
     switch (type.toLowerCase()) {
-      case 'booking': return const Color(0xFF3B82F6);
-      case 'payment': return const Color(0xFF10B981);
-      case 'offer': return const Color(0xFFF59E0B);
-      case 'system': return const Color(0xFF6366F1);
-      default: return AppColors.primary;
+      case 'booking':
+        return const Color(0xFF3B82F6);
+      case 'payment':
+        return const Color(0xFF10B981);
+      case 'offer':
+        return const Color(0xFFF59E0B);
+      case 'system':
+        return const Color(0xFF6366F1);
+      default:
+        return AppColors.primary;
     }
   }
 
-  String _formatTime(DateTime time) {
+  String _formatTime(BuildContext context, DateTime time) {
+    final t = (String key) => AppLocalization.tr(context, key);
     final now = DateTime.now();
     final difference = now.difference(time);
-    if (difference.inMinutes < 1) return 'Just now';
-    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
-    if (difference.inHours < 24) return '${difference.inHours}h ago';
-    if (difference.inDays < 7) return '${difference.inDays}d ago';
+    if (difference.inMinutes < 1) return t('justNow');
+    if (difference.inMinutes < 60) {
+      return AppLocalization.trWithArgs(context, 'minutesAgo', {
+        'count': '${difference.inMinutes}',
+      });
+    }
+    if (difference.inHours < 24) {
+      return AppLocalization.trWithArgs(context, 'hoursAgo', {
+        'count': '${difference.inHours}',
+      });
+    }
+    if (difference.inDays < 7) {
+      return AppLocalization.trWithArgs(context, 'daysAgo', {
+        'count': '${difference.inDays}',
+      });
+    }
     return '${time.day}/${time.month}/${time.year}';
   }
 }

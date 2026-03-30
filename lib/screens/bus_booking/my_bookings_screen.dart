@@ -4,6 +4,7 @@ import '../../models/booking_models.dart';
 import '../../services/booking_service.dart';
 import '../../theme/app_colors.dart';
 import 'booking_detail_screen.dart';
+import '../../localization/app_localization.dart';
 
 /// Screen to display user's bookings (upcoming, past, cancelled)
 class MyBookingsScreen extends StatefulWidget {
@@ -151,8 +152,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'My Bookings',
+        title: Text(
+          AppLocalization.tr(context, 'myBookings'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -166,10 +167,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
           indicatorWeight: 3,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white60,
-          tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'Past'),
-            Tab(text: 'Cancelled'),
+          tabs: [
+            Tab(text: AppLocalization.tr(context, 'upcomingTab')),
+            Tab(text: AppLocalization.tr(context, 'pastTab')),
+            Tab(text: AppLocalization.tr(context, 'cancelledTab')),
           ],
         ),
       ),
@@ -189,7 +190,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
               isLoading: _isLoadingUpcoming,
               error: _errorUpcoming,
               onRefresh: _loadUpcomingBookings,
-              emptyMessage: 'No upcoming bookings',
+              emptyMessage: AppLocalization.tr(context, 'noUpcomingBookings'),
               emptyIcon: Icons.calendar_today_outlined,
             ),
             _buildBookingsList(
@@ -197,7 +198,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
               isLoading: _isLoadingPast,
               error: _errorPast,
               onRefresh: _loadPastBookings,
-              emptyMessage: 'No past trips',
+              emptyMessage: AppLocalization.tr(context, 'noPastTrips'),
               emptyIcon: Icons.history,
             ),
             _buildBookingsList(
@@ -205,7 +206,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
               isLoading: _isLoadingCancelled,
               error: _errorCancelled,
               onRefresh: _loadCancelledBookings,
-              emptyMessage: 'No cancelled bookings',
+              emptyMessage:
+                  AppLocalization.tr(context, 'noCancelledBookings'),
               emptyIcon: Icons.cancel_outlined,
             ),
           ],

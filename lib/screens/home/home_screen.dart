@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import '../../localization/app_localization.dart';
 import '../../theme/app_colors.dart';
 import '../../services/advertisement_service.dart';
 import '../../services/notification_service.dart';
@@ -16,20 +17,16 @@ import '../../models/booking_models.dart';
 import '../../services/search_service.dart';
 import '../../theme/app_text_style.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/language_provider.dart';
 import '../bus_booking/activities_screen.dart';
-import '../bus_booking/booking_conform.dart' hide AppColors;
 import '../bus_booking/bus_booking_screen.dart';
-import '../bus_booking/nav_booking_screen.dart';
-import '../bus_booking/check_in_status_screen.dart';
 import '../bus_booking/booking_qr_screen.dart' hide CheckInStatusScreen;
 import '../bus_booking/booking_detail_screen.dart';
-import '../lounge/lounge_booking_screen.dart';
 import '../lounge/lounge_list_screen.dart';
 import '../profile/profile_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../advertisements/advertisement_detail_screen.dart';
 import '../bus_tracking/bus_tracking_screen.dart';
-import '../../widgets/blue_header.dart';
 import '../../widgets/notification_bell.dart';
 
 class DashBoard extends StatefulWidget {
@@ -53,11 +50,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   List<Advertisement> advertisements = [];
   String? userId;
   int _unreadNotifications = 0;
-  int _previousUnreadNotifications = 0; // Track previous count for minimal alerts
 
   // Upcoming bookings
   List<BookingListItem> _upcomingBookings = [];
-  bool _isLoadingBookings = false;
   final PageController _bookingPageController = PageController();
   Timer? _bookingTimer;
   int _currentBookingIndex = 0;
@@ -66,6 +61,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   final PageController _adPageController = PageController();
   Timer? _adTimer;
   int _currentAdIndex = 0;
+  String? _lastAdLanguageCode;
 
   // Calendar scroll controller
   final ScrollController _calendarScrollController = ScrollController();
@@ -102,6 +98,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   var ThemeSelectorWidget;
 
+  String t(String key) => AppLocalization.tr(context, key);
+
   @override
   void initState() {
     super.initState();
@@ -119,6 +117,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _startAdCarousel();
     _startBookingCarousel();
     _startRefreshTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentLanguageCode = context.read<LanguageProvider>().languageCode;
+    if (_lastAdLanguageCode != currentLanguageCode) {
+      _lastAdLanguageCode = currentLanguageCode;
+      _loadDummyAdvertisements();
+    }
   }
 
   Future<void> _initializeData() async {
@@ -279,22 +287,14 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   Future<void> _loadUpcomingBookings() async {
-    setState(() {
-      _isLoadingBookings = true;
-    });
-
     try {
       final bookings = await _bookingService.getUpcomingBookings(limit: 5);
       // Show all upcoming bookings
       setState(() {
         _upcomingBookings = bookings;
-        _isLoadingBookings = false;
       });
     } catch (e) {
       print('Failed to load upcoming bookings: $e');
-      setState(() {
-        _isLoadingBookings = false;
-      });
     }
   }
 
@@ -303,8 +303,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       advertisements = [
         Advertisement(
           id: '1',
-          title: 'Special Discount 20% Off',
-          description: 'Book your bus ticket now and save big!',
+          title: t('dummyAdTitle1'),
+          description: t('dummyAdDesc1'),
           imageUrl:
               'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80',
           targetUrl: 'https://example.com/offer1',
@@ -316,8 +316,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         ),
         Advertisement(
           id: '2',
-          title: 'Weekend Travel Deals',
-          description: 'Explore new destinations every weekend',
+          title: t('dummyAdTitle2'),
+          description: t('dummyAdDesc2'),
           imageUrl:
               'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80',
           targetUrl: 'https://example.com/offer2',
@@ -329,8 +329,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         ),
         Advertisement(
           id: '3',
-          title: 'Premium Lounge Access',
-          description: 'Upgrade your travel experience with lounge benefits',
+          title: t('dummyAdTitle3'),
+          description: t('dummyAdDesc3'),
           imageUrl:
               'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80',
           targetUrl: 'https://example.com/offer3',
@@ -342,8 +342,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         ),
         Advertisement(
           id: '4',
-          title: 'Early Bird Special',
-          description: 'Book 7 days in advance and get 15% off',
+          title: t('dummyAdTitle4'),
+          description: t('dummyAdDesc4'),
           imageUrl:
               'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=800&q=80',
           targetUrl: 'https://example.com/offer4',
@@ -355,8 +355,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         ),
         Advertisement(
           id: '5',
-          title: 'Family Package',
-          description: 'Travel with family and enjoy group discounts',
+          title: t('dummyAdTitle5'),
+          description: t('dummyAdDesc5'),
           imageUrl:
               'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&q=80',
           targetUrl: 'https://example.com/offer5',
@@ -413,14 +413,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   Future<void> _loadNotifications({bool silent = false}) async {
     if (userId != null) {
       final count = await _notificationService.getUnreadCount(userId!);
-      
+
       // If count increased, show a minimal "WhatsApp-style" top banner
       if (!silent && count > _unreadNotifications && mounted) {
         _showMinimalNotificationBanner();
       }
-      
+
       setState(() {
-        _previousUnreadNotifications = _unreadNotifications;
         _unreadNotifications = count;
       });
     }
@@ -431,12 +430,19 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
+            const Icon(
+              Icons.notifications_active_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'New notification received',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                t('newNotificationReceived'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
             ),
             TextButton(
@@ -444,7 +450,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 _openNotifications();
               },
-              child: const Text('VIEW', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(
+                t('view'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -612,21 +624,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: (selectedDate ?? DateTime.now()),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
-  }
-
   // Navigate to map and get selected location
   Future<void> _navigateToMapForLocation({required bool isPickup}) async {
     final result = await Navigator.push(
@@ -675,35 +672,86 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     return keyword;
   }
 
+  // Normalize common Sinhala/Tamil location names to backend-friendly English terms.
+  String _normalizeLocationForBackendSearch(String location) {
+    final normalized = location.trim().toLowerCase();
+
+    const aliases = <String, String>{
+      // Sinhala
+      'කොළඹ': 'Colombo',
+      'කොළඹ කොටුව': 'Colombo Fort',
+      'ගාල්ල': 'Galle',
+      'මාතර': 'Matara',
+      'මහනුවර': 'Kandy',
+      'නුවර එළිය': 'Nuwara Eliya',
+      'යාපනය': 'Jaffna',
+      'කටුනායක': 'Katunayake',
+      'බණ්ඩාරනායක ගුවන් තොටුපල': 'Bandaranaike International Airport',
+      // Tamil
+      'கொழும்பு': 'Colombo',
+      'கொழும்பு கோட்டை': 'Colombo Fort',
+      'காலி': 'Galle',
+      'மாத்தறை': 'Matara',
+      'கண்டி': 'Kandy',
+      'நுவரெலியா': 'Nuwara Eliya',
+      'யாழ்ப்பாணம்': 'Jaffna',
+      'கட்டுநாயக்க': 'Katunayake',
+      'பண்டாரநாயக்க சர்வதேச விமான நிலையம்':
+          'Bandaranaike International Airport',
+    };
+
+    final exact = aliases[normalized];
+    if (exact != null) {
+      return exact;
+    }
+
+    for (final entry in aliases.entries) {
+      if (normalized.contains(entry.key)) {
+        return entry.value;
+      }
+    }
+
+    return location;
+  }
+
   // Fuzzy match Google location to backend bus stop
   Future<String?> _fuzzyMatchToStop(String googleLocation) async {
     try {
       // Extract keywords from the Google location
       final keywords = _extractKeywords(googleLocation);
+      final normalizedKeywords = _normalizeLocationForBackendSearch(keywords);
 
-      // Call backend autocomplete API with extracted keywords
-      final suggestions = await _searchService.getStopAutocomplete(
-        searchTerm: keywords,
-        limit: 5,
-      );
+      final searchCandidates = <String>{
+        keywords,
+        normalizedKeywords,
+      }.where((value) => value.trim().length >= 2).toList();
 
-      // If we have matches, use the first one (highest relevance)
-      if (suggestions.isNotEmpty) {
-        print(
-          'Fuzzy matched "$googleLocation" → "${suggestions.first.stopName}"',
+      for (final candidate in searchCandidates) {
+        final suggestions = await _searchService.getStopAutocomplete(
+          searchTerm: candidate,
+          limit: 5,
         );
-        return suggestions.first.stopName;
+
+        // If we have matches, use the first one (highest relevance)
+        if (suggestions.isNotEmpty) {
+          print(
+            'Fuzzy matched "$googleLocation" via "$candidate" → "${suggestions.first.stopName}"',
+          );
+          return suggestions.first.stopName;
+        }
       }
 
       // If no match, return the extracted keywords
       print(
-        'No fuzzy match for "$googleLocation", using keywords: "$keywords"',
+        'No fuzzy match for "$googleLocation", using fallback: "$normalizedKeywords"',
       );
-      return keywords;
+      return normalizedKeywords;
     } catch (e) {
       print('Error fuzzy matching: $e');
       // Fallback to extracted keywords
-      return _extractKeywords(googleLocation);
+      return _normalizeLocationForBackendSearch(
+        _extractKeywords(googleLocation),
+      );
     }
   }
 
@@ -724,7 +772,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             children: [
               const Icon(Icons.swap_vert, color: Colors.white),
               const SizedBox(width: 12),
-              const Expanded(child: Text('Locations swapped')),
+              Expanded(child: Text(t('locationsSwapped'))),
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.white, size: 20),
                 onPressed: () {
@@ -776,9 +824,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       strokeWidth: 3,
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Searching for trips...',
-                      style: TextStyle(
+                    Text(
+                      t('searchingTrips'),
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
@@ -786,7 +834,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Please wait',
+                      t('pleaseWait'),
                       style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                     ),
                   ],
@@ -812,17 +860,20 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       print('🔍 Matched Pickup: "$fromStop"');
       print('🔍 Matched Drop: "$toStop"');
 
-      // Dismiss loading dialog
+      // Dismiss loading dialog safely
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+        final rootNav = Navigator.of(context, rootNavigator: true);
+        if (rootNav.canPop()) {
+          rootNav.pop();
+        }
       }
 
       if (fromStop == null || toStop == null) {
         // Show error if fuzzy matching failed completely
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not find bus stops for selected locations'),
+            SnackBar(
+              content: Text(t('couldNotFindBusStops'), softWrap: true),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -861,10 +912,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     } catch (e) {
       // Dismiss loading dialog on error
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+        final rootNav = Navigator.of(context, rootNavigator: true);
+        if (rootNav.canPop()) {
+          rootNav.pop();
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Search failed: ${e.toString()}'),
+            content: Text(t('searchFailedTitle')),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -882,8 +936,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         if (permission == LocationPermission.denied) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Location permission denied'),
+              SnackBar(
+                content: Text(t('locationPermissionDenied'), softWrap: true),
                 backgroundColor: Colors.redAccent,
               ),
             );
@@ -895,12 +949,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Location permission permanently denied. Please enable in settings.',
+                t('locationPermissionPermanentlyDenied'),
+                softWrap: true,
               ),
               backgroundColor: Colors.redAccent,
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
@@ -910,7 +965,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       // Show loading indicator
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
                 SizedBox(
@@ -922,10 +977,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   ),
                 ),
                 SizedBox(width: 16),
-                Text('Getting your location...'),
+                Text(t('gettingYourLocation')),
               ],
             ),
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -960,7 +1015,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Location set: ${address.length > 50 ? address.substring(0, 50) + '...' : address}',
+                  AppLocalization.trWithArgs(context, 'locationSet', {
+                    'address': address.length > 50
+                        ? '${address.substring(0, 50)}...'
+                        : address,
+                  }),
                 ),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 2),
@@ -973,8 +1032,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       print('Error getting current location: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to get current location'),
+          SnackBar(
+            content: Text(t('failedToGetCurrentLocation'), softWrap: true),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -1015,7 +1074,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Upcoming Trips',
+                    t('upcomingTrips'),
                     style: AppTextStyles.h3.copyWith(
                       color: Colors.black87,
                       fontWeight: FontWeight.bold,
@@ -1028,9 +1087,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   _onItemTapped(1);
                 },
                 icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                label: const Text(
-                  'View All',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                label: Text(
+                  t('viewAll'),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 style: TextButton.styleFrom(foregroundColor: AppColors.primary),
               ),
@@ -1280,7 +1339,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       return cachedName;
     }
 
-    return 'User';
+    return t('passenger');
   }
 
   String _formatBookingDate(DateTime dateTime) {
@@ -1288,11 +1347,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     final difference = dateTime.difference(now).inDays;
 
     if (difference == 0) {
-      return 'Today, ${_formatTime(dateTime)}';
+      return '${t('today')}, ${_formatTime(dateTime)}';
     } else if (difference == 1) {
-      return 'Tomorrow, ${_formatTime(dateTime)}';
+      return '${t('tomorrow')}, ${_formatTime(dateTime)}';
     } else if (difference < 7) {
-      return 'In $difference days, ${_formatTime(dateTime)}';
+      return '${AppLocalization.trWithArgs(context, 'inDays', {'days': '$difference'})}, ${_formatTime(dateTime)}';
     } else {
       return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${_formatTime(dateTime)}';
     }
@@ -1307,26 +1366,53 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   String _getDayName(DateTime date) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return days[date.weekday % 7];
+    switch (date.weekday) {
+      case DateTime.monday:
+        return t('dayMon');
+      case DateTime.tuesday:
+        return t('dayTue');
+      case DateTime.wednesday:
+        return t('dayWed');
+      case DateTime.thursday:
+        return t('dayThu');
+      case DateTime.friday:
+        return t('dayFri');
+      case DateTime.saturday:
+        return t('daySat');
+      case DateTime.sunday:
+      default:
+        return t('daySun');
+    }
   }
 
   String _getMonthName(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return months[date.month - 1];
+    switch (date.month) {
+      case DateTime.january:
+        return t('monthJan');
+      case DateTime.february:
+        return t('monthFeb');
+      case DateTime.march:
+        return t('monthMar');
+      case DateTime.april:
+        return t('monthApr');
+      case DateTime.may:
+        return t('monthMay');
+      case DateTime.june:
+        return t('monthJun');
+      case DateTime.july:
+        return t('monthJul');
+      case DateTime.august:
+        return t('monthAug');
+      case DateTime.september:
+        return t('monthSep');
+      case DateTime.october:
+        return t('monthOct');
+      case DateTime.november:
+        return t('monthNov');
+      case DateTime.december:
+      default:
+        return t('monthDec');
+    }
   }
 
   // Helper method to scroll calendar to a specific date
@@ -1451,8 +1537,14 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final activeLanguageCode = context.watch<LanguageProvider>().languageCode;
     final authProvider = Provider.of<AuthProvider>(context);
     final greetingName = _greetingName(authProvider);
+    final greetingText = AppLocalization.trWithArgs(
+      context,
+      'greetingWithName',
+      {'name': greetingName},
+    );
     final topInset = MediaQuery.of(context).padding.top;
 
     var singleChildScrollView = SingleChildScrollView(
@@ -1496,7 +1588,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hello $greetingName! ',
+                          greetingText,
                           style: AppTextStyles.h2.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1523,7 +1615,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Ready to explore?',
+                                t('readyToExplore'),
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.95),
                                   fontWeight: FontWeight.w500,
@@ -1540,8 +1632,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                         // Minimal way to "create" a notification for testing
                         HapticFeedback.heavyImpact();
                         await _notificationService.addLocalNotification(
-                          title: 'Special Offer! 🎫',
-                          message: 'Get 25% off on your next trip to Kandy.',
+                          title: t('specialOfferTitle'),
+                          message: t('specialOfferMessage'),
                           type: 'offer',
                         );
                         _loadNotifications();
@@ -1747,7 +1839,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           });
                         },
                         child: Container(
-                          width: 70,
+                          width: 82,
                           margin: const EdgeInsets.only(right: 10),
                           decoration: BoxDecoration(
                             color: isSelected
@@ -1765,7 +1857,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                _getMonthName(date).substring(0, 3),
+                                _getMonthName(date),
+                                maxLines: 1,
+                                softWrap: false,
                                 style: TextStyle(
                                   color: isSelected
                                       ? Colors.white
@@ -1809,19 +1903,19 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildQuickDateButton('Today', DateTime.now()),
+                      child: _buildQuickDateButton(t('today'), DateTime.now()),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: _buildQuickDateButton(
-                        'Tomorrow',
+                        t('tomorrow'),
                         DateTime.now().add(const Duration(days: 1)),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: _buildQuickDateButton(
-                        'Next Month',
+                        t('nextMonth'),
                         DateTime(
                           DateTime.now().year,
                           DateTime.now().month + 1,
@@ -1861,7 +1955,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Popular Routes',
+                          t('popularRoutes'),
                           style: AppTextStyles.h3.copyWith(
                             color: Colors.black87,
                             fontWeight: FontWeight.bold,
@@ -1956,9 +2050,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Text(
-                      'From',
-                      style: TextStyle(
+                    Text(
+                      t('fromLabel'),
+                      style: const TextStyle(
                         color: Colors.black87,
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
@@ -1981,7 +2075,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     controller: pickupController,
                     style: const TextStyle(color: Colors.black87, fontSize: 15),
                     decoration: InputDecoration(
-                      hintText: 'Enter pickup location',
+                      hintText: t('enterPickupLocation'),
                       hintStyle: TextStyle(
                         color: Colors.grey[800],
                         fontSize: 14,
@@ -2050,10 +2144,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 8.0),
                               child: Text(
-                                'Recent Searches',
+                                t('recentSearches'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black54,
@@ -2179,10 +2273,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       pickupAutocompleteSuggestions.isNotEmpty)
                     Column(
                       children: [
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(vertical: 8.0),
                           child: Text(
-                            'Search Results',
+                            t('searchResults'),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.black54,
@@ -2235,16 +2329,19 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                         size: 20,
                       ),
                     ),
-                    title: const Text(
-                      'Use Current Location',
-                      style: TextStyle(
+                    title: Text(
+                      t('useCurrentLocation'),
+                      style: const TextStyle(
                         color: Colors.black87,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    subtitle: const Text(
-                      'Detect my location using GPS',
-                      style: TextStyle(color: Colors.black54, fontSize: 12),
+                    subtitle: Text(
+                      t('detectMyLocationGps'),
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                      ),
                     ),
                     trailing: const Icon(
                       Icons.arrow_forward_ios,
@@ -2266,9 +2363,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       Icons.location_on_outlined,
                       color: AppColors.primary,
                     ),
-                    title: const Text(
-                      'Set location on map',
-                      style: TextStyle(color: Colors.black54),
+                    title: Text(
+                      t('setLocationOnMap'),
+                      style: const TextStyle(color: Colors.black54),
                     ),
                     trailing: const Icon(
                       Icons.arrow_forward_ios,
@@ -2284,7 +2381,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     },
                   ),
                 ],
-const SizedBox(height: 25),
+                const SizedBox(height: 25),
                 // Swap button and visual connector between From and To
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -2326,13 +2423,15 @@ const SizedBox(height: 25),
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: (pickupController.text.isEmpty &&
+                                  color:
+                                      (pickupController.text.isEmpty &&
                                           dropController.text.isEmpty)
                                       ? Colors.grey[200]
                                       : AppColors.primary.withOpacity(0.1),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: (pickupController.text.isEmpty &&
+                                    color:
+                                        (pickupController.text.isEmpty &&
                                             dropController.text.isEmpty)
                                         ? Colors.grey[400]!
                                         : AppColors.primary.withOpacity(0.3),
@@ -2341,7 +2440,8 @@ const SizedBox(height: 25),
                                 ),
                                 child: Icon(
                                   Icons.swap_vert_rounded,
-                                  color: (pickupController.text.isEmpty &&
+                                  color:
+                                      (pickupController.text.isEmpty &&
                                           dropController.text.isEmpty)
                                       ? Colors.grey[600]
                                       : AppColors.primary,
@@ -2351,7 +2451,7 @@ const SizedBox(height: 25),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Tap to swap locations',
+                              t('tapToSwapLocations'),
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey[600],
@@ -2384,9 +2484,9 @@ const SizedBox(height: 25),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Text(
-                      'To',
-                      style: TextStyle(
+                    Text(
+                      t('toLabel'),
+                      style: const TextStyle(
                         color: Colors.black87,
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
@@ -2409,7 +2509,7 @@ const SizedBox(height: 25),
                     controller: dropController,
                     style: const TextStyle(color: Colors.black87, fontSize: 15),
                     decoration: InputDecoration(
-                      hintText: 'Enter destination',
+                      hintText: t('enterDestination'),
                       hintStyle: TextStyle(
                         color: Colors.grey[800],
                         fontSize: 14,
@@ -2484,10 +2584,10 @@ const SizedBox(height: 25),
                       dropAutocompleteSuggestions.isNotEmpty)
                     Column(
                       children: [
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.symmetric(vertical: 8.0),
                           child: Text(
-                            'Search Results',
+                            t('searchResults'),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.black54,
@@ -2524,17 +2624,15 @@ const SizedBox(height: 25),
                       ],
                     ),
 
-                
-
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(
                       Icons.location_on_outlined,
                       color: AppColors.primary,
                     ),
-                    title: const Text(
-                      'Set location on map',
-                      style: TextStyle(color: Colors.black54),
+                    title: Text(
+                      t('setLocationOnMap'),
+                      style: const TextStyle(color: Colors.black54),
                     ),
                     trailing: const Icon(
                       Icons.arrow_forward_ios,
@@ -2590,8 +2688,8 @@ const SizedBox(height: 25),
                           Text(
                             (pickupController.text.isEmpty ||
                                     dropController.text.isEmpty)
-                                ? 'Enter locations to search'
-                                : 'Search Trips',
+                                ? t('enterLocationsToSearch')
+                                : t('searchTrips'),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -2632,10 +2730,10 @@ const SizedBox(height: 25),
                             color: AppColors.secondary,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'No offers right now',
-                              style: TextStyle(
+                              t('noOffersRightNow'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -2739,6 +2837,7 @@ const SizedBox(height: 25),
     ];
 
     return Scaffold(
+      key: ValueKey('home-$activeLanguageCode'),
       backgroundColor: AppColors.background,
       body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: BottomNavigationBar(
@@ -2853,10 +2952,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text('Select Location on Map'),
+        title: Text(t('setLocationOnMap')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -2894,7 +2994,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _isLoading
-                          ? const Text('Loading address...')
+                          ? Text(t('loadingAddress'))
                           : Text(
                               _selectedAddress,
                               style: const TextStyle(
@@ -2924,9 +3024,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               onPressed: () {
                 Navigator.pop(context, _selectedAddress);
               },
-              child: const Text(
-                'Confirm Location',
-                style: TextStyle(
+              child: Text(
+                t('confirmLocation'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -2948,7 +3048,12 @@ class LocationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(child: Text('Offers Page', style: AppTextStyles.h2)),
+      body: Center(
+        child: Text(
+          AppLocalization.tr(context, 'offersPage'),
+          style: AppTextStyles.h2,
+        ),
+      ),
     );
   }
 }
@@ -2959,7 +3064,12 @@ class WeekendPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(child: Text('Tours Page', style: AppTextStyles.h2)),
+      body: Center(
+        child: Text(
+          AppLocalization.tr(context, 'toursPage'),
+          style: AppTextStyles.h2,
+        ),
+      ),
     );
   }
 }
@@ -2970,7 +3080,12 @@ class profile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(child: Text('Tours Page', style: AppTextStyles.h2)),
+      body: Center(
+        child: Text(
+          AppLocalization.tr(context, 'toursPage'),
+          style: AppTextStyles.h2,
+        ),
+      ),
     );
   }
 }

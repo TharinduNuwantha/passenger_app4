@@ -27,6 +27,7 @@ class AppConstants {
   static const String tokenExpiryKey = 'token_expiry';
   static const String userDataKey = 'user_data';
   static const String themeKey = 'theme_mode';
+  static const String languageKey = 'language_code';
 
   // Error Messages
   static const String networkError =

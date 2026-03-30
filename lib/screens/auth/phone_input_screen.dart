@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../localization/app_localization.dart';
 import '../intro/get_started_screen.dart';
 import '../../config/constants.dart';
 import '../../config/theme_config.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../widgets/error_dialog.dart';
 import '../../widgets/loading_overlay.dart';
 
@@ -35,9 +37,64 @@ class PhoneInputScreen extends StatefulWidget {
 class _PhoneInputScreenState extends State<PhoneInputScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
+  final RegExp _e164Regex = RegExp(r'^\+[1-9]\d{7,14}$');
+  // Common national number lengths by country ISO code (without country dial code).
+  static const Map<String, List<int>> _countryNationalLengths = {
+    'LK': [9],
+    'IN': [10],
+    'PK': [10],
+    'BD': [10],
+    'NP': [10],
+    'AE': [9],
+    'SA': [9],
+    'QA': [8],
+    'KW': [8],
+    'OM': [8],
+    'BH': [8],
+    'US': [10],
+    'CA': [10],
+    'GB': [10],
+    'AU': [9],
+    'NZ': [8, 9],
+    'MY': [8, 9],
+    'SG': [8],
+  };
   String _completePhoneNumber = '';
+  String _selectedCountryIsoCode = AppConstants.countryISOCode;
+  String _selectedDialCode = AppConstants.countryCode;
   bool _isValid = true;
   bool _isChecking = true; // Gatekeeper flag
+
+  bool _isValidForSelectedCountry({
+    required String countryIso,
+    required String dialCode,
+    required String rawNumber,
+  }) {
+    final cleanedNumber = rawNumber.replaceAll(RegExp(r'\D'), '');
+    if (cleanedNumber.isEmpty) {
+      return false;
+    }
+
+    // National significant number must not start with 0 in this flow.
+    if (cleanedNumber.startsWith('0')) {
+      return false;
+    }
+
+    final allowedLengths = _countryNationalLengths[countryIso.toUpperCase()];
+    if (allowedLengths != null &&
+        !allowedLengths.contains(cleanedNumber.length)) {
+      return false;
+    }
+
+    // Fallback rule for countries not in map.
+    if (allowedLengths == null &&
+        (cleanedNumber.length < 6 || cleanedNumber.length > 12)) {
+      return false;
+    }
+
+    final fullNumber = '$dialCode$cleanedNumber';
+    return _e164Regex.hasMatch(fullNumber);
+  }
 
   @override
   void initState() {
@@ -50,7 +107,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   Future<void> _checkFirstRun() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Check ifintro seen or if user is authenticated
     final bool hasSeenIntro = prefs.getBool('has_seen_intro') ?? false;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -84,6 +141,8 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
   }
 
   Future<void> _sendOtp() async {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     // Dismiss keyboard when Send OTP is tapped
     FocusScope.of(context).unfocus();
 
@@ -92,10 +151,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     }
 
     if (!_isValid) {
-      ErrorDialog.show(
-        context: context,
-        message: 'Please enter a valid mobile number',
-      );
+      ErrorDialog.show(context: context, message: t('pleaseEnterValidMobile'));
       return;
     }
 
@@ -107,10 +163,10 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     if (success) {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification code sent! Check your SMS.'),
+        SnackBar(
+          content: Text(t('verificationCodeSent'), softWrap: true),
           backgroundColor: AppColors.success,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
 
@@ -121,11 +177,11 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
       );
     } else {
       final isRateLimit = authProvider.error?.contains('Too many') ?? false;
-      
+
       ErrorDialog.show(
         context: context,
-        title: isRateLimit ? 'Too Many Requests' : 'Error',
-        message: authProvider.error ?? 'Failed to send verification code',
+        title: isRateLimit ? t('tooManyRequests') : t('error'),
+        message: authProvider.error ?? t('failedToSendCode'),
         onRetry: isRateLimit ? null : _sendOtp,
       );
     }
@@ -133,6 +189,9 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeLanguageCode = context.watch<LanguageProvider>().languageCode;
+    final t = (String key) => AppLocalization.tr(context, key);
+
     if (_isChecking) {
       return const Scaffold(backgroundColor: Colors.white);
     }
@@ -141,9 +200,23 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
       builder: (context, authProvider, child) {
         return LoadingOverlay(
           isLoading: authProvider.isLoading,
-          message: 'Processing...',
+          message: t('processing'),
           child: Scaffold(
+            key: ValueKey('phone-input-$activeLanguageCode'),
             backgroundColor: Colors.white,
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leadingWidth: 0,
+              automaticallyImplyLeading: false,
+              actions: [
+                // Language Switcher Button
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Center(child: _buildLanguageSwitcher(context)),
+                ),
+              ],
+            ),
             body: Stack(
               children: [
                 // Background Image
@@ -174,19 +247,19 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              'Log In',
-                              style: TextStyle(
+                            Text(
+                              t('loginTitle'),
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 10),
-                            const Text(
-                              'Log in to continue your seamless journey',
+                            Text(
+                              t('loginSubtitle'),
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Color.fromARGB(255, 139, 139, 139),
                                 fontSize: 14,
                               ),
@@ -196,25 +269,36 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                             IntlPhoneField(
                               controller: _phoneController,
                               style: const TextStyle(color: Colors.black),
-                              dropdownTextStyle: const TextStyle(color: Colors.black),
+                              dropdownTextStyle: const TextStyle(
+                                color: Colors.black,
+                              ),
                               inputFormatters: [NoLeadingZeroFormatter()],
                               cursorColor: AppColors.primary,
                               decoration: InputDecoration(
-                                hintText: 'Mobile Number',
-                                hintStyle: const TextStyle(color: Colors.black38),
+                                hintText: t('mobileNumber'),
+                                hintStyle: const TextStyle(
+                                  color: Colors.black38,
+                                ),
                                 filled: true,
                                 fillColor: Colors.grey.shade100,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 2,
+                                  ),
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 20,
@@ -223,15 +307,53 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                               ),
                               initialCountryCode: AppConstants.countryISOCode,
                               disableLengthCheck: true,
-                              onChanged: (phone) {
+                              onCountryChanged: (country) {
                                 setState(() {
-                                  _completePhoneNumber = phone.completeNumber;
+                                  _selectedCountryIsoCode = country.code;
+                                  _selectedDialCode = '+${country.dialCode}';
+                                  _completePhoneNumber =
+                                      '$_selectedDialCode${_phoneController.text.replaceAll(RegExp(r'\\D'), '')}';
+                                  _isValid = _isValidForSelectedCountry(
+                                    countryIso: _selectedCountryIsoCode,
+                                    dialCode: _selectedDialCode,
+                                    rawNumber: _phoneController.text,
+                                  );
+                                });
+                              },
+                              onChanged: (phone) {
+                                final cleanedNumber = phone.number.replaceAll(
+                                  RegExp(r'\D'),
+                                  '',
+                                );
+                                final fullNumber =
+                                    '${phone.countryCode}$cleanedNumber';
+                                setState(() {
+                                  _selectedCountryIsoCode =
+                                      phone.countryISOCode;
+                                  _selectedDialCode = phone.countryCode;
+                                  _completePhoneNumber = fullNumber;
+                                  _isValid = _isValidForSelectedCountry(
+                                    countryIso: phone.countryISOCode,
+                                    dialCode: phone.countryCode,
+                                    rawNumber: phone.number,
+                                  );
                                 });
                               },
                               validator: (phone) {
-                                if (phone == null || phone.number.isEmpty) {
-                                  return 'Please enter your mobile number';
+                                if (phone == null ||
+                                    phone.number.trim().isEmpty) {
+                                  return t('pleaseEnterMobileNumber');
                                 }
+
+                                final isValid = _isValidForSelectedCountry(
+                                  countryIso: phone.countryISOCode,
+                                  dialCode: phone.countryCode,
+                                  rawNumber: phone.number,
+                                );
+                                if (!isValid) {
+                                  return t('pleaseEnterValidMobile');
+                                }
+
                                 return null;
                               },
                             ),
@@ -248,9 +370,9 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                   ),
                                 ),
                                 onPressed: _sendOtp,
-                                child: const Text(
-                                  'Login',
-                                  style: TextStyle(
+                                child: Text(
+                                  t('loginButton'),
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
@@ -258,8 +380,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20)
-        
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -269,6 +390,142 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageSwitcher(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return GestureDetector(
+          onTap: () {
+            _showLanguageSheet(context);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.language, size: 18, color: AppColors.primary),
+                const SizedBox(width: 6),
+                Text(
+                  _getLanguageLabel(languageProvider.languageCode),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getLanguageLabel(String code) {
+    switch (code) {
+      case AppLocalization.english:
+        return 'EN';
+      case AppLocalization.sinhala:
+        return 'සි';
+      case AppLocalization.tamil:
+        return 'த';
+      default:
+        return 'EN';
+    }
+  }
+
+  void _showLanguageSheet(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Consumer<LanguageProvider>(
+          builder: (context, languageProvider, child) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    t('changeLanguage'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildLanguageOption(
+                    context,
+                    AppLocalization.english,
+                    t('englishLabel'),
+                    languageProvider.languageCode == AppLocalization.english,
+                  ),
+                  _buildLanguageOption(
+                    context,
+                    AppLocalization.sinhala,
+                    t('sinhalaLabel'),
+                    languageProvider.languageCode == AppLocalization.sinhala,
+                  ),
+                  _buildLanguageOption(
+                    context,
+                    AppLocalization.tamil,
+                    t('tamilLabel'),
+                    languageProvider.languageCode == AppLocalization.tamil,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageOption(
+    BuildContext context,
+    String code,
+    String label,
+    bool isSelected,
+  ) {
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return ListTile(
+          leading: Radio<String>(
+            value: code,
+            groupValue: languageProvider.languageCode,
+            onChanged: (value) async {
+              if (value != null) {
+                await Provider.of<LanguageProvider>(
+                  context,
+                  listen: false,
+                ).setLocaleByCode(value);
+                Navigator.pop(context);
+              }
+            },
+            activeColor: AppColors.primary,
+          ),
+          title: Text(label),
+          onTap: () async {
+            await Provider.of<LanguageProvider>(
+              context,
+              listen: false,
+            ).setLocaleByCode(code);
+            Navigator.pop(context);
+          },
         );
       },
     );

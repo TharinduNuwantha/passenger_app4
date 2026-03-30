@@ -4,6 +4,7 @@ import 'package:pinput/pinput.dart';
 import 'package:provider/provider.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 import 'package:logger/logger.dart';
+import '../../localization/app_localization.dart';
 import '../../config/constants.dart';
 import '../../config/theme_config.dart';
 import '../../providers/auth_provider.dart';
@@ -104,6 +105,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   }
 
   Future<void> _verifyOtp() async {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     // Prevent duplicate verification calls
     if (_isVerifying) {
       _logger.i('⚠️ Verification already in progress, ignoring duplicate call');
@@ -111,10 +114,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     }
 
     if (_otpController.text.length != AppConstants.otpLength) {
-      ErrorDialog.show(
-        context: context,
-        message: 'Please enter the complete 6-digit code',
-      );
+      ErrorDialog.show(context: context, message: t('invalidSixDigitCode'));
       return;
     }
 
@@ -153,9 +153,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 
       ErrorDialog.show(
         context: context,
-        message:
-            authProvider.error ??
-            'Invalid verification code. Please try again.',
+        message: authProvider.error ?? t('invalidVerificationCode'),
         onRetry: _verifyOtp,
       );
       _otpController.clear();
@@ -163,6 +161,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   }
 
   Future<void> _resendOtp() async {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.sendOtp(widget.phoneNumber);
 
@@ -171,18 +171,18 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     if (success) {
       _startCountdown();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('New code sent! Check your SMS.'),
+        SnackBar(
+          content: Text(t('newCodeSent')),
           backgroundColor: AppColors.success,
         ),
       );
     } else {
       final isRateLimit = authProvider.error?.contains('Too many') ?? false;
-      
+
       ErrorDialog.show(
         context: context,
-        title: isRateLimit ? 'Too Many Requests' : 'Error',
-        message: authProvider.error ?? 'Failed to send code. Please try again.',
+        title: isRateLimit ? t('tooManyRequests') : t('error'),
+        message: authProvider.error ?? t('failedToSendCodeRetry'),
         onRetry: isRateLimit ? null : _resendOtp,
       );
     }
@@ -190,11 +190,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = (String key) => AppLocalization.tr(context, key);
+
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return LoadingOverlay(
           isLoading: authProvider.isLoading,
-          message: 'Verifying...',
+          message: t('verifying'),
           child: Scaffold(
             backgroundColor: Colors.white,
             appBar: AppBar(
@@ -240,10 +242,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                               const SizedBox(height: AppSpacing.large),
 
                               // Title
-                              const Text(
-                                'Verify Your Number',
+                              Text(
+                                t('verifyYourNumber'),
+                                softWrap: true,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.textPrimary,
@@ -253,7 +256,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 
                               // Phone Number
                               Text(
-                                'Enter the 6-digit code sent to\n${PhoneFormatter.formatForDisplay(widget.phoneNumber)}',
+                                '${t('enterSixDigitCode')}\n${PhoneFormatter.formatForDisplay(widget.phoneNumber)}',
+                                softWrap: true,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 14,
@@ -335,7 +339,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 
                               // Verify Button
                               CustomButton(
-                                text: 'Verify & Continue',
+                                text: t('verifyContinue'),
                                 onPressed: _verifyOtp,
                                 icon: Icons.check_circle_rounded,
                               ),
@@ -345,9 +349,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                               Center(
                                 child: Column(
                                   children: [
-                                    const Text(
-                                      'Didn\'t receive the code?',
-                                      style: TextStyle(
+                                    Text(
+                                      t('didNotReceiveCode'),
+                                      softWrap: true,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
                                         color: AppColors.textSecondary,
                                         fontSize: 13,
                                       ),
@@ -363,9 +369,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                                             vertical: AppSpacing.small,
                                           ),
                                         ),
-                                        child: const Text(
-                                          'Resend Code',
-                                          style: TextStyle(
+                                        child: Text(
+                                          t('resendCode'),
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 14,
                                           ),
@@ -378,7 +384,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                                           vertical: AppSpacing.small,
                                         ),
                                         child: Text(
-                                          'Resend in $_resendCountdown seconds',
+                                          AppLocalization.trWithArgs(
+                                            context,
+                                            'resendInSeconds',
+                                            {'seconds': '$_resendCountdown'},
+                                          ),
                                           style: const TextStyle(
                                             color: AppColors.textSecondary,
                                             fontWeight: FontWeight.w500,
@@ -398,7 +408,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                                   Navigator.of(context).pop();
                                 },
                                 icon: const Icon(Icons.edit_rounded, size: 18),
-                                label: const Text('Change Mobile Number'),
+                                label: Text(t('changeMobileNumber')),
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppColors.textSecondary,
                                 ),
