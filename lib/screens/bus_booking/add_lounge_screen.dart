@@ -159,15 +159,25 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   // Smart Suggestion state
   String? _suggestedDepartureLoungeId;
   String? _suggestedArrivalLoungeId;
-  String? _smartLocationName;
-  bool _isGettingLiveLocation = false;
   bool _isSelectingFromMap = false;
   Map<String, double> _loungeDistances = {}; // loungeId -> distanceKm
+  String? _smartLocationName;
+  bool _isGettingLiveLocation = false;
+
+  // Transit state
+  bool _isLoadingTransit = false;
+  String? _transitError;
+  List<Lounge> _transitLounges = [];
+  SelectedLoungeData? _selectedTransitLounge;
+  String? _suggestedTransitLoungeId;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: widget.trip.isTransit ? 3 : 2,
+      vsync: this,
+    );
     _loadLounges();
   }
 
@@ -206,6 +216,15 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       setState(() {
         _isLoadingDeparture = false;
         _departureError = 'No route information available';
+      });
+    }
+
+    // ── Transit (middle-trip) lounges ─────────────────────────────────────────
+    if (widget.trip.isTransit && widget.trip.transitPointId != null) {
+      _loadTransitLounges();
+    } else {
+      setState(() {
+        _isLoadingTransit = false;
       });
     }
 
@@ -414,8 +433,39 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     }
   }
 
+  Future<void> _loadTransitLounges() async {
+    if (widget.trip.transitPointId == null) return;
+
+    setState(() => _isLoadingTransit = true);
+    try {
+      _logger.i(
+        'Loading transit lounges near stop: ${widget.trip.transitPointId}',
+      );
+      final lounges = await _loungeService.getLoungesNearStop(
+        widget.masterRouteId ?? '',
+        widget.trip.transitPointId!,
+      );
+      setState(() {
+        _transitLounges = lounges;
+        _isLoadingTransit = false;
+      });
+      _logger.i('Found ${lounges.length} transit lounges');
+    } catch (e) {
+      _logger.e('Failed to load transit lounges: $e');
+      setState(() {
+        _transitError = 'Failed to load transit lounges';
+        _isLoadingTransit = false;
+      });
+    }
+  }
+
   /// Calculate distance between two points in km
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) / 1000.0;
   }
 
@@ -475,7 +525,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
           ),
           backgroundColor: AppColors.primary,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           duration: const Duration(seconds: 3),
         ),
       );
@@ -504,7 +556,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         );
         return;
       }
-      
+
       // If permission is denied again
       if (permission == LocationPermission.denied) {
         _showErrorSnackBar('Location permission denied.');
@@ -512,18 +564,21 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       }
 
       // Using high accuracy and longer timeout for reliability
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-        timeLimit: const Duration(seconds: 25),
-      ).catchError((e) async {
-        // Fallback to lower accuracy if best fails
-        return await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 15),
-        );
-      });
+      Position position =
+          await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.best,
+            timeLimit: const Duration(seconds: 25),
+          ).catchError((e) async {
+            // Fallback to lower accuracy if best fails
+            return await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high,
+              timeLimit: const Duration(seconds: 15),
+            );
+          });
 
-      _logger.d('Location obtained: ${position.latitude}, ${position.longitude}');
+      _logger.d(
+        'Location obtained: ${position.latitude}, ${position.longitude}',
+      );
 
       // Get address name for refined display
       String? name;
@@ -549,7 +604,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       );
     } catch (e) {
       _logger.e('Failed to get location: $e');
-      _showErrorSnackBar('Location Error: Could not pinpoint your position clearly.');
+      _showErrorSnackBar(
+        'Location Error: Could not pinpoint your position clearly.',
+      );
     } finally {
       setState(() => _isGettingLiveLocation = false);
     }
@@ -562,9 +619,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => MapSelectionScreen(
-            apiKey: dotenv.get('GOOGLE_MAPS_API_KEY'),
-          ),
+          builder: (context) =>
+              MapSelectionScreen(apiKey: dotenv.get('GOOGLE_MAPS_API_KEY')),
         ),
       );
 
@@ -581,7 +637,6 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       setState(() => _isSelectingFromMap = false);
     }
   }
-
 
   void _showErrorSnackBar(String message) {
     if (mounted) {
@@ -611,6 +666,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       setState(() {
         if (isPreTrip) {
           _selectedPreTripLounge = result;
+        } else if (_tabController.index == 1 && widget.trip.isTransit) {
+          _selectedTransitLounge = result;
         } else {
           _selectedPostTripLounge = result;
         }
@@ -619,10 +676,12 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   }
 
   /// Remove selected lounge
-  void _removeLounge(bool isPreTrip) {
+  void _removeLounge(bool isPreTrip, {bool isTransit = false}) {
     setState(() {
       if (isPreTrip) {
         _selectedPreTripLounge = null;
+      } else if (isTransit) {
+        _selectedTransitLounge = null;
       } else {
         _selectedPostTripLounge = null;
       }
@@ -635,6 +694,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     if (_selectedPreTripLounge != null) {
       total += _selectedPreTripLounge!.totalPrice;
     }
+    if (_selectedTransitLounge != null) {
+      total += _selectedTransitLounge!.totalPrice;
+    }
     if (_selectedPostTripLounge != null) {
       total += _selectedPostTripLounge!.totalPrice;
     }
@@ -643,18 +705,37 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 
   /// Skip lounges and proceed
   void _skipLounges() {
+    if (widget.trip.isTransit && _selectedTransitLounge == null) {
+      _showErrorSnackBar(
+        'A transit lounge selection is mandatory for this journey.',
+      );
+      _tabController.animateTo(1); // Switch to transit tab
+      return;
+    }
     Navigator.pop(
       context,
-      AddLoungeResult(preTripLounge: null, postTripLounge: null),
+      AddLoungeResult(
+        preTripLounge: null,
+        transitLounge: _selectedTransitLounge,
+        postTripLounge: null,
+      ),
     );
   }
 
   /// Continue with selected lounges
   void _continueWithLounges() {
+    if (widget.trip.isTransit && _selectedTransitLounge == null) {
+      _showErrorSnackBar(
+        'Transit lounge selection is mandatory for this journey.',
+      );
+      _tabController.animateTo(1);
+      return;
+    }
     Navigator.pop(
       context,
       AddLoungeResult(
         preTripLounge: _selectedPreTripLounge,
+        transitLounge: _selectedTransitLounge,
         postTripLounge: _selectedPostTripLounge,
       ),
     );
@@ -689,6 +770,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 
             // Selected lounges summary (if any)
             if (_selectedPreTripLounge != null ||
+                _selectedTransitLounge != null ||
                 _selectedPostTripLounge != null)
               _buildSelectedLoungesSummary(),
 
@@ -719,7 +801,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                       children: [
                         const Flexible(
                           child: Text(
-                            'Boarding Lounge',
+                            'Departure',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -735,13 +817,57 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                       ],
                     ),
                   ),
+                  if (widget.trip.isTransit)
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Flexible(
+                            child: Text(
+                              'Transit',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          if (_selectedTransitLounge != null)
+                            const Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: Colors.green,
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.2),
+                                border: Border.all(
+                                  color: Colors.orange,
+                                  width: 0.5,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Mandatory',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   Tab(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Flexible(
                           child: Text(
-                            'Destination Lounge',
+                            'Arrival',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -784,6 +910,16 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                       isPreTrip: true,
                       stopName: widget.boardingPoint,
                     ),
+                    if (widget.trip.isTransit)
+                      _buildLoungeList(
+                        isLoading: _isLoadingTransit,
+                        error: _transitError,
+                        lounges: _transitLounges,
+                        selectedLounge: _selectedTransitLounge,
+                        isPreTrip:
+                            false, // selection handled by _tabController.index check
+                        stopName: widget.trip.transitPoint ?? 'Station B',
+                      ),
                     _buildLoungeList(
                       isLoading: _isLoadingArrival,
                       error: _arrivalError,
@@ -1102,16 +1238,25 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                   if (_smartLocationName != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.2),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                          const Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
@@ -1135,7 +1280,11 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                 _loungeDistances.clear();
                               });
                             },
-                            child: const Icon(Icons.close, size: 14, color: Colors.grey),
+                            child: const Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
@@ -1190,7 +1339,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isPreTrip ? 'Lounges at Departure' : 'Lounges at Arrival',
+                        isPreTrip
+                            ? 'Lounges at Departure'
+                            : 'Lounges at Arrival',
                         style: const TextStyle(
                           color: AppColors.primary,
                           fontSize: 16,
@@ -1212,7 +1363,10 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -1235,35 +1389,31 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final lounge = lounges[index];
-                final isSelected = selectedLounge?.lounge.id == lounge.id;
-                final isSuggested = isPreTrip
-                    ? _suggestedDepartureLoungeId == lounge.id
-                    : _suggestedArrivalLoungeId == lounge.id;
-                final distance = _loungeDistances[lounge.id];
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final lounge = lounges[index];
+              final isSelected = selectedLounge?.lounge.id == lounge.id;
+              final isSuggested = isPreTrip
+                  ? _suggestedDepartureLoungeId == lounge.id
+                  : _suggestedArrivalLoungeId == lounge.id;
+              final distance = _loungeDistances[lounge.id];
 
-                return _buildLoungeCard(
-                  lounge: lounge,
-                  isSelected: isSelected,
-                  isSuggested: isSuggested,
-                  distance: distance,
-                  isPreTrip: isPreTrip,
-                  onTap: () => _configureLoungeBooking(lounge, isPreTrip),
-                );
-              },
-              childCount: lounges.length,
-            ),
+              return _buildLoungeCard(
+                lounge: lounge,
+                isSelected: isSelected,
+                isSuggested: isSuggested,
+                distance: distance,
+                isPreTrip: isPreTrip,
+                onTap: () => _configureLoungeBooking(lounge, isPreTrip),
+              );
+            }, childCount: lounges.length),
           ),
         ),
-        
+
         // Bottom spacer
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
       ],
     );
   }
-
 
   Widget _buildLoungeCard({
     required Lounge lounge,
@@ -1284,8 +1434,13 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
             color: isSelected
                 ? AppColors.primary
                 : (isSuggested
-                    ? AppColors.primary.withOpacity(0.5)
-                    : const Color.fromARGB(255, 76, 149, 246).withOpacity(0.3)),
+                      ? AppColors.primary.withOpacity(0.5)
+                      : const Color.fromARGB(
+                          255,
+                          76,
+                          149,
+                          246,
+                        ).withOpacity(0.3)),
             width: isSelected || isSuggested ? 2 : 1,
           ),
           boxShadow: [
@@ -1318,7 +1473,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                           height: 100,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                          errorBuilder: (_, __, ___) =>
+                              _buildImagePlaceholder(),
                         )
                       : _buildImagePlaceholder(),
                 ),
@@ -1488,7 +1644,10 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 top: 10,
                 right: 10,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [AppColors.primary, Color(0xFF673AB7)],
@@ -1648,11 +1807,17 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 /// Result from AddLoungeScreen
 class AddLoungeResult {
   final SelectedLoungeData? preTripLounge;
+  final SelectedLoungeData? transitLounge;
   final SelectedLoungeData? postTripLounge;
 
-  AddLoungeResult({this.preTripLounge, this.postTripLounge});
+  AddLoungeResult({
+    this.preTripLounge,
+    this.transitLounge,
+    this.postTripLounge,
+  });
 
-  bool get hasLounges => preTripLounge != null || postTripLounge != null;
+  bool get hasLounges =>
+      preTripLounge != null || transitLounge != null || postTripLounge != null;
 }
 
 // ============================================================================
@@ -3131,7 +3296,7 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
       animation: _controller,
       builder: (context, child) {
         final double gradientOffset = _controller.value;
-        
+
         return Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
@@ -3149,8 +3314,8 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
                     end: Alignment(0.0 + (gradientOffset * 4), 0.5),
                   )
                 : null,
-            border: !widget.isLoading 
-                ? Border.all(color: AppColors.primary.withOpacity(0.15)) 
+            border: !widget.isLoading
+                ? Border.all(color: AppColors.primary.withOpacity(0.15))
                 : null,
             boxShadow: [
               if (widget.isLoading)
@@ -3178,30 +3343,39 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
                 onTap: widget.isLoading ? null : widget.onTap,
                 borderRadius: BorderRadius.circular(13),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 10,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       if (widget.isLoading)
-                         const SizedBox(
-                           width: 14,
-                           height: 14,
-                           child: CircularProgressIndicator(
-                             strokeWidth: 2,
-                             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                           ),
-                         )
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
+                          ),
+                        )
                       else
                         Icon(widget.icon, size: 16, color: AppColors.primary),
                       const SizedBox(width: 8),
                       Text(
-                        widget.isLoading 
-                           ? (widget.label.contains('Location') ? 'Pinpointing Location...' : 'Selecting from Map...') 
-                           : widget.label,
+                        widget.isLoading
+                            ? (widget.label.contains('Location')
+                                  ? 'Pinpointing Location...'
+                                  : 'Selecting from Map...')
+                            : widget.label,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: widget.isLoading ? AppColors.primary : Colors.black87,
+                          color: widget.isLoading
+                              ? AppColors.primary
+                              : Colors.black87,
                           letterSpacing: 0.1,
                         ),
                       ),

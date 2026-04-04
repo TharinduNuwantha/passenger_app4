@@ -105,7 +105,11 @@ enum IntentType {
   busWithLounge,
   busWithPreLounge,
   busWithPostLounge,
-  busWithBothLounges;
+  busWithBothLounges,
+  busWithTransitLounge,
+  busWithPreAndTransit,
+  busWithTransitAndPost,
+  busWithAllLounges;
 
   /// Convert to JSON for API request
   /// Backend only accepts: bus_only, lounge_only, combined
@@ -120,6 +124,10 @@ enum IntentType {
       case IntentType.busWithPreLounge:
       case IntentType.busWithPostLounge:
       case IntentType.busWithBothLounges:
+      case IntentType.busWithTransitLounge:
+      case IntentType.busWithPreAndTransit:
+      case IntentType.busWithTransitAndPost:
+      case IntentType.busWithAllLounges:
         return 'combined';
     }
   }
@@ -139,6 +147,10 @@ enum IntentType {
       case 'bus_with_both_lounges':
         // Backend returns 'combined' - we'll use busWithLounge as generic
         return IntentType.busWithLounge;
+      case 'bus_with_transit_lounge':
+        return IntentType.busWithTransitLounge;
+      case 'bus_with_all_lounges':
+        return IntentType.busWithAllLounges;
       default:
         return IntentType.busOnly;
     }
@@ -158,6 +170,14 @@ enum IntentType {
         return 'Bus + Destination Lounge';
       case IntentType.busWithBothLounges:
         return 'Bus + Both Lounges';
+      case IntentType.busWithTransitLounge:
+        return 'Bus + Transit Lounge';
+      case IntentType.busWithPreAndTransit:
+        return 'Bus + Boarding & Transit Lounges';
+      case IntentType.busWithTransitAndPost:
+        return 'Bus + Transit & Destination Lounges';
+      case IntentType.busWithAllLounges:
+        return 'Bus + All Lounges';
     }
   }
 }
@@ -171,6 +191,7 @@ class CreateBookingIntentRequest {
   final IntentType intentType;
   final BusIntentRequest? bus;
   final LoungeIntentRequest? preTripLounge;
+  final LoungeIntentRequest? transitLounge;
   final LoungeIntentRequest? postTripLounge;
   final String? idempotencyKey;
 
@@ -178,6 +199,7 @@ class CreateBookingIntentRequest {
     required this.intentType,
     this.bus,
     this.preTripLounge,
+    this.transitLounge,
     this.postTripLounge,
     this.idempotencyKey,
   });
@@ -187,6 +209,7 @@ class CreateBookingIntentRequest {
       'intent_type': intentType.toJson(),
       if (bus != null) 'bus': bus!.toJson(),
       if (preTripLounge != null) 'pre_trip_lounge': preTripLounge!.toJson(),
+      if (transitLounge != null) 'transit_lounge': transitLounge!.toJson(),
       if (postTripLounge != null) 'post_trip_lounge': postTripLounge!.toJson(),
       if (idempotencyKey != null) 'idempotency_key': idempotencyKey,
     };
@@ -208,6 +231,7 @@ class CreateBookingIntentRequest {
   factory CreateBookingIntentRequest.busWithLounge({
     required BusIntentRequest bus,
     LoungeIntentRequest? preTripLounge,
+    LoungeIntentRequest? transitLounge,
     LoungeIntentRequest? postTripLounge,
     String? idempotencyKey,
   }) {
@@ -215,6 +239,7 @@ class CreateBookingIntentRequest {
       intentType: IntentType.busWithLounge,
       bus: bus,
       preTripLounge: preTripLounge,
+      transitLounge: transitLounge,
       postTripLounge: postTripLounge,
       idempotencyKey: idempotencyKey,
     );
@@ -243,6 +268,7 @@ class BusIntentRequest {
   final String? alightingStopId;
   final String? alightingStopName;
   final List<IntentSeatRequest> seats;
+  final List<BusIntentLegRequest>? legs; // For transit journeys
   final String passengerName;
   final String passengerPhone;
   final String? passengerEmail;
@@ -255,6 +281,7 @@ class BusIntentRequest {
     this.alightingStopId,
     this.alightingStopName,
     required this.seats,
+    this.legs,
     required this.passengerName,
     required this.passengerPhone,
     this.passengerEmail,
@@ -269,10 +296,41 @@ class BusIntentRequest {
       if (alightingStopId != null) 'alighting_stop_id': alightingStopId,
       if (alightingStopName != null) 'alighting_stop_name': alightingStopName,
       'seats': seats.map((s) => s.toJson()).toList(),
+      if (legs != null) 'legs': legs!.map((l) => l.toJson()).toList(),
       'passenger_name': passengerName,
       'passenger_phone': passengerPhone,
       if (passengerEmail != null) 'passenger_email': passengerEmail,
       if (specialRequests != null) 'special_requests': specialRequests,
+    };
+  }
+}
+
+/// Request for a single leg of a transit journey
+class BusIntentLegRequest {
+  final String scheduledTripId;
+  final String boardingStopId;
+  final String boardingStopName;
+  final String alightingStopId;
+  final String alightingStopName;
+  final List<IntentSeatRequest> seats;
+
+  BusIntentLegRequest({
+    required this.scheduledTripId,
+    required this.boardingStopId,
+    required this.boardingStopName,
+    required this.alightingStopId,
+    required this.alightingStopName,
+    required this.seats,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'scheduled_trip_id': scheduledTripId,
+      'boarding_stop_id': boardingStopId,
+      'boarding_stop_name': boardingStopName,
+      'alighting_stop_id': alightingStopId,
+      'alighting_stop_name': alightingStopName,
+      'seats': seats.map((s) => s.toJson()).toList(),
     };
   }
 }
@@ -445,6 +503,7 @@ class BookingIntentResponse {
   final IntentPricing pricing;
   final BusIntentSummary? bus;
   final LoungeIntentSummary? preTripLounge;
+  final LoungeIntentSummary? transitLounge;
   final LoungeIntentSummary? postTripLounge;
 
   BookingIntentResponse({
@@ -454,6 +513,7 @@ class BookingIntentResponse {
     required this.pricing,
     this.bus,
     this.preTripLounge,
+    this.transitLounge,
     this.postTripLounge,
   });
 
@@ -475,6 +535,11 @@ class BookingIntentResponse {
       preTripLounge: json['pre_trip_lounge'] != null
           ? LoungeIntentSummary.fromJson(
               json['pre_trip_lounge'] as Map<String, dynamic>,
+            )
+          : null,
+      transitLounge: json['transit_lounge'] != null
+          ? LoungeIntentSummary.fromJson(
+              json['transit_lounge'] as Map<String, dynamic>,
             )
           : null,
       postTripLounge: json['post_trip_lounge'] != null
@@ -509,6 +574,7 @@ class BookingIntentResponse {
 class IntentPricing {
   final double busFare;
   final double preLoungeFare;
+  final double transitLoungeFare;
   final double postLoungeFare;
   final double totalAmount;
   final String currency;
@@ -516,6 +582,7 @@ class IntentPricing {
   IntentPricing({
     required this.busFare,
     required this.preLoungeFare,
+    this.transitLoungeFare = 0.0,
     required this.postLoungeFare,
     required this.totalAmount,
     required this.currency,
@@ -526,6 +593,7 @@ class IntentPricing {
     return IntentPricing(
       busFare: _parseDouble(json['bus_fare']),
       preLoungeFare: _parseDouble(json['pre_lounge_fare']),
+      transitLoungeFare: _parseDouble(json['transit_lounge_fare']),
       postLoungeFare: _parseDouble(json['post_lounge_fare']),
       // Backend uses 'total', Flutter model uses 'totalAmount'
       totalAmount: _parseDouble(json['total'] ?? json['total_amount']),
@@ -538,6 +606,7 @@ class IntentPricing {
     return IntentPricing(
       busFare: 0.0,
       preLoungeFare: 0.0,
+      transitLoungeFare: 0.0,
       postLoungeFare: 0.0,
       totalAmount: 0.0,
       currency: 'LKR',
@@ -708,6 +777,7 @@ class IntentStatusResponse {
   final IntentPricing pricing;
   final ConfirmedBookingInfo? busBooking;
   final ConfirmedBookingInfo? preLoungeBooking;
+  final ConfirmedBookingInfo? transitLoungeBooking;
   final ConfirmedBookingInfo? postLoungeBooking;
 
   IntentStatusResponse({
@@ -718,6 +788,7 @@ class IntentStatusResponse {
     required this.pricing,
     this.busBooking,
     this.preLoungeBooking,
+    this.transitLoungeBooking,
     this.postLoungeBooking,
   });
 
@@ -746,6 +817,11 @@ class IntentStatusResponse {
       preLoungeBooking: json['pre_lounge_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
               json['pre_lounge_booking'] as Map<String, dynamic>,
+            )
+          : null,
+      transitLoungeBooking: json['transit_lounge_booking'] != null
+          ? ConfirmedBookingInfo.fromJson(
+              json['transit_lounge_booking'] as Map<String, dynamic>,
             )
           : null,
       postLoungeBooking: json['post_lounge_booking'] != null
@@ -802,6 +878,7 @@ class ConfirmBookingResponse {
   final String currency;
   final ConfirmedBookingInfo? busBooking;
   final ConfirmedBookingInfo? preLoungeBooking;
+  final ConfirmedBookingInfo? transitLoungeBooking;
   final ConfirmedBookingInfo? postLoungeBooking;
 
   ConfirmBookingResponse({
@@ -812,6 +889,7 @@ class ConfirmBookingResponse {
     this.currency = 'LKR',
     this.busBooking,
     this.preLoungeBooking,
+    this.transitLoungeBooking,
     this.postLoungeBooking,
   });
 
@@ -830,6 +908,11 @@ class ConfirmBookingResponse {
       preLoungeBooking: json['pre_lounge_booking'] != null
           ? ConfirmedBookingInfo.fromJson(
               json['pre_lounge_booking'] as Map<String, dynamic>,
+            )
+          : null,
+      transitLoungeBooking: json['transit_lounge_booking'] != null
+          ? ConfirmedBookingInfo.fromJson(
+              json['transit_lounge_booking'] as Map<String, dynamic>,
             )
           : null,
       postLoungeBooking: json['post_lounge_booking'] != null
@@ -893,6 +976,9 @@ class PartialAvailabilityError {
     if (unavailable.preLounge != null) {
       parts.add('Boarding lounge: ${unavailable.preLounge!.details}');
     }
+    if (unavailable.transitLounge != null) {
+      parts.add('Transit lounge: ${unavailable.transitLounge!.details}');
+    }
     if (unavailable.postLounge != null) {
       parts.add('Destination lounge: ${unavailable.postLounge!.details}');
     }
@@ -903,11 +989,13 @@ class PartialAvailabilityError {
 class AvailabilityStatus {
   final bool bus;
   final bool preLounge;
+  final bool transitLounge;
   final bool postLounge;
 
   AvailabilityStatus({
     this.bus = true,
     this.preLounge = true,
+    this.transitLounge = true,
     this.postLounge = true,
   });
 
@@ -916,6 +1004,7 @@ class AvailabilityStatus {
     return AvailabilityStatus(
       bus: json['bus'] as bool? ?? true,
       preLounge: json['pre_lounge'] as bool? ?? true,
+      transitLounge: json['transit_lounge'] as bool? ?? true,
       postLounge: json['post_lounge'] as bool? ?? true,
     );
   }
@@ -924,9 +1013,10 @@ class AvailabilityStatus {
 class UnavailableItems {
   final UnavailableReason? bus;
   final UnavailableReason? preLounge;
+  final UnavailableReason? transitLounge;
   final UnavailableReason? postLounge;
 
-  UnavailableItems({this.bus, this.preLounge, this.postLounge});
+  UnavailableItems({this.bus, this.preLounge, this.transitLounge, this.postLounge});
 
   factory UnavailableItems.fromJson(Map<String, dynamic>? json) {
     if (json == null) return UnavailableItems();
@@ -937,6 +1027,11 @@ class UnavailableItems {
       preLounge: json['pre_lounge'] != null
           ? UnavailableReason.fromJson(
               json['pre_lounge'] as Map<String, dynamic>,
+            )
+          : null,
+      transitLounge: json['transit_lounge'] != null
+          ? UnavailableReason.fromJson(
+              json['transit_lounge'] as Map<String, dynamic>,
             )
           : null,
       postLounge: json['post_lounge'] != null

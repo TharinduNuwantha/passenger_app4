@@ -131,6 +131,11 @@ class TripResult {
   final List<RouteStop> routeStops;
   /// Master route ID for lounge lookup
   final String? masterRouteId;
+  final bool isTransit;
+  final String? transitPointId;
+  final String? transitPoint;
+  final TripResult? leg1;
+  final TripResult? leg2;
 
   TripResult({
     required this.tripId,
@@ -148,6 +153,11 @@ class TripResult {
     required this.isBookable,
     this.routeStops = const [],
     this.masterRouteId,
+    this.isTransit = false,
+    this.transitPointId,
+    this.transitPoint,
+    this.leg1,
+    this.leg2,
   });
 
   factory TripResult.fromJson(Map<String, dynamic> json) {
@@ -171,6 +181,11 @@ class TripResult {
               .toList() ??
           [],
       masterRouteId: json['master_route_id'] as String?,
+      isTransit: json['is_transit'] as bool? ?? false,
+      transitPointId: json['transit_point_id'] as String?,
+      transitPoint: json['transit_point'] as String?,
+      leg1: json['leg1'] != null ? TripResult.fromJson(json['leg1']) : null,
+      leg2: json['leg2'] != null ? TripResult.fromJson(json['leg2']) : null,
     );
   }
 
@@ -205,6 +220,15 @@ class TripResult {
       default:
         return 'Normal';
     }
+  }
+
+  String get formattedTransitWaitTime {
+    if (!isTransit || leg1 == null || leg2 == null) return '';
+    final wait = leg2!.departureTime.difference(leg1!.estimatedArrival);
+    if (wait.inHours > 0) {
+      return '${wait.inHours}h ${wait.inMinutes % 60}m wait';
+    }
+    return '${wait.inMinutes}m wait';
   }
 }
 

@@ -163,12 +163,16 @@ class BookingIntentProvider with ChangeNotifier {
     required String passengerName,
     required String passengerPhone,
     String? passengerEmail,
+    List<BusIntentLegRequest>? legs,
   }) async {
     final request = CreateBookingIntentRequest(
-      intentType: IntentType.busOnly,
+      intentType: legs != null && legs.isNotEmpty
+          ? IntentType.busWithTransitLounge 
+          : IntentType.busOnly,
       bus: BusIntentRequest(
         scheduledTripId: scheduledTripId,
         seats: seats,
+        legs: legs,
         boardingStopId: boardingStopId,
         alightingStopId: alightingStopId,
         boardingStopName: boardingStopName,
@@ -193,13 +197,26 @@ class BookingIntentProvider with ChangeNotifier {
     required String passengerPhone,
     String? passengerEmail,
     LoungeIntentRequest? preTripLounge,
+    LoungeIntentRequest? transitLounge,
     LoungeIntentRequest? postTripLounge,
   }) async {
     IntentType type = IntentType.busOnly;
-    if (preTripLounge != null && postTripLounge != null) {
+
+    // Logic for determining intent type
+    if (preTripLounge != null &&
+        transitLounge != null &&
+        postTripLounge != null) {
+      type = IntentType.busWithAllLounges;
+    } else if (preTripLounge != null && transitLounge != null) {
+      type = IntentType.busWithPreAndTransit;
+    } else if (transitLounge != null && postTripLounge != null) {
+      type = IntentType.busWithTransitAndPost;
+    } else if (preTripLounge != null && postTripLounge != null) {
       type = IntentType.busWithBothLounges;
     } else if (preTripLounge != null) {
       type = IntentType.busWithPreLounge;
+    } else if (transitLounge != null) {
+      type = IntentType.busWithTransitLounge;
     } else if (postTripLounge != null) {
       type = IntentType.busWithPostLounge;
     }
@@ -218,6 +235,7 @@ class BookingIntentProvider with ChangeNotifier {
         passengerEmail: passengerEmail,
       ),
       preTripLounge: preTripLounge,
+      transitLounge: transitLounge,
       postTripLounge: postTripLounge,
     );
     return createIntent(request);
@@ -243,6 +261,7 @@ class BookingIntentProvider with ChangeNotifier {
   /// This extends the hold timer and updates pricing.
   Future<bool> addLoungeToIntent({
     LoungeIntentRequest? preTripLounge,
+    LoungeIntentRequest? transitLounge,
     LoungeIntentRequest? postTripLounge,
   }) async {
     if (_currentIntent == null) {
@@ -272,6 +291,7 @@ class BookingIntentProvider with ChangeNotifier {
       final response = await _service.addLoungeToIntent(
         intentId: _currentIntent!.intentId,
         preTripLounge: preTripLounge,
+        transitLounge: transitLounge,
         postTripLounge: postTripLounge,
       );
 

@@ -137,12 +137,16 @@ class BookingIntentService {
   Future<BookingIntentResponse> addLoungeToIntent({
     required String intentId,
     LoungeIntentRequest? preTripLounge,
+    LoungeIntentRequest? transitLounge,
     LoungeIntentRequest? postTripLounge,
   }) async {
     try {
       _logger.i('Adding lounge to intent: $intentId');
       if (preTripLounge != null) {
         _logger.i('Boarding lounge: ${preTripLounge.loungeName}');
+      }
+      if (transitLounge != null) {
+        _logger.i('Transit lounge: ${transitLounge.loungeName}');
       }
       if (postTripLounge != null) {
         _logger.i('Destination lounge: ${postTripLounge.loungeName}');
@@ -151,6 +155,9 @@ class BookingIntentService {
       final data = <String, dynamic>{};
       if (preTripLounge != null) {
         data['pre_trip_lounge'] = preTripLounge.toJson();
+      }
+      if (transitLounge != null) {
+        data['transit_lounge'] = transitLounge.toJson();
       }
       if (postTripLounge != null) {
         data['post_trip_lounge'] = postTripLounge.toJson();

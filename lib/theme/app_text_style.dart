@@ -64,4 +64,10 @@ class AppTextStyles {
     fontWeight: FontWeight.w600,
     color: AppColors.primary,
   );
+
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.normal,
+    color: AppColors.textSecondary,
+  );
 }

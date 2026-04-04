@@ -38,6 +38,12 @@ class BookingIntentFlowScreen extends StatefulWidget {
   final String? originCity;
   final String? destinationCity;
 
+  // Transit support
+  final TripResult? tripLeg1;
+  final TripResult? tripLeg2;
+  final List<String>? selectedSeatsLeg1;
+  final List<String>? selectedSeatsLeg2;
+
   const BookingIntentFlowScreen({
     super.key,
     required this.trip,
@@ -53,6 +59,10 @@ class BookingIntentFlowScreen extends StatefulWidget {
     this.userEmail,
     this.originCity,
     this.destinationCity,
+    this.tripLeg1,
+    this.tripLeg2,
+    this.selectedSeatsLeg1,
+    this.selectedSeatsLeg2,
   });
 
   @override
@@ -82,6 +92,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
 
   // Lounge selections (for combined booking)
   SelectedLoungeData? _preTripLounge;
+  SelectedLoungeData? _transitLounge;
   SelectedLoungeData? _postTripLounge;
   bool _loungeSelectionDone = false;
 
@@ -145,25 +156,69 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           ? _nameController.text.trim()
           : 'Passenger';
 
-      // Build seat requests
-      final seats = _passengers.map((p) {
-        return IntentSeatRequest(
-          tripSeatId: p.tripSeatId,
-          passengerName: seatPassengerName,
-          passengerPhone: _phoneController.text.trim(),
-          passengerGender: _selectedGender,
-        );
-      }).toList();
+      // Build leg-specific seat selection mapping if transit
+      List<BusIntentLegRequest>? legs;
+      if (widget.trip.isTransit &&
+          widget.tripLeg1 != null &&
+          widget.tripLeg2 != null) {
+        legs = [
+          BusIntentLegRequest(
+            scheduledTripId: widget.tripLeg1!.tripId,
+            boardingStopId: widget.boardingStopId ?? '',
+            boardingStopName: widget.tripLeg1!.boardingPoint,
+            alightingStopId:
+                widget.tripLeg1!.routeStops.lastOrNull?.id ??
+                '', // Transit stop B
+            alightingStopName: widget.tripLeg1!.droppingPoint,
+            seats: widget.selectedSeatsLeg1!
+                .map(
+                  (id) => IntentSeatRequest(
+                    tripSeatId: id,
+                    passengerName: seatPassengerName,
+                    passengerPhone: _phoneController.text.trim(),
+                  ),
+                )
+                .toList(),
+          ),
+          BusIntentLegRequest(
+            scheduledTripId: widget.tripLeg2!.tripId,
+            boardingStopId:
+                widget.tripLeg2!.routeStops.firstOrNull?.id ??
+                '', // Transit stop B
+            boardingStopName: widget.tripLeg2!.boardingPoint,
+            alightingStopId: widget.alightingStopId ?? '',
+            alightingStopName: widget.tripLeg2!.droppingPoint,
+            seats: widget.selectedSeatsLeg2!
+                .map(
+                  (id) => IntentSeatRequest(
+                    tripSeatId: id,
+                    passengerName: seatPassengerName,
+                    passengerPhone: _phoneController.text.trim(),
+                  ),
+                )
+                .toList(),
+          ),
+        ];
+      }
 
-      final effectiveName = _nameController.text.trim().isNotEmpty
-          ? _nameController.text.trim()
-          : 'Passenger ${_phoneController.text.trim()}';
+      final seats = widget.selectedSeats
+          .map(
+            (seat) => IntentSeatRequest(
+              tripSeatId: seat.id,
+              passengerName: seatPassengerName,
+              passengerPhone: _phoneController.text.trim(),
+            ),
+          )
+          .toList();
 
-      // Create bus-only intent to hold seats immediately
-      _logger.i('Creating bus-only intent to hold seats immediately');
+      const effectiveName = 'Passenger'; // Default name for hold
+
+      // Create bus intent (transit or direct)
+      _logger.i('Creating bus-only intent (transit=${widget.trip.isTransit})');
       final success = await provider.createBusIntent(
         scheduledTripId: widget.trip.tripId,
         seats: seats,
+        legs: legs, // New field handled in provider
         boardingStopId: widget.boardingStopId ?? '',
         alightingStopId: widget.alightingStopId ?? '',
         boardingStopName: widget.boardingPoint,
@@ -302,6 +357,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
 
       setState(() {
         _preTripLounge = result.preTripLounge;
+        _transitLounge = result.transitLounge;
         _postTripLounge = result.postTripLounge;
         _loungeSelectionDone = true;
       });
@@ -312,24 +368,23 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
 
         // Convert lounge data to intent requests
         LoungeIntentRequest? preTripLounge;
+        LoungeIntentRequest? transitLounge;
         LoungeIntentRequest? postTripLounge;
 
         if (_preTripLounge != null) {
           preTripLounge = _preTripLounge!.toIntentRequest();
-          _logger.i(
-            'Adding boarding lounge: ${_preTripLounge!.lounge.loungeName}',
-          );
+        }
+        if (_transitLounge != null) {
+          transitLounge = _transitLounge!.toIntentRequest();
         }
         if (_postTripLounge != null) {
           postTripLounge = _postTripLounge!.toIntentRequest();
-          _logger.i(
-            'Adding destination lounge: ${_postTripLounge!.lounge.loungeName}',
-          );
         }
 
-        // Add lounges to existing intent (extends TTL and updates pricing)
+        // Add lounges to existing intent
         final addSuccess = await provider.addLoungeToIntent(
           preTripLounge: preTripLounge,
+          transitLounge: transitLounge,
           postTripLounge: postTripLounge,
         );
 
@@ -582,7 +637,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                     // Only show countdown timer if intent has been created
                     if (_intentCreated) _buildCountdownTimer(),
                     // Show lounge summary if lounges selected
-                    if (_preTripLounge != null || _postTripLounge != null)
+                    if (_preTripLounge != null ||
+                        _transitLounge != null ||
+                        _postTripLounge != null)
                       _buildLoungeSelectionSummary(),
                     Expanded(
                       child: Container(
@@ -770,6 +827,14 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             'From',
             widget.boardingPoint,
           ),
+          if (widget.trip.isTransit) ...[
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              Icons.swap_horiz,
+              'Transit',
+              widget.trip.transitPoint ?? 'Station B',
+            ),
+          ],
           const SizedBox(height: 8),
           _buildInfoRow(Icons.location_on, 'To', widget.alightingPoint),
           const SizedBox(height: 8),
@@ -782,7 +847,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           _buildInfoRow(
             Icons.event_seat,
             'Seats',
-            widget.selectedSeats.map((s) => s.seatNumber).join(', '),
+            widget.trip.isTransit
+                ? 'Leg 1: ${widget.selectedSeatsLeg1?.join(', ')} | Leg 2: ${widget.selectedSeatsLeg2?.join(', ')}'
+                : widget.selectedSeats.map((s) => s.seatNumber).join(', '),
           ),
         ],
       ),
@@ -1043,6 +1110,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           const SizedBox(height: 8),
           if (_preTripLounge != null)
             _buildLoungeSummaryItem(_preTripLounge!, 'Pre-Trip'),
+          if (_transitLounge != null)
+            _buildLoungeSummaryItem(_transitLounge!, 'Transit'),
           if (_postTripLounge != null)
             _buildLoungeSummaryItem(_postTripLounge!, 'Post-Trip'),
           const SizedBox(height: 8),
@@ -1052,6 +1121,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
               setState(() {
                 _loungeSelectionDone = false;
                 _preTripLounge = null;
+                _transitLounge = null;
                 _postTripLounge = null;
               });
             },
@@ -1111,6 +1181,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     double loungeTotal = 0;
     if (_preTripLounge != null) {
       loungeTotal += _preTripLounge!.totalPrice;
+    }
+    if (_transitLounge != null) {
+      loungeTotal += _transitLounge!.totalPrice;
     }
     if (_postTripLounge != null) {
       loungeTotal += _postTripLounge!.totalPrice;
@@ -1190,6 +1263,55 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                         ),
                         Text(
                           'LKR ${_preTripLounge!.preOrderTotal.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+              // Transit lounge
+              if (_transitLounge != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Transit: ${_transitLounge!.lounge.loungeName}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary.withOpacity(0.7),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      'LKR ${_transitLounge!.totalPrice.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_transitLounge!.preOrders.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '• Pre-orders',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          'LKR ${_transitLounge!.preOrderTotal.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade600,
