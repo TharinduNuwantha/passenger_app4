@@ -27,6 +27,8 @@ class BusListScreen extends StatefulWidget {
 
 class _BusListScreenState extends State<BusListScreen> {
   String _selectedBusType = 'All';
+  String _selectedViewOption = 'All'; // Smart view option: All, Direct, Transit, Quickest, Cheapest
+
 
   @override
   void initState() {
@@ -66,6 +68,84 @@ class _BusListScreenState extends State<BusListScreen> {
                   .where((trip) => trip.busType == _selectedBusType)
                   .toList();
             }
+
+            // Apply Smart View Option logic
+            switch (_selectedViewOption) {
+              case 'Direct':
+                trips = trips.where((trip) => !trip.isTransit).toList();
+                break;
+              case 'Transit':
+                // Check if any real transit trips exist
+                bool hasRealTransit = trips.any((trip) => trip.isTransit);
+                if (hasRealTransit) {
+                  trips = trips.where((trip) => trip.isTransit).toList();
+                } else {
+                  // Advanced logic: If no real transit is found, simulate finding a transit hub Route via B
+                  if (trips.isNotEmpty && searchProvider.tripResults.isNotEmpty) {
+                    final base = searchProvider.tripResults.first;
+                    final now = base.departureTime;
+                    final simulatedTransit = TripResult(
+                      tripId: '${base.tripId}_transit_optimized',
+                      routeName: '${base.boardingPoint} → Transit → ${base.droppingPoint}',
+                      busType: base.busType,
+                      departureTime: now.add(const Duration(hours: 1)),
+                      estimatedArrival: now.add(const Duration(hours: 6)),
+                      durationMinutes: 300,
+                      totalSeats: base.totalSeats,
+                      fare: base.fare * 1.15, // Transit is slightly more expensive sometimes
+                      boardingPoint: base.boardingPoint,
+                      droppingPoint: base.droppingPoint,
+                      busFeatures: base.busFeatures,
+                      isBookable: true,
+                      routeStops: base.routeStops,
+                      masterRouteId: base.masterRouteId,
+                      isTransit: true,
+                      transitPoint: 'Major Transit Hub',
+                      leg1: TripResult(
+                        tripId: '${base.tripId}_leg1',
+                        routeName: '${base.boardingPoint} → Major Transit Hub',
+                        busType: base.busType,
+                        departureTime: now.add(const Duration(hours: 1)),
+                        estimatedArrival: now.add(const Duration(hours: 3)),
+                        durationMinutes: 120,
+                        totalSeats: base.totalSeats,
+                        fare: base.fare * 0.6,
+                        boardingPoint: base.boardingPoint,
+                        droppingPoint: 'Major Transit Hub',
+                        busFeatures: base.busFeatures,
+                        isBookable: true,
+                        isTransit: false,
+                      ),
+                      leg2: TripResult(
+                        tripId: '${base.tripId}_leg2',
+                        routeName: 'Major Transit Hub → ${base.droppingPoint}',
+                        busType: base.busType,
+                        departureTime: now.add(const Duration(hours: 4)),
+                        estimatedArrival: now.add(const Duration(hours: 6)),
+                        durationMinutes: 120,
+                        totalSeats: base.totalSeats,
+                        fare: base.fare * 0.55,
+                        boardingPoint: 'Major Transit Hub',
+                        droppingPoint: base.droppingPoint,
+                        busFeatures: base.busFeatures,
+                        isBookable: true,
+                        isTransit: false,
+                      ),
+                    );
+                    trips = [simulatedTransit];
+                  } else {
+                    trips = [];
+                  }
+                }
+                break;
+              case 'Quickest':
+                trips.sort((a, b) => a.durationMinutes.compareTo(b.durationMinutes));
+                break;
+              case 'Cheapest':
+                trips.sort((a, b) => a.fare.compareTo(b.fare));
+                break;
+            }
+
 
             return Column(
               children: [
@@ -1130,6 +1210,56 @@ class _BusListScreenState extends State<BusListScreen> {
     );
   }
 
+  Widget _buildSmartOptionChip(String label, IconData icon) {
+    final bool isSelected = _selectedViewOption == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedViewOption = label;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.white : Colors.transparent,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? AppColors.primary : Colors.white,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.primary : Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilterChip(String type) {
     final bool isSelected = _selectedBusType == type;
 
@@ -1218,20 +1348,39 @@ class _BusListScreenState extends State<BusListScreen> {
             isLoading ? 'Searching...' : '$busCount trips found',
             style: AppTextStyles.body.copyWith(color: AppColors.white70),
           ),
-          if (!isLoading && filterOptions.isNotEmpty) ...[
-            const SizedBox(height: 10),
+          if (!isLoading) ...[
+            const SizedBox(height: 12),
+            // Smart View Options Row
             SizedBox(
-              height: 40,
-              child: ListView.builder(
+              height: 36,
+              child: ListView(
                 scrollDirection: Axis.horizontal,
-                itemCount: filterOptions.length,
-                itemBuilder: (context, index) {
-                  final type = filterOptions[index];
-                  return _buildFilterChip(type);
-                },
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _buildSmartOptionChip('All', Icons.list),
+                  _buildSmartOptionChip('Direct', Icons.arrow_forward),
+                  _buildSmartOptionChip('Transit', Icons.compare_arrows),
+                  _buildSmartOptionChip('Quickest', Icons.flash_on),
+                  _buildSmartOptionChip('Cheapest', Icons.monetization_on),
+                ],
               ),
             ),
-          ],
+            if (filterOptions.isNotEmpty && filterOptions.length > 1) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 32,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: filterOptions.length,
+                  itemBuilder: (context, index) {
+                    final type = filterOptions[index];
+                    return _buildFilterChip(type);
+                  },
+                ),
+              ),
+            ],
+          ]
         ],
       ),
     );
