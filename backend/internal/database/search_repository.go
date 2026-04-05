@@ -174,6 +174,108 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 	}, nil
 }
 
+// FindInterceptStopPair provides intelligent intercept discovery.
+// When a user is at B and wants to go to C, but only long-haul A->C buses pass by,
+// this finds the closest intercept stop on an active A->C bus owner's selected_stop_ids.
+func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*StopPairResult, error) {
+	query := `
+		WITH user_location AS (
+			-- 1. Find the coordinates of the user's "From" location
+			SELECT id, stop_name, latitude, longitude
+			FROM master_route_stops
+			WHERE LOWER(stop_name) LIKE LOWER('%' || $1 || '%')
+			   OR LOWER($1) LIKE LOWER('%' || stop_name || '%')
+			ORDER BY is_major_stop DESC
+			LIMIT 1
+		),
+		target_routes AS (
+			-- 2. Identify routes whose destination matches "To" location
+			SELECT mr.id as master_route_id, mr.route_name
+			FROM master_routes mr
+			WHERE (LOWER(mr.destination_city) LIKE LOWER('%' || $2 || '%')
+			   OR LOWER(mr.route_name) LIKE LOWER('%' || $2 || '%'))
+			   AND mr.is_active = true
+		),
+		owner_stops AS (
+			-- 3. Fetch all selected_stop_ids for these routes
+			SELECT 
+				bor.master_route_id,
+				unnest(bor.selected_stop_ids) as stop_id
+			FROM bus_owner_routes bor
+			JOIN target_routes tr ON bor.master_route_id = tr.master_route_id
+			WHERE bor.selected_stop_ids IS NOT NULL
+		)
+		SELECT 
+			mrs.id as from_id,
+			mrs.stop_name as from_name,
+			dest_stop.id as to_id,
+			dest_stop.stop_name as to_name,
+			tr.master_route_id as route_id,
+			tr.route_name,
+			-- 4. Calculate distance to find nearest bus stop
+			POWER(mrs.latitude - ul.latitude, 2) + POWER(mrs.longitude - ul.longitude, 2) as distance
+		FROM owner_stops os
+		JOIN master_route_stops mrs ON mrs.id = os.stop_id
+		CROSS JOIN user_location ul
+		JOIN target_routes tr ON tr.master_route_id = os.master_route_id
+		-- Find the destination stop on the same route matching the "To" string
+		JOIN master_route_stops dest_stop ON dest_stop.master_route_id = tr.master_route_id 
+			AND (LOWER(dest_stop.stop_name) LIKE LOWER('%' || $2 || '%') OR LOWER(dest_stop.stop_name) = LOWER(tr.route_name))
+		-- Make sure the physical intercept stop is requested before the destination
+		WHERE mrs.stop_order < dest_stop.stop_order
+		ORDER BY distance ASC
+		LIMIT 1
+	`
+
+	var result struct {
+		FromID    uuid.UUID `db:"from_id"`
+		FromName  string    `db:"from_name"`
+		ToID      uuid.UUID `db:"to_id"`
+		ToName    string    `db:"to_name"`
+		RouteID   uuid.UUID `db:"route_id"`
+		RouteName string    `db:"route_name"`
+		Distance  float64   `db:"distance"`
+	}
+
+	err := r.db.Get(&result, query, strings.TrimSpace(fromName), strings.TrimSpace(toName))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No suitable intercept pair found
+			return &StopPairResult{
+				Matched: false,
+			}, nil
+		}
+		return nil, fmt.Errorf("error finding intercept stop pair: %w", err)
+	}
+
+	// Maximum sensible distance constraint (approx 50km in roughly degree coords)
+	// If it's too far, it's not a valid intercept.
+	if result.Distance > 0.5 {
+		return &StopPairResult{Matched: false}, nil
+	}
+
+	return &StopPairResult{
+		FromStop: &models.StopInfo{
+			ID:            &result.FromID,
+			Name:          result.FromName + " (Nearest Join Point)", // Indicate to user
+			Matched:       true,
+			OriginalInput: fromName,
+		},
+		ToStop: &models.StopInfo{
+			ID:            &result.ToID,
+			Name:          result.ToName,
+			Matched:       true,
+			OriginalInput: toName,
+		},
+		FromID:    result.FromID,
+		ToID:      result.ToID,
+		RouteID:   result.RouteID,
+		RouteName: result.RouteName + " (Intercept Route)", // Explicitly mention
+		Matched:   true,
+	}, nil
+}
+
+
 // FindDirectTrips finds all direct trips between two stops
 func (r *SearchRepository) FindDirectTrips(
 	fromStopID, toStopID uuid.UUID,

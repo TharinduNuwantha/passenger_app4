@@ -72,29 +72,58 @@ func (s *SearchService) SearchTrips(
 
 	// Check if stop pair was found
 	if !stopPair.Matched {
-		response.Status = "partial"
-		if !stopPair.FromStop.Matched && !stopPair.ToStop.Matched {
+		// FALLBACK: Intelligent Intercept Discovery
+		s.logger.Info("Direct route not found, attempting Intelligent Intercept Discovery...")
+		interceptPair, interceptErr := s.repo.FindInterceptStopPair(req.From, req.To)
+		
+		if interceptErr != nil {
+			s.logger.WithError(interceptErr).Error("Error finding intercept pair")
+		} else if interceptPair != nil && interceptPair.Matched {
+			s.logger.WithFields(logrus.Fields{
+				"intercept_from": interceptPair.FromStop.Name,
+				"intercept_to":   interceptPair.ToStop.Name,
+				"route":          interceptPair.RouteName,
+			}).Info("Successfully discovered intercept stop for route segment")
+			
+			// Override stopPair with our intelligent intercept pair
+			stopPair = interceptPair
+			response.SearchDetails.FromStop = *stopPair.FromStop
+			response.SearchDetails.ToStop = *stopPair.ToStop
+			response.SearchDetails.SearchType = "intercept"
 			response.Message = fmt.Sprintf(
-				"Could not find stops '%s' and '%s' on the same route. Please check spelling or try nearby locations.",
-				req.From,
-				req.To,
+				"Found nearest intercept point! You can join the %s bus at %s.",
+				stopPair.RouteName,
+				stopPair.FromStop.Name,
 			)
-		} else if !stopPair.FromStop.Matched {
-			response.Message = fmt.Sprintf(
-				"Origin stop '%s' not found on any route to '%s'. Please check spelling or try a nearby location.",
-				req.From,
-				req.To,
-			)
-		} else {
-			response.Message = fmt.Sprintf(
-				"Destination stop '%s' not found on any route from '%s'. Please check spelling or try a nearby location.",
-				req.To,
-				req.From,
-			)
+			// Ensure we don't return early by going to the next block
 		}
-		response.SearchDetails.SearchType = "failed"
-		s.logSearch(req, response, userID, &ipAddress, time.Since(startTime))
-		return response, nil
+
+		if !stopPair.Matched {
+			// If even the intercept approach failed, return the partial failure
+			response.Status = "partial"
+			if !stopPair.FromStop.Matched && !stopPair.ToStop.Matched {
+				response.Message = fmt.Sprintf(
+					"Could not find stops '%s' and '%s' on any active route. Please check spelling or try nearby locations.",
+					req.From,
+					req.To,
+				)
+			} else if !stopPair.FromStop.Matched {
+				response.Message = fmt.Sprintf(
+					"Origin stop '%s' not found on any route to '%s' (nor any intercept points could be found).",
+					req.From,
+					req.To,
+				)
+			} else {
+				response.Message = fmt.Sprintf(
+					"Destination stop '%s' not found on any route from '%s'.",
+					req.To,
+					req.From,
+				)
+			}
+			response.SearchDetails.SearchType = "failed"
+			s.logSearch(req, response, userID, &ipAddress, time.Since(startTime))
+			return response, nil
+		}
 	}
 
 	s.logger.WithFields(logrus.Fields{

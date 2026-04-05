@@ -347,13 +347,14 @@ class _BusListScreenState extends State<BusListScreen> {
         itemCount: trips.length,
         itemBuilder: (context, index) {
           final trip = trips[index];
-          return _buildTripCard(context, trip);
+          final isIntercept = searchProvider.searchResponse?.searchDetails.searchType == 'intercept';
+          return _buildTripCard(context, trip, isIntercept);
         },
       ),
     );
   }
 
-  Widget _buildTripCard(BuildContext context, TripResult trip) {
+  Widget _buildTripCard(BuildContext context, TripResult trip, [bool isIntercept = false]) {
     if (trip.isTransit && trip.leg1 != null && trip.leg2 != null) {
       return _buildTransitTripCard(context, trip);
     }
@@ -440,13 +441,60 @@ class _BusListScreenState extends State<BusListScreen> {
             ),
             const SizedBox(height: 12),
 
+            // Smart Intercept Banner
+            if (isIntercept) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade50, Colors.orange.shade100],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade300, width: 1),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.assistant_direction, color: Colors.orange.shade800, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Smart Intercept Suggested',
+                            style: TextStyle(
+                              color: Colors.orange.shade900,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Join this bus at ${trip.boardingPoint.replaceAll(" (Nearest Join Point)", "")}',
+                            style: TextStyle(
+                              color: Colors.orange.shade800,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Route name & bus type
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
-                    trip.routeName,
+                    trip.routeName.replaceAll(" (Intercept Route)", ""),
                     style: AppTextStyles.h3.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
@@ -781,7 +829,7 @@ class _BusListScreenState extends State<BusListScreen> {
               ),
             ),
             Text(
-              trip.boardingPoint.isNotEmpty ? trip.boardingPoint : 'Departure',
+              trip.boardingPoint.isNotEmpty ? trip.boardingPoint.replaceAll(" (Nearest Join Point)", "") : 'Departure',
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
