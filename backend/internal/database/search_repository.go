@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -180,7 +179,7 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 	}, nil
 }
 
-// resolveCoordinates finds geographic coordinates first checking DB, then checking external OpenStreetMap API
+// resolveCoordinates finds geographic coordinates first checking DB, then checking external Open-Meteo API
 func (r *SearchRepository) resolveCoordinates(locationName string) (float64, float64, error) {
 	// First check database
 	var lat, lng float64
@@ -196,18 +195,11 @@ func (r *SearchRepository) resolveCoordinates(locationName string) (float64, flo
 		return lat, lng, nil
 	}
 
-	// Fallback to OpenStreetMap API Geocoding (Free Nominatim API)
-	// Add "Sri Lanka" to ensure relevant local results inside the country.
-	apiURL := fmt.Sprintf("https://nominatim.openstreetmap.org/search?q=%s,Sri+Lanka&format=json&limit=1", url.QueryEscape(strings.TrimSpace(locationName)))
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		return 0, 0, err
-	}
-	// Nominatim strictly requires a valid User-Agent to avoid blocking
-	req.Header.Set("User-Agent", "SmartTransitPassengerApp/1.0 (Integration)")
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
+	// Fallback to Open-Meteo Geocoding API (Fast and Free)
+	apiURL := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&format=json", url.QueryEscape(strings.TrimSpace(locationName)))
+	
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(apiURL)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -217,28 +209,30 @@ func (r *SearchRepository) resolveCoordinates(locationName string) (float64, flo
 		return 0, 0, fmt.Errorf("geocoding api error: %d", resp.StatusCode)
 	}
 
-	var results []struct {
-		Lat string `json:"lat"`
-		Lon string `json:"lon"`
+	var result struct {
+		Results []struct {
+			Lat     float64 `json:"latitude"`
+			Lon     float64 `json:"longitude"`
+			Country string  `json:"country"`
+		} `json:"results"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return 0, 0, err
 	}
 
-	if len(results) == 0 {
+	if len(result.Results) == 0 {
 		return 0, 0, fmt.Errorf("location not found")
 	}
 
-	lat, err = strconv.ParseFloat(results[0].Lat, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-	lng, err = strconv.ParseFloat(results[0].Lon, 64)
-	if err != nil {
-		return 0, 0, err
+	// Prefer Sri Lanka if there are multiple global results, otherwise take first
+	for _, r := range result.Results {
+		if r.Country == "Sri Lanka" {
+			return r.Lat, r.Lon, nil
+		}
 	}
 
-	return lat, lng, nil
+	return result.Results[0].Lat, result.Results[0].Lon, nil
 }
 
 // FindInterceptStopPair implements intelligent nearby-bus-stop discovery.
