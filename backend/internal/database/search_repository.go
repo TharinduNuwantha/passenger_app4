@@ -2,7 +2,11 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -176,19 +180,87 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 	}, nil
 }
 
+// resolveCoordinates finds geographic coordinates first checking DB, then checking external OpenStreetMap API
+func (r *SearchRepository) resolveCoordinates(locationName string) (float64, float64, error) {
+	// First check database
+	var lat, lng float64
+	query := `
+		SELECT latitude, longitude
+		FROM master_route_stops
+		WHERE LOWER(stop_name) LIKE LOWER('%' || $1 || '%')
+		   OR LOWER($1) LIKE LOWER('%' || stop_name || '%')
+		ORDER BY is_major_stop DESC LIMIT 1
+	`
+	err := r.db.QueryRow(query, strings.TrimSpace(locationName)).Scan(&lat, &lng)
+	if err == nil && lat != 0 && lng != 0 {
+		return lat, lng, nil
+	}
+
+	// Fallback to OpenStreetMap API Geocoding (Free Nominatim API)
+	// Add "Sri Lanka" to ensure relevant local results inside the country.
+	apiURL := fmt.Sprintf("https://nominatim.openstreetmap.org/search?q=%s,Sri+Lanka&format=json&limit=1", url.QueryEscape(strings.TrimSpace(locationName)))
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return 0, 0, err
+	}
+	// Nominatim strictly requires a valid User-Agent to avoid blocking
+	req.Header.Set("User-Agent", "SmartTransitPassengerApp/1.0 (Integration)")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, 0, fmt.Errorf("geocoding api error: %d", resp.StatusCode)
+	}
+
+	var results []struct {
+		Lat string `json:"lat"`
+		Lon string `json:"lon"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return 0, 0, err
+	}
+
+	if len(results) == 0 {
+		return 0, 0, fmt.Errorf("location not found")
+	}
+
+	lat, err = strconv.ParseFloat(results[0].Lat, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	lng, err = strconv.ParseFloat(results[0].Lon, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return lat, lng, nil
+}
+
 // FindInterceptStopPair implements intelligent nearby-bus-stop discovery.
 //
 // When the user searches B→C but no direct bus exists:
-//  1. Find routes whose destination_city or route_name matches "To" (C)
-//  2. For each such route, look up bus_owner_routes.selected_stop_ids
-//  3. Resolve all those stop IDs to (id, stop_name, lat, lng) from master_route_stops
-//  4. Find the stop in that list geographically nearest to the user's "From" location (B)
-//  5. Return that stop as the boarding point + the destination stop as the alighting point
+//  1. Resolves coordinates for user's "From" location B (via DB or external Geocoding)
+//  2. Find routes whose destination_city or route_name matches "To" (C)
+//  3. For each such route, look up bus_owner_routes.selected_stop_ids
+//  4. Resolve all those stop IDs to (id, stop_name, lat, lng) from master_route_stops
+//  5. Find the stop in that list geographically nearest to location B coordinates
+//  6. Return that stop as the boarding point + the destination stop as the alighting point
 func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*StopPairResult, error) {
-	// ---------- Step 1-4  (single CTE query) ----------
+	// First: Resolve User Location Coordinates physically
+	userLat, userLng, err := r.resolveCoordinates(fromName)
+	if err != nil {
+		fmt.Printf("Could not resolve coordinates for '%s': %v\n", fromName, err)
+		return &StopPairResult{Matched: false}, nil
+	}
+
+	// ---------- Core Matching Logic ----------
 	query := `
 		WITH
-
 		-- Step 1: find routes whose destination matches the user's "To" input
 		matching_routes AS (
 			SELECT mr.id          AS master_route_id,
@@ -196,8 +268,8 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 			FROM   master_routes mr
 			WHERE  mr.is_active = true
 			  AND (
-			        LOWER(mr.destination_city) LIKE LOWER('%' || $2 || '%')
-			     OR LOWER(mr.route_name)       LIKE LOWER('%' || $2 || '%')
+			        LOWER(mr.destination_city) LIKE LOWER('%' || $1 || '%')
+			     OR LOWER(mr.route_name)       LIKE LOWER('%' || $1 || '%')
 			  )
 		),
 
@@ -227,18 +299,6 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 			  AND  mrs.longitude IS NOT NULL
 		),
 
-		-- Also find the user's "From" location coordinates
-		-- by fuzzy-matching it in master_route_stops
-		user_location AS (
-			SELECT latitude, longitude, stop_name AS matched_from_name
-			FROM   master_route_stops
-			WHERE  LOWER(stop_name) LIKE LOWER('%' || $1 || '%')
-			  AND  latitude  IS NOT NULL
-			  AND  longitude IS NOT NULL
-			ORDER  BY is_major_stop DESC, stop_name
-			LIMIT  1
-		),
-
 		-- Step 4: find destination stop on the same route
 		destination_stops AS (
 			SELECT DISTINCT
@@ -248,7 +308,7 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 			       mrs.master_route_id
 			FROM   master_route_stops mrs
 			JOIN   matching_routes mr ON mr.master_route_id = mrs.master_route_id
-			WHERE  LOWER(mrs.stop_name) LIKE LOWER('%' || $2 || '%')
+			WHERE  LOWER(mrs.stop_name) LIKE LOWER('%' || $1 || '%')
 		)
 
 		-- Step 5: score candidate stops by distance to user location
@@ -261,16 +321,15 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 			mr.route_name,
 			-- Approximate Euclidean distance (fine for nearby-stop detection)
 			SQRT(
-			  POWER(cs.latitude  - ul.latitude,  2) +
-			  POWER(cs.longitude - ul.longitude, 2)
+			  POWER(cs.latitude  - $2,  2) +
+			  POWER(cs.longitude - $3, 2)
 			)                                                                    AS distance,
 			-- Convert degree-distance to km (rough: 1° ≈ 111 km)
 			SQRT(
-			  POWER((cs.latitude  - ul.latitude)  * 111.0, 2) +
-			  POWER((cs.longitude - ul.longitude) * 111.0 * COS(RADIANS(ul.latitude)), 2)
+			  POWER((cs.latitude  - $2)  * 111.0, 2) +
+			  POWER((cs.longitude - $3) * 111.0 * COS(RADIANS($2)), 2)
 			)                                                                    AS distance_km
 		FROM   candidate_stops cs
-		CROSS  JOIN user_location ul
 		JOIN   destination_stops ds  ON ds.master_route_id = cs.master_route_id
 		JOIN   matching_routes   mr  ON mr.master_route_id = cs.master_route_id
 		-- Ensure boarding stop comes before destination stop on the route
@@ -290,7 +349,7 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 		DistanceKm float64   `db:"distance_km"`
 	}
 
-	err := r.db.Get(&result, query, strings.TrimSpace(fromName), strings.TrimSpace(toName))
+	err = r.db.Get(&result, query, strings.TrimSpace(toName), userLat, userLng)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return &StopPairResult{Matched: false}, nil
