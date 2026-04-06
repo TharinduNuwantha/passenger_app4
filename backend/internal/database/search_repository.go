@@ -197,7 +197,7 @@ func (r *SearchRepository) resolveCoordinates(locationName string) (float64, flo
 
 	// Fallback to Open-Meteo Geocoding API (Fast and Free)
 	apiURL := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&format=json", url.QueryEscape(strings.TrimSpace(locationName)))
-	
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(apiURL)
 	if err != nil {
@@ -255,29 +255,27 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 	// ---------- Core Matching Logic ----------
 	query := `
 		WITH
-		-- Step 1: find routes whose destination matches the user's "To" input
+		-- Step 1: find destination stop on any active route
+		destination_stops AS (
+			SELECT DISTINCT
+			       mrs.id       AS dest_id,
+			       mrs.stop_name AS dest_name,
+			       mrs.stop_order AS dest_order,
+			       mrs.master_route_id
+			FROM   master_route_stops mrs
+			WHERE  LOWER(mrs.stop_name) LIKE LOWER('%' || $1 || '%')
+		),
+
+		-- Step 2: find routes that contain this destination stop
 		matching_routes AS (
 			SELECT mr.id          AS master_route_id,
 			       mr.route_name
 			FROM   master_routes mr
+			JOIN   destination_stops ds ON ds.master_route_id = mr.id
 			WHERE  mr.is_active = true
-			  AND (
-			        LOWER(mr.destination_city) LIKE LOWER('%' || $1 || '%')
-			     OR LOWER(mr.route_name)       LIKE LOWER('%' || $1 || '%')
-			  )
 		),
 
-		-- Step 2: gather all selected_stop_ids for bus owners on those routes
-		owner_stop_ids AS (
-			SELECT bor.master_route_id,
-			       unnest(bor.selected_stop_ids) AS stop_id
-			FROM   bus_owner_routes bor
-			JOIN   matching_routes mr ON mr.master_route_id = bor.master_route_id
-			WHERE  bor.selected_stop_ids IS NOT NULL
-			  AND  array_length(bor.selected_stop_ids, 1) > 0
-		),
-
-		-- Step 3: resolve stop IDs to actual stop rows with coordinates
+		-- Step 3: Candidate boarding stops on these matching routes
 		candidate_stops AS (
 			SELECT DISTINCT
 			       mrs.id,
@@ -286,26 +284,14 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 			       mrs.latitude,
 			       mrs.longitude,
 			       mrs.is_major_stop,
-			       osi.master_route_id
-			FROM   master_route_stops mrs
-			JOIN   owner_stop_ids osi ON osi.stop_id = mrs.id
-			WHERE  mrs.latitude  IS NOT NULL
-			  AND  mrs.longitude IS NOT NULL
-		),
-
-		-- Step 4: find destination stop on the same route
-		destination_stops AS (
-			SELECT DISTINCT
-			       mrs.id       AS dest_id,
-			       mrs.stop_name AS dest_name,
-			       mrs.stop_order AS dest_order,
-			       mrs.master_route_id
+			       mr.master_route_id
 			FROM   master_route_stops mrs
 			JOIN   matching_routes mr ON mr.master_route_id = mrs.master_route_id
-			WHERE  LOWER(mrs.stop_name) LIKE LOWER('%' || $1 || '%')
+			WHERE  mrs.latitude  IS NOT NULL
+			  AND  mrs.longitude IS NOT NULL
 		)
 
-		-- Step 5: score candidate stops by distance to user location
+		-- Step 4: score candidate stops by distance to user location
 		SELECT
 			cs.id                                                                AS from_id,
 			cs.stop_name                                                         AS from_name,
@@ -381,7 +367,6 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 		DistanceStr: distanceStr,
 	}, nil
 }
-
 
 // FindDirectTrips finds all direct trips between two stops
 
