@@ -489,6 +489,9 @@ class _BusListScreenState extends State<BusListScreen> {
             _buildJourneyTimeline(trip),
             const SizedBox(height: 12),
 
+            // Route Preview (All Stops)
+            if (!isIntercept) _buildRoutePreview(trip),
+
             // Features row
             _buildFeaturesRow(trip),
             const SizedBox(height: 12),
@@ -1057,6 +1060,121 @@ class _BusListScreenState extends State<BusListScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildRoutePreview(TripResult trip) {
+    if (trip.routeStops.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.route_outlined, size: 14, color: Colors.grey[600]),
+              const SizedBox(width: 6),
+              Text(
+                'Route Stops (${trip.routeStops.length})',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 90,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: trip.routeStops.length,
+              itemBuilder: (context, index) {
+                final stop = trip.routeStops[index];
+                final bool isFirst = index == 0;
+                final bool isLast = index == trip.routeStops.length - 1;
+                final bool isMajor = stop.isMajorStop;
+
+                return SizedBox(
+                  width: 90,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 2,
+                              color: isFirst
+                                  ? Colors.transparent
+                                  : AppColors.primary.withOpacity(0.2),
+                            ),
+                          ),
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: isMajor ? AppColors.primary : Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary,
+                                width: isMajor ? 0 : 2,
+                              ),
+                              boxShadow: isMajor
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.primary.withOpacity(0.3),
+                                        blurRadius: 4,
+                                        spreadRadius: 1,
+                                      )
+                                    ]
+                                  : null,
+                            ),
+                            child: isMajor
+                                ? const Center(
+                                    child: Icon(
+                                      Icons.star,
+                                      size: 8,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 2,
+                              color: isLast
+                                  ? Colors.transparent
+                                  : AppColors.primary.withOpacity(0.2),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          stop.stopName,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: isMajor ? FontWeight.bold : FontWeight.normal,
+                            color: isMajor ? AppColors.primary : Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

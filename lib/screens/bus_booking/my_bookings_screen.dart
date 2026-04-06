@@ -5,6 +5,8 @@ import '../../services/booking_service.dart';
 import '../../theme/app_colors.dart';
 import 'booking_detail_screen.dart';
 
+import '../../widgets/booking_countdown_timer.dart';
+
 /// Screen to display user's bookings (upcoming, past, cancelled)
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -372,6 +374,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                         color: AppColors.primary.withOpacity(0.7),
                       ),
                     ),
+                    const Spacer(),
+                    if (booking.bookingStatus == MasterBookingStatus.confirmed &&
+                        booking.departureDatetime!.isAfter(DateTime.now()))
+                      BookingCountdownTimer(
+                        targetDateTime: booking.departureDatetime!,
+                      ),
                   ],
                 ),
               const SizedBox(height: 6),
