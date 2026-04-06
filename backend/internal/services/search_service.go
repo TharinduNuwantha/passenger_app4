@@ -90,12 +90,22 @@ func (s *SearchService) SearchTrips(
 			response.SearchDetails.FromStop = *stopPair.FromStop
 			response.SearchDetails.ToStop = *stopPair.ToStop
 			response.SearchDetails.SearchType = "intercept"
+			response.SearchDetails.InterceptInfo = &models.InterceptInfo{
+				UserInput:       req.From,
+				NearestStopName: interceptPair.FromStop.Name,
+				DistanceKm:      interceptPair.DistanceKm,
+				DistanceStr:     interceptPair.DistanceStr,
+				RouteName:       interceptPair.RouteName,
+			}
 			response.Message = fmt.Sprintf(
-				"Found nearest intercept point! You can join the %s bus at %s.",
+				"No direct bus from %s to %s. You can join the '%s' service at '%s' (%s from your location).",
+				req.From,
+				req.To,
 				stopPair.RouteName,
 				stopPair.FromStop.Name,
+				interceptPair.DistanceStr,
 			)
-			// Ensure we don't return early by going to the next block
+
 		}
 
 		if !stopPair.Matched {

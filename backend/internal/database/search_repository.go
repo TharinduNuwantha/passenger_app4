@@ -72,13 +72,15 @@ func (r *SearchRepository) FindStopByName(stopName string) (*models.StopInfo, *u
 
 // StopPairResult holds the result of finding two stops on the same route
 type StopPairResult struct {
-	FromStop  *models.StopInfo
-	ToStop    *models.StopInfo
-	FromID    uuid.UUID
-	ToID      uuid.UUID
-	RouteID   uuid.UUID
-	RouteName string
-	Matched   bool
+	FromStop    *models.StopInfo
+	ToStop      *models.StopInfo
+	FromID      uuid.UUID
+	ToID        uuid.UUID
+	RouteID     uuid.UUID
+	RouteName   string
+	Matched     bool
+	DistanceKm  float64 // km to nearest join stop (only set for intercept results)
+	DistanceStr string  // human-readable e.g. "2.3 km away"
 }
 
 // FindStopPairOnSameRoute finds two stops that are on the same route with fuzzy matching
@@ -174,90 +176,140 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 	}, nil
 }
 
-// FindInterceptStopPair provides intelligent intercept discovery.
-// When a user is at B and wants to go to C, but only long-haul A->C buses pass by,
-// this finds the closest intercept stop on an active A->C bus owner's selected_stop_ids.
+// FindInterceptStopPair implements intelligent nearby-bus-stop discovery.
+//
+// When the user searches B→C but no direct bus exists:
+//  1. Find routes whose destination_city or route_name matches "To" (C)
+//  2. For each such route, look up bus_owner_routes.selected_stop_ids
+//  3. Resolve all those stop IDs to (id, stop_name, lat, lng) from master_route_stops
+//  4. Find the stop in that list geographically nearest to the user's "From" location (B)
+//  5. Return that stop as the boarding point + the destination stop as the alighting point
 func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*StopPairResult, error) {
+	// ---------- Step 1-4  (single CTE query) ----------
 	query := `
-		WITH user_location AS (
-			-- 1. Find the coordinates of the user's "From" location
-			SELECT id, stop_name, latitude, longitude
-			FROM master_route_stops
-			WHERE LOWER(stop_name) LIKE LOWER('%' || $1 || '%')
-			   OR LOWER($1) LIKE LOWER('%' || stop_name || '%')
-			ORDER BY is_major_stop DESC
-			LIMIT 1
+		WITH
+
+		-- Step 1: find routes whose destination matches the user's "To" input
+		matching_routes AS (
+			SELECT mr.id          AS master_route_id,
+			       mr.route_name
+			FROM   master_routes mr
+			WHERE  mr.is_active = true
+			  AND (
+			        LOWER(mr.destination_city) LIKE LOWER('%' || $2 || '%')
+			     OR LOWER(mr.route_name)       LIKE LOWER('%' || $2 || '%')
+			  )
 		),
-		target_routes AS (
-			-- 2. Identify routes whose destination matches "To" location
-			SELECT mr.id as master_route_id, mr.route_name
-			FROM master_routes mr
-			WHERE (LOWER(mr.destination_city) LIKE LOWER('%' || $2 || '%')
-			   OR LOWER(mr.route_name) LIKE LOWER('%' || $2 || '%'))
-			   AND mr.is_active = true
+
+		-- Step 2: gather all selected_stop_ids for bus owners on those routes
+		owner_stop_ids AS (
+			SELECT bor.master_route_id,
+			       unnest(bor.selected_stop_ids) AS stop_id
+			FROM   bus_owner_routes bor
+			JOIN   matching_routes mr ON mr.master_route_id = bor.master_route_id
+			WHERE  bor.selected_stop_ids IS NOT NULL
+			  AND  array_length(bor.selected_stop_ids, 1) > 0
 		),
-		owner_stops AS (
-			-- 3. Fetch all selected_stop_ids for these routes
-			SELECT 
-				bor.master_route_id,
-				unnest(bor.selected_stop_ids) as stop_id
-			FROM bus_owner_routes bor
-			JOIN target_routes tr ON bor.master_route_id = tr.master_route_id
-			WHERE bor.selected_stop_ids IS NOT NULL
+
+		-- Step 3: resolve stop IDs to actual stop rows with coordinates
+		candidate_stops AS (
+			SELECT DISTINCT
+			       mrs.id,
+			       mrs.stop_name,
+			       mrs.stop_order,
+			       mrs.latitude,
+			       mrs.longitude,
+			       mrs.is_major_stop,
+			       osi.master_route_id
+			FROM   master_route_stops mrs
+			JOIN   owner_stop_ids osi ON osi.stop_id = mrs.id
+			WHERE  mrs.latitude  IS NOT NULL
+			  AND  mrs.longitude IS NOT NULL
+		),
+
+		-- Also find the user's "From" location coordinates
+		-- by fuzzy-matching it in master_route_stops
+		user_location AS (
+			SELECT latitude, longitude, stop_name AS matched_from_name
+			FROM   master_route_stops
+			WHERE  LOWER(stop_name) LIKE LOWER('%' || $1 || '%')
+			  AND  latitude  IS NOT NULL
+			  AND  longitude IS NOT NULL
+			ORDER  BY is_major_stop DESC, stop_name
+			LIMIT  1
+		),
+
+		-- Step 4: find destination stop on the same route
+		destination_stops AS (
+			SELECT DISTINCT
+			       mrs.id       AS dest_id,
+			       mrs.stop_name AS dest_name,
+			       mrs.stop_order AS dest_order,
+			       mrs.master_route_id
+			FROM   master_route_stops mrs
+			JOIN   matching_routes mr ON mr.master_route_id = mrs.master_route_id
+			WHERE  LOWER(mrs.stop_name) LIKE LOWER('%' || $2 || '%')
 		)
-		SELECT 
-			mrs.id as from_id,
-			mrs.stop_name as from_name,
-			dest_stop.id as to_id,
-			dest_stop.stop_name as to_name,
-			tr.master_route_id as route_id,
-			tr.route_name,
-			-- 4. Calculate distance to find nearest bus stop
-			POWER(mrs.latitude - ul.latitude, 2) + POWER(mrs.longitude - ul.longitude, 2) as distance
-		FROM owner_stops os
-		JOIN master_route_stops mrs ON mrs.id = os.stop_id
-		CROSS JOIN user_location ul
-		JOIN target_routes tr ON tr.master_route_id = os.master_route_id
-		-- Find the destination stop on the same route matching the "To" string
-		JOIN master_route_stops dest_stop ON dest_stop.master_route_id = tr.master_route_id 
-			AND (LOWER(dest_stop.stop_name) LIKE LOWER('%' || $2 || '%') OR LOWER(dest_stop.stop_name) = LOWER(tr.route_name))
-		-- Make sure the physical intercept stop is requested before the destination
-		WHERE mrs.stop_order < dest_stop.stop_order
-		ORDER BY distance ASC
-		LIMIT 1
+
+		-- Step 5: score candidate stops by distance to user location
+		SELECT
+			cs.id                                                                AS from_id,
+			cs.stop_name                                                         AS from_name,
+			ds.dest_id                                                           AS to_id,
+			ds.dest_name                                                         AS to_name,
+			cs.master_route_id                                                   AS route_id,
+			mr.route_name,
+			-- Approximate Euclidean distance (fine for nearby-stop detection)
+			SQRT(
+			  POWER(cs.latitude  - ul.latitude,  2) +
+			  POWER(cs.longitude - ul.longitude, 2)
+			)                                                                    AS distance,
+			-- Convert degree-distance to km (rough: 1° ≈ 111 km)
+			SQRT(
+			  POWER((cs.latitude  - ul.latitude)  * 111.0, 2) +
+			  POWER((cs.longitude - ul.longitude) * 111.0 * COS(RADIANS(ul.latitude)), 2)
+			)                                                                    AS distance_km
+		FROM   candidate_stops cs
+		CROSS  JOIN user_location ul
+		JOIN   destination_stops ds  ON ds.master_route_id = cs.master_route_id
+		JOIN   matching_routes   mr  ON mr.master_route_id = cs.master_route_id
+		-- Ensure boarding stop comes before destination stop on the route
+		WHERE  cs.stop_order < ds.dest_order
+		ORDER  BY distance ASC
+		LIMIT  1
 	`
 
 	var result struct {
-		FromID    uuid.UUID `db:"from_id"`
-		FromName  string    `db:"from_name"`
-		ToID      uuid.UUID `db:"to_id"`
-		ToName    string    `db:"to_name"`
-		RouteID   uuid.UUID `db:"route_id"`
-		RouteName string    `db:"route_name"`
-		Distance  float64   `db:"distance"`
+		FromID     uuid.UUID `db:"from_id"`
+		FromName   string    `db:"from_name"`
+		ToID       uuid.UUID `db:"to_id"`
+		ToName     string    `db:"to_name"`
+		RouteID    uuid.UUID `db:"route_id"`
+		RouteName  string    `db:"route_name"`
+		Distance   float64   `db:"distance"`
+		DistanceKm float64   `db:"distance_km"`
 	}
 
 	err := r.db.Get(&result, query, strings.TrimSpace(fromName), strings.TrimSpace(toName))
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// No suitable intercept pair found
-			return &StopPairResult{
-				Matched: false,
-			}, nil
+			return &StopPairResult{Matched: false}, nil
 		}
 		return nil, fmt.Errorf("error finding intercept stop pair: %w", err)
 	}
 
-	// Maximum sensible distance constraint (approx 50km in roughly degree coords)
-	// If it's too far, it's not a valid intercept.
-	if result.Distance > 0.5 {
+	// Reject if the nearest join point is more than 30 km away.
+	// (Beyond that the "intercept" suggestion would be impractical.)
+	if result.DistanceKm > 30.0 {
 		return &StopPairResult{Matched: false}, nil
 	}
+
+	distanceStr := fmt.Sprintf("%.1f km away", result.DistanceKm)
 
 	return &StopPairResult{
 		FromStop: &models.StopInfo{
 			ID:            &result.FromID,
-			Name:          result.FromName + " (Nearest Join Point)", // Indicate to user
+			Name:          result.FromName,
 			Matched:       true,
 			OriginalInput: fromName,
 		},
@@ -267,16 +319,19 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 			Matched:       true,
 			OriginalInput: toName,
 		},
-		FromID:    result.FromID,
-		ToID:      result.ToID,
-		RouteID:   result.RouteID,
-		RouteName: result.RouteName + " (Intercept Route)", // Explicitly mention
-		Matched:   true,
+		FromID:      result.FromID,
+		ToID:        result.ToID,
+		RouteID:     result.RouteID,
+		RouteName:   result.RouteName,
+		Matched:     true,
+		DistanceKm:  result.DistanceKm,
+		DistanceStr: distanceStr,
 	}, nil
 }
 
 
 // FindDirectTrips finds all direct trips between two stops
+
 func (r *SearchRepository) FindDirectTrips(
 	fromStopID, toStopID uuid.UUID,
 	afterTime time.Time,

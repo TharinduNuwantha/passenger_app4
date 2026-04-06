@@ -340,6 +340,8 @@ class _BusListScreenState extends State<BusListScreen> {
     }
 
     // Success state - display trips
+    final interceptInfo = searchProvider.searchResponse?.searchDetails.interceptInfo;
+    final isIntercept = searchProvider.searchResponse?.searchDetails.isIntercept ?? false;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: ListView.builder(
@@ -347,17 +349,17 @@ class _BusListScreenState extends State<BusListScreen> {
         itemCount: trips.length,
         itemBuilder: (context, index) {
           final trip = trips[index];
-          final isIntercept = searchProvider.searchResponse?.searchDetails.searchType == 'intercept';
-          return _buildTripCard(context, trip, isIntercept);
+          return _buildTripCard(context, trip, isIntercept, interceptInfo);
         },
       ),
     );
   }
 
-  Widget _buildTripCard(BuildContext context, TripResult trip, [bool isIntercept = false]) {
+  Widget _buildTripCard(BuildContext context, TripResult trip, [bool isIntercept = false, InterceptInfo? interceptInfo]) {
     if (trip.isTransit && trip.leg1 != null && trip.leg2 != null) {
       return _buildTransitTripCard(context, trip);
     }
+
 
     // Check if the trip is today
     final now = DateTime.now();
@@ -441,51 +443,11 @@ class _BusListScreenState extends State<BusListScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Smart Intercept Banner
-            if (isIntercept) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.orange.shade50, Colors.orange.shade100],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.shade300, width: 1),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.assistant_direction, color: Colors.orange.shade800, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Smart Intercept Suggested',
-                            style: TextStyle(
-                              color: Colors.orange.shade900,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Join this bus at ${trip.boardingPoint.replaceAll(" (Nearest Join Point)", "")}',
-                            style: TextStyle(
-                              color: Colors.orange.shade800,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            // Intercept Banner — premium look using structured InterceptInfo
+            if (isIntercept && interceptInfo != null) ...[
+              _buildInterceptBanner(interceptInfo, trip),
+            ] else if (isIntercept) ...[
+              _buildInterceptBanner(null, trip),
             ],
 
             // Route name & bus type
@@ -494,7 +456,7 @@ class _BusListScreenState extends State<BusListScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    trip.routeName.replaceAll(" (Intercept Route)", ""),
+                    trip.routeName,
                     style: AppTextStyles.h3.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
@@ -814,7 +776,195 @@ class _BusListScreenState extends State<BusListScreen> {
     );
   }
 
+  /// Premium Intercept Banner — shown when the user searched a stop not directly
+  /// served but a nearby bus stop on a long-haul route was found intelligently.
+  Widget _buildInterceptBanner(InterceptInfo? info, TripResult trip) {
+    final stopName = info?.nearestStopName ?? trip.boardingPoint;
+    final distStr = info?.distanceStr ?? '';
+    final routeName = info?.routeName ?? trip.routeName;
+    final userFrom = info?.userInput ?? '';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFFFF3E0),
+            const Color(0xFFFFE0B2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFB74D), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header bar
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE65100).withOpacity(0.08),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(15),
+                topRight: Radius.circular(15),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE65100).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.assistant_direction, color: Color(0xFFE65100), size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Smart Intercept Found',
+                    style: TextStyle(
+                      color: Color(0xFFE65100),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE65100),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'NEARBY STOP',
+                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Body
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // No direct bus notice
+                if (userFrom.isNotEmpty)
+                  Text(
+                    'No direct bus from "$userFrom"',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                  ),
+                const SizedBox(height: 10),
+                // Walk-to instruction
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        const SizedBox(height: 2),
+                        Container(
+                          width: 10, height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[400],
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Container(width: 2, height: 20, color: Colors.grey[300]),
+                        const Icon(Icons.directions_bus, size: 20, color: Color(0xFFE65100)),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Your location: $userFrom',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Board at',
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                                    ),
+                                    Text(
+                                      stopName,
+                                      style: const TextStyle(
+                                        color: Color(0xFFE65100),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    if (distStr.isNotEmpty)
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.directions_walk, size: 13, color: Colors.grey),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            distStr,
+                                            style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Route info tag
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE65100).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.route, size: 14, color: Color(0xFFE65100)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Via: $routeName',
+                        style: const TextStyle(color: Color(0xFFE65100), fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildJourneyTimeline(TripResult trip) {
+
     return Row(
       children: [
         Column(

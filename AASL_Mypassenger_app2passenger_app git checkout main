@@ -1,0 +1,30 @@
+[33m01cd65b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: checkout: moving from main to main
+[33m01cd65b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{1}: checkout: moving from main to main
+[33m01cd65b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{2}: checkout: moving from 3429e09596ebe9e6c2d443d066a418144bb10bae to main
+[33m3429e09[m HEAD@{3}: commit: implement intelligent intercept discovery and smart bus stop join points
+[33m83940d3[m HEAD@{4}: commit: buss boking page button version 1
+[33m71ebc6d[m HEAD@{5}: commit: before bus route
+[33m01cd65b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{6}: checkout: moving from main to 01cd65b
+[33m01cd65b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{7}: reset: moving to HEAD
+[33m01cd65b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{8}: commit: lounge select on map overflow error fixed
+[33m647788f[m HEAD@{9}: commit: GEO location for lounges
+[33m59988cc[m HEAD@{10}: commit: geo location with lounge 1
+[33maff541e[m HEAD@{11}: commit: lounge with live location V1
+[33maba8e87[m HEAD@{12}: commit: Destinaction lounge Update(but can't check now)
+[33m221d351[m HEAD@{13}: commit: loung transport fix vechl error
+[33m5ae81f5[m HEAD@{14}: commit: lounge optons cards
+[33ma5b41be[m HEAD@{15}: commit: backend5
+[33md113f76[m HEAD@{16}: commit: backednd4
+[33mddcfecc[m HEAD@{17}: commit: backend3
+[33ma936c76[m HEAD@{18}: commit: curserBackend2
+[33me8cddbf[m HEAD@{19}: commit: backedEDT1
+[33m41d1cfc[m HEAD@{20}: commit: backendAragain
+[33mdf36f77[m HEAD@{21}: pull --tags origin main: Merge made by the 'ort' strategy.
+[33md3040d4[m HEAD@{22}: commit: fuckingError
+[33ma5f497d[m HEAD@{23}: checkout: moving from iamTharindu to main
+[33md89ec53[m[33m ([m[1;32miamTharindu[m[33m)[m HEAD@{24}: commit: ready backend to deploy to new choreo
+[33me046d38[m HEAD@{25}: commit: adding backend but not tested
+[33me85a6d0[m HEAD@{26}: commit: lounge filter base on location
+[33ma5f497d[m HEAD@{27}: checkout: moving from main to iamTharindu
+[33ma5f497d[m HEAD@{28}: Branch: renamed refs/heads/master to refs/heads/main
+[33ma5f497d[m HEAD@{30}: commit (initial): first commit
