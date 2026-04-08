@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/booking_models.dart';
 import '../../services/booking_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/booking_countdown_timer.dart';
 import '../payment/payment_method_screen.dart';
 
 /// Screen to display detailed booking information with QR code
@@ -287,6 +288,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         color: AppColors.primary.withOpacity(0.6),
                       ),
                     ),
+                    if (busBooking != null && 
+                        booking.bookingStatus == MasterBookingStatus.confirmed &&
+                        busBooking.departureDatetime.isAfter(DateTime.now())) ...[
+                      const SizedBox(height: 20),
+                      BookingCountdownTimer(
+                        targetDateTime: busBooking.departureDatetime,
+                      ),
+                    ],
                   ],
                 ),
               ),
