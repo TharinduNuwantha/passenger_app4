@@ -357,60 +357,78 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              if (booking.departureDatetime != null)
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 16,
-                      color: AppColors.primary.withOpacity(0.6),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _formatDateTime(booking.departureDatetime!),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.primary.withOpacity(0.7),
-                      ),
-                    ),
-                    const Spacer(),
-                    if (booking.bookingStatus == MasterBookingStatus.confirmed &&
-                        booking.departureDatetime!.isAfter(DateTime.now()))
-                      BookingCountdownTimer(
-                        targetDateTime: booking.departureDatetime!,
-                      ),
-                  ],
-                ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
+              // Time and Countdown
               Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Icon(
-                    Icons.event_seat,
-                    size: 16,
-                    color: AppColors.primary.withOpacity(0.6),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${booking.numberOfSeats ?? 1} seat(s)',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.primary.withOpacity(0.7),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (booking.departureDatetime != null)
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                size: 16,
+                                color: AppColors.primary.withOpacity(0.6),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatDateTime(booking.departureDatetime!),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary.withOpacity(0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.event_seat,
+                              size: 16,
+                              color: AppColors.primary.withOpacity(0.6),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${booking.numberOfSeats ?? 1} seat(s)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.primary.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
+                  if (booking.departureDatetime != null &&
+                      booking.bookingStatus == MasterBookingStatus.confirmed &&
+                      booking.departureDatetime!.isAfter(DateTime.now()))
+                    BookingCountdownTimer(
+                      targetDateTime: booking.departureDatetime!,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildPaymentStatusChip(booking.paymentStatus),
                   Text(
                     booking.formattedTotal,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF4CAF50),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              _buildPaymentStatusChip(booking.paymentStatus),
             ],
           ),
         ),

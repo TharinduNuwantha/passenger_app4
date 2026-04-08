@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
+import 'package:geolocator/geolocator.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_style.dart';
 
 class BookingCountdownTimer extends StatefulWidget {
   final DateTime targetDateTime;
@@ -24,11 +26,14 @@ class _BookingCountdownTimerState extends State<BookingCountdownTimer> {
   Timer? _timer;
   late Duration _timeRemaining;
   bool _isExpired = false;
+  String _locationStatus = 'Locating...';
+  Position? _currentPosition;
 
   @override
   void initState() {
     super.initState();
     _calculateTimeRemaining();
+    _getCurrentLocation();
     if (!_isExpired) {
       _startTimer();
     }
@@ -49,6 +54,44 @@ class _BookingCountdownTimerState extends State<BookingCountdownTimer> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _locationStatus = 'GPS Off');
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _locationStatus = 'Permission Denied');
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => _locationStatus = 'Permission Denied Forever');
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _locationStatus = 'Location Live';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _locationStatus = 'Location Error');
+      }
+    }
   }
 
   void _calculateTimeRemaining() {
@@ -72,6 +115,10 @@ class _BookingCountdownTimerState extends State<BookingCountdownTimer> {
         setState(() {
           _calculateTimeRemaining();
         });
+        // Periodically refresh location every 30 seconds
+        if (timer.tick % 30 == 0) {
+          _getCurrentLocation();
+        }
       }
     });
   }
@@ -82,16 +129,10 @@ class _BookingCountdownTimerState extends State<BookingCountdownTimer> {
     final minutes = duration.inMinutes % 60;
     final seconds = duration.inSeconds % 60;
 
-    final parts = <String>[];
-    if (days > 0) parts.add('${days}d');
-    parts.add(hours.toString().padLeft(2, '0'));
-    parts.add(minutes.toString().padLeft(2, '0'));
-    parts.add(seconds.toString().padLeft(2, '0'));
-
     if (days > 0) {
-      return '${parts[0]} ${parts[1]}:${parts[2]}:${parts[3]}';
+      return '${days}d ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
-    return '${parts[0]}:${parts[1]}:${parts[2]}';
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -109,30 +150,66 @@ class _BookingCountdownTimerState extends State<BookingCountdownTimer> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.1),
+            AppColors.primary.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.timer_outlined,
-            size: 14,
-            color: AppColors.primary.withOpacity(0.7),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.timer_outlined,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _formatDuration(_timeRemaining),
+                style: widget.textStyle ??
+                    AppTextStyles.bodyMedium.copyWith(
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                      fontSize: 14,
+                    ),
+              ),
+            ],
           ),
-          const SizedBox(width: 4),
-          Text(
-            _formatDuration(_timeRemaining),
-            style: widget.textStyle ??
-                const TextStyle(
-                  fontSize: 12,
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.location_on,
+                size: 10,
+                color: _currentPosition != null ? AppColors.success : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _locationStatus,
+                style: AppTextStyles.caption.copyWith(
+                  fontSize: 9,
+                  color: _currentPosition != null ? AppColors.success : AppColors.textSecondary,
                 ),
+              ),
+            ],
           ),
         ],
       ),
