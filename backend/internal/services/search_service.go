@@ -74,7 +74,12 @@ func (s *SearchService) SearchTrips(
 	if !stopPair.Matched {
 		// FALLBACK: Intelligent Intercept Discovery
 		s.logger.Info("Direct route not found, attempting Intelligent Intercept Discovery...")
-		interceptPair, interceptErr := s.repo.FindInterceptStopPair(req.From, req.To)
+		
+		// Use provided coordinates if available, otherwise fallback to repository resolution
+		var interceptPair *database.StopPairResult
+		var interceptErr error
+		
+		interceptPair, interceptErr = s.repo.FindInterceptStopPair(req.From, req.To, req.FromLat, req.FromLng)
 		
 		if interceptErr != nil {
 			s.logger.WithError(interceptErr).Error("Error finding intercept pair")
@@ -188,10 +193,31 @@ func (s *SearchService) SearchTrips(
 	if len(trips) == 0 {
 		response.Status = "success"
 		response.Message = fmt.Sprintf(
-			"No direct trips found from %s to %s. Try searching for a different date or nearby stops.",
+			"No direct trips found from %s to %s for the selected date. Showing potential route details.",
 			stopPair.FromStop.Name,
 			stopPair.ToStop.Name,
 		)
+
+		// Create a skeleton TripResult to show the route details
+		skeletonID := uuid.New()
+		skeletonTrip := models.TripResult{
+			TripID:        skeletonID,
+			RouteName:     stopPair.RouteName,
+			RouteNumber:   &stopPair.RouteNumber,
+			BoardingPoint: stopPair.FromStop.Name,
+			DroppingPoint: stopPair.ToStop.Name,
+			IsBookable:    false, // IMPORTANT: mark as not bookable
+			BusType:       "Unknown",
+		}
+
+		// Fetch route stops for the skeleton trip
+		routeIDStr := stopPair.RouteID.String()
+		stops, err := s.repo.GetRouteStopsForTrip(routeIDStr, nil)
+		if err == nil {
+			skeletonTrip.RouteStops = stops
+		}
+
+		response.Results = append(response.Results, skeletonTrip)
 	} else {
 		response.Status = "success"
 		response.Message = fmt.Sprintf(

@@ -406,14 +406,16 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                       ],
                     ),
                   ),
-                  if (booking.departureDatetime != null &&
-                      booking.bookingStatus == MasterBookingStatus.confirmed &&
-                      booking.departureDatetime!.isAfter(DateTime.now()))
-                    BookingCountdownTimer(
-                      targetDateTime: booking.departureDatetime!,
-                    ),
                 ],
               ),
+              if (booking.departureDatetime != null &&
+                  booking.bookingStatus == MasterBookingStatus.confirmed &&
+                  booking.departureDatetime!.isAfter(DateTime.now())) ...[
+                const SizedBox(height: 16),
+                BookingCountdownTimer(
+                  targetDateTime: booking.departureDatetime!,
+                ),
+              ],
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

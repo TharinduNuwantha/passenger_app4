@@ -81,6 +81,7 @@ type StopPairResult struct {
 	ToID        uuid.UUID
 	RouteID     uuid.UUID
 	RouteName   string
+	RouteNumber string
 	Matched     bool
 	DistanceKm  float64 // km to nearest join stop (only set for intercept results)
 	DistanceStr string  // human-readable e.g. "2.3 km away"
@@ -97,6 +98,7 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 			to_stop.stop_name as to_name,
 			from_stop.master_route_id as route_id,
 			mr.route_name,
+			mr.route_number,
 			from_stop.stop_order as from_order,
 			to_stop.stop_order as to_order
 		FROM master_route_stops from_stop
@@ -128,14 +130,15 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 	`
 
 	var result struct {
-		FromID    uuid.UUID `db:"from_id"`
-		FromName  string    `db:"from_name"`
-		ToID      uuid.UUID `db:"to_id"`
-		ToName    string    `db:"to_name"`
-		RouteID   uuid.UUID `db:"route_id"`
-		RouteName string    `db:"route_name"`
-		FromOrder int       `db:"from_order"`
-		ToOrder   int       `db:"to_order"`
+		FromID      uuid.UUID `db:"from_id"`
+		FromName    string    `db:"from_name"`
+		ToID        uuid.UUID `db:"to_id"`
+		ToName      string    `db:"to_name"`
+		RouteID     uuid.UUID `db:"route_id"`
+		RouteName   string    `db:"route_name"`
+		RouteNumber string    `db:"route_number"`
+		FromOrder   int       `db:"from_order"`
+		ToOrder     int       `db:"to_order"`
 	}
 
 	err := r.db.Get(&result, query, strings.TrimSpace(fromName), strings.TrimSpace(toName))
@@ -173,9 +176,10 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 		},
 		FromID:    result.FromID,
 		ToID:      result.ToID,
-		RouteID:   result.RouteID,
-		RouteName: result.RouteName,
-		Matched:   true,
+		RouteID:     result.RouteID,
+		RouteName:   result.RouteName,
+		RouteNumber: result.RouteNumber,
+		Matched:     true,
 	}, nil
 }
 
@@ -244,12 +248,21 @@ func (r *SearchRepository) resolveCoordinates(locationName string) (float64, flo
 //  4. Resolve all those stop IDs to (id, stop_name, lat, lng) from master_route_stops
 //  5. Find the stop in that list geographically nearest to location B coordinates
 //  6. Return that stop as the boarding point + the destination stop as the alighting point
-func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*StopPairResult, error) {
-	// First: Resolve User Location Coordinates physically
-	userLat, userLng, err := r.resolveCoordinates(fromName)
-	if err != nil {
-		fmt.Printf("Could not resolve coordinates for '%s': %v\n", fromName, err)
-		return &StopPairResult{Matched: false}, nil
+func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLat, fromLng *float64) (*StopPairResult, error) {
+	var userLat, userLng float64
+
+	if fromLat != nil && fromLng != nil {
+		userLat = *fromLat
+		userLng = *fromLng
+		fmt.Printf("Using provided coordinates for '%s': %.6f, %.6f\n", fromName, userLat, userLng)
+	} else {
+		// First: Resolve User Location Coordinates physically
+		var err error
+		userLat, userLng, err = r.resolveCoordinates(fromName)
+		if err != nil {
+			fmt.Printf("Could not resolve coordinates for '%s': %v\n", fromName, err)
+			return &StopPairResult{Matched: false}, nil
+		}
 	}
 
 	// ---------- Core Matching Logic ----------
@@ -308,7 +321,8 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 			SQRT(
 			  POWER((cs.latitude  - $2)  * 111.0, 2) +
 			  POWER((cs.longitude - $3) * 111.0 * COS(RADIANS($2)), 2)
-			)                                                                    AS distance_km
+			)                                                                    AS distance_km,
+			mr.route_number
 		FROM   candidate_stops cs
 		JOIN   destination_stops ds  ON ds.master_route_id = cs.master_route_id
 		JOIN   matching_routes   mr  ON mr.master_route_id = cs.master_route_id
@@ -319,14 +333,15 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 	`
 
 	var result struct {
-		FromID     uuid.UUID `db:"from_id"`
-		FromName   string    `db:"from_name"`
-		ToID       uuid.UUID `db:"to_id"`
-		ToName     string    `db:"to_name"`
-		RouteID    uuid.UUID `db:"route_id"`
-		RouteName  string    `db:"route_name"`
-		Distance   float64   `db:"distance"`
-		DistanceKm float64   `db:"distance_km"`
+		FromID      uuid.UUID `db:"from_id"`
+		FromName    string    `db:"from_name"`
+		ToID        uuid.UUID `db:"to_id"`
+		ToName      string    `db:"to_name"`
+		RouteID     uuid.UUID `db:"route_id"`
+		RouteName   string    `db:"route_name"`
+		RouteNumber string    `db:"route_number"`
+		Distance    float64   `db:"distance"`
+		DistanceKm  float64   `db:"distance_km"`
 	}
 
 	err = r.db.Get(&result, query, strings.TrimSpace(toName), userLat, userLng)
@@ -362,6 +377,7 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string) (*Stop
 		ToID:        result.ToID,
 		RouteID:     result.RouteID,
 		RouteName:   result.RouteName,
+		RouteNumber: result.RouteNumber,
 		Matched:     true,
 		DistanceKm:  result.DistanceKm,
 		DistanceStr: distanceStr,

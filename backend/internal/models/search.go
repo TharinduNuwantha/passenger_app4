@@ -13,6 +13,10 @@ type SearchRequest struct {
 	To       string     `json:"to" binding:"required"`   // Destination stop name (e.g., "Kandy")
 	DateTime *time.Time `json:"datetime,omitempty"`      // Optional: Departure date/time filter
 	Limit    int        `json:"limit,omitempty"`         // Optional: Max results (default: 20)
+	FromLat  *float64   `json:"from_lat,omitempty"`      // Optional: Precise origin latitude
+	FromLng  *float64   `json:"from_lng,omitempty"`      // Optional: Precise origin longitude
+	ToLat    *float64   `json:"to_lat,omitempty"`        // Optional: Precise destination latitude
+	ToLng    *float64   `json:"to_lng,omitempty"`        // Optional: Precise destination longitude
 }
 
 // SearchResponse represents the search results returned to passenger

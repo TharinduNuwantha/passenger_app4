@@ -11,12 +11,20 @@ class BusListScreen extends StatefulWidget {
   final DateTime? date;
   final String pickup;
   final String drop;
+  final double? fromLat;
+  final double? fromLng;
+  final double? toLat;
+  final double? toLng;
 
   const BusListScreen({
     super.key,
     this.date,
     required this.pickup,
     required this.drop,
+    this.fromLat,
+    this.fromLng,
+    this.toLat,
+    this.toLng,
     required stop,
     DateTime? returnDate,
   });
@@ -46,6 +54,10 @@ class _BusListScreenState extends State<BusListScreen> {
       to: widget.drop,
       datetime: widget.date,
       limit: 50,
+      fromLat: widget.fromLat,
+      fromLng: widget.fromLng,
+      toLat: widget.toLat,
+      toLng: widget.toLng,
     );
   }
 
@@ -373,9 +385,14 @@ class _BusListScreenState extends State<BusListScreen> {
         tripDate.month == now.month &&
         tripDate.day == now.day + 1;
 
+    // Route-only preview flag: true if no schedule is found but route exists
+    final bool isRouteOnly = !trip.isBookable && trip.busType == "Unknown";
+
     // Format the date display
     String dateLabel;
-    if (isToday) {
+    if (isRouteOnly) {
+      dateLabel = 'Selected Route Info';
+    } else if (isToday) {
       dateLabel = 'Today';
     } else if (isTomorrow) {
       dateLabel = 'Tomorrow';
@@ -427,17 +444,19 @@ class _BusListScreenState extends State<BusListScreen> {
                       color: isToday ? Colors.green[700] : AppColors.primary,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text('•'),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Departs ${DateFormat('h:mm a').format(trip.departureTime)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isToday ? Colors.green[700] : AppColors.primary,
+                  if (!isRouteOnly) ...[
+                    const SizedBox(width: 8),
+                    const Text('•'),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Departs ${DateFormat('h:mm a').format(trip.departureTime)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isToday ? Colors.green[700] : AppColors.primary,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -455,89 +474,147 @@ class _BusListScreenState extends State<BusListScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    trip.routeName,
-                    style: AppTextStyles.h3.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        trip.routeName,
+                        style: AppTextStyles.h3.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (trip.routeNumber != null && trip.routeNumber!.isNotEmpty)
+                        Text(
+                          'Route: ${trip.routeNumber}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    trip.busType,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                if (!isRouteOnly)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      trip.busType,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 12),
 
             // Journey visualization
-            _buildJourneyTimeline(trip),
+            if (!isRouteOnly) _buildJourneyTimeline(trip),
+            if (isRouteOnly)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(trip.boardingPoint, style: AppTextStyles.body)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.east, color: Colors.grey, size: 16),
+                    ),
+                    const Icon(Icons.location_on, color: Colors.redAccent, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(trip.droppingPoint, style: AppTextStyles.body)),
+                  ],
+                ),
+              ),
             const SizedBox(height: 12),
 
             // Route Preview (All Stops)
             if (!isIntercept) _buildRoutePreview(trip),
 
             // Features row
-            _buildFeaturesRow(trip),
-            const SizedBox(height: 12),
-            const Divider(),
-            const SizedBox(height: 12),
+            if (!isRouteOnly) _buildFeaturesRow(trip),
+            if (!isRouteOnly) const SizedBox(height: 12),
+            if (!isRouteOnly) const Divider(),
+            if (!isRouteOnly) const SizedBox(height: 12),
 
             // Seats & Price
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildSeatsDisplay(trip),
-                Row(
+            if (!isRouteOnly)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildSeatsDisplay(trip),
+                  Row(
+                    children: [
+                      Text(
+                        trip.formattedFare,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => _handleBookingPress(context, trip),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                        ),
+                        child: const Text(
+                          'Book',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+            if (isRouteOnly)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
                   children: [
-                    Text(
-                      trip.formattedFare,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                    const Icon(Icons.info_outline, size: 16, color: Colors.blue),
                     const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: trip.isBookable
-                          ? () => _handleBookingPress(context, trip)
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                      ),
-                      child: const Text(
-                        'Book',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                    const Expanded(
+                      child: Text(
+                        'This route usually exists but has no scheduled trips for your selected time. Check other dates for bus availability.',
+                        style: TextStyle(fontSize: 12, color: Colors.blue),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
           ],
         ),
       ),

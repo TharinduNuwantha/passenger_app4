@@ -244,54 +244,104 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
             const SizedBox(height: 24),
 
-            // QR Code
+            // Boarding Pass Card
             if (qrCode.isNotEmpty &&
                 booking.bookingStatus != MasterBookingStatus.cancelled)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withOpacity(0.08),
+                      Colors.white,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'Boarding Pass',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'BOARDING PASS',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 32),
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
                       child: QrImageView(
                         data: qrCode,
                         version: QrVersions.auto,
-                        size: 160,
+                        size: 180,
                         backgroundColor: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     Text(
-                      'Show this to conductor for boarding',
+                      'Ready for Boarding',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primary.withOpacity(0.6),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary.withOpacity(0.9),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Provide this QR to the bus conductor',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.primary.withOpacity(0.5),
                       ),
                     ),
                     if (busBooking != null && 
                         booking.bookingStatus == MasterBookingStatus.confirmed &&
                         busBooking.departureDatetime.isAfter(DateTime.now())) ...[
-                      const SizedBox(height: 20),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Divider(),
+                      ),
+                      const Text(
+                        'TIME UNTIL DEPARTURE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       BookingCountdownTimer(
                         targetDateTime: busBooking.departureDatetime,
                       ),

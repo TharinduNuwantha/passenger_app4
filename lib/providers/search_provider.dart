@@ -40,6 +40,10 @@ class SearchProvider with ChangeNotifier {
     required String to,
     DateTime? datetime,
     int limit = 20,
+    double? fromLat,
+    double? fromLng,
+    double? toLat,
+    double? toLng,
   }) async {
     _isSearching = true;
     _errorMessage = null;
@@ -54,6 +58,10 @@ class SearchProvider with ChangeNotifier {
         to: to,
         datetime: datetime,
         limit: limit,
+        fromLat: fromLat,
+        fromLng: fromLng,
+        toLat: toLat,
+        toLng: toLng,
       );
 
       _searchResponse = response;

@@ -27,6 +27,10 @@ class SearchService {
     required String to,
     DateTime? datetime,
     int limit = 20,
+    double? fromLat,
+    double? fromLng,
+    double? toLat,
+    double? toLng,
   }) async {
     try {
       _logger.i('Searching trips: $from → $to');
@@ -36,6 +40,10 @@ class SearchService {
         to: to,
         datetime: datetime,
         limit: limit,
+        fromLat: fromLat,
+        fromLng: fromLng,
+        toLat: toLat,
+        toLng: toLng,
       );
 
       final jsonPayload = request.toJson();

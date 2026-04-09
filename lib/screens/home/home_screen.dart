@@ -98,6 +98,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   String? firstName;
 
+  // Selected location coordinates
+  double? pickupLat;
+  double? pickupLng;
+  double? dropLat;
+  double? dropLng;
+
   // Active booking data
   Map<String, dynamic>? activeBooking;
   bool hasActiveBooking = false;
@@ -487,6 +493,17 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   // Listen to pickup field changes and fetch autocomplete
   void _onPickupTextChanged() {
     final text = pickupController.text;
+    
+    // Reset coordinates on manual text change to avoid stale location data
+    if (pickupLat != null || pickupLng != null) {
+      if (mounted) {
+        setState(() {
+          pickupLat = null;
+          pickupLng = null;
+        });
+      }
+    }
+
     if (text.length >= 2) {
       // Use Google Maps autocomplete for better UX
       _fetchAutocompleteSuggestions(text, isPickup: true);
@@ -501,6 +518,17 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   // Listen to drop field changes and fetch Google Maps autocomplete
   void _onDropTextChanged() {
     final text = dropController.text;
+
+    // Reset coordinates on manual text change to avoid stale location data
+    if (dropLat != null || dropLng != null) {
+      if (mounted) {
+        setState(() {
+          dropLat = null;
+          dropLng = null;
+        });
+      }
+    }
+
     if (text.length >= 2) {
       // Use Google Maps autocomplete for better UX
       _fetchAutocompleteSuggestions(text, isPickup: false, isStop: false);
@@ -648,19 +676,37 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       ),
     );
 
-    if (result != null && result is String) {
-      setState(() {
-        if (isPickup) {
-          pickupController.text = result;
-          showPickupSuggestions = false;
-        } else {
-          dropController.text = result;
-          showDropSuggestions = false;
-        }
-      });
+    if (result != null) {
+      String? address;
+      double? lat;
+      double? lng;
 
-      // Auto-navigate to booking if all fields are filled
-      _autoNavigateToBooking();
+      if (result is String) {
+        address = result;
+      } else if (result is Map) {
+        address = result['address'];
+        lat = result['lat'];
+        lng = result['lng'];
+      }
+
+      if (address != null) {
+        setState(() {
+          if (isPickup) {
+            pickupController.text = address!;
+            pickupLat = lat;
+            pickupLng = lng;
+            showPickupSuggestions = false;
+          } else {
+            dropController.text = address!;
+            dropLat = lat;
+            dropLng = lng;
+            showDropSuggestions = false;
+          }
+        });
+
+        // Auto-navigate to booking if all fields are filled
+        _autoNavigateToBooking();
+      }
     }
   }
 
@@ -860,6 +906,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               date: searchDate,
               pickup: fromStop,
               drop: toStop,
+              fromLat: pickupLat,
+              fromLng: pickupLng,
+              toLat: dropLat,
+              toLng: dropLng,
               stop: null, // Remove stop parameter
             ),
           ),
@@ -960,9 +1010,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           setState(() {
             if (isPickup) {
               pickupController.text = address;
+              pickupLat = position.latitude;
+              pickupLng = position.longitude;
               showPickupSuggestions = false;
             } else {
               dropController.text = address;
+              dropLat = position.latitude;
+              dropLng = position.longitude;
               showDropSuggestions = false;
             }
           });

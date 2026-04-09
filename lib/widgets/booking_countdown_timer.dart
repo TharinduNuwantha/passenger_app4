@@ -123,18 +123,6 @@ class _BookingCountdownTimerState extends State<BookingCountdownTimer> {
     });
   }
 
-  String _formatDuration(Duration duration) {
-    final days = duration.inDays;
-    final hours = duration.inHours % 24;
-    final minutes = duration.inMinutes % 60;
-    final seconds = duration.inSeconds % 60;
-
-    if (days > 0) {
-      return '${days}d ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isExpired) {
@@ -149,69 +137,122 @@ class _BookingCountdownTimerState extends State<BookingCountdownTimer> {
       );
     }
 
+    final days = _timeRemaining.inDays;
+    final hours = _timeRemaining.inHours % 24;
+    final minutes = _timeRemaining.inMinutes % 60;
+    final seconds = _timeRemaining.inSeconds % 60;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withOpacity(0.1),
-            AppColors.primary.withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+        color: AppColors.primary.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withOpacity(0.08)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildTimeUnit(days.toString().padLeft(2, '0'), 'DAYS'),
+              _buildSeparator(),
+              _buildTimeUnit(hours.toString().padLeft(2, '0'), 'HRS'),
+              _buildSeparator(),
+              _buildTimeUnit(minutes.toString().padLeft(2, '0'), 'MINS'),
+              _buildSeparator(),
+              _buildTimeUnit(seconds.toString().padLeft(2, '0'), 'SECS', isLast: true),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_on,
+                  size: 14,
+                  color: _currentPosition != null ? AppColors.success : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _locationStatus,
+                  style: AppTextStyles.caption.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _currentPosition != null ? AppColors.success : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.timer_outlined,
-                size: 16,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                _formatDuration(_timeRemaining),
-                style: widget.textStyle ??
-                    AppTextStyles.bodyMedium.copyWith(
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                      fontSize: 14,
-                    ),
+    );
+  }
+
+  Widget _buildTimeUnit(String value, String label, {bool isLast = false}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.location_on,
-                size: 10,
-                color: _currentPosition != null ? AppColors.success : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                _locationStatus,
-                style: AppTextStyles.caption.copyWith(
-                  fontSize: 9,
-                  color: _currentPosition != null ? AppColors.success : AppColors.textSecondary,
-                ),
-              ),
-            ],
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontFamily: 'monospace',
+            ),
           ),
-        ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primary.withOpacity(0.5),
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSeparator() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, right: 4, bottom: 16),
+      child: Text(
+        ':',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary.withOpacity(0.2),
+        ),
       ),
     );
   }

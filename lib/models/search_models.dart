@@ -6,12 +6,20 @@ class SearchRequest {
   final String to;
   final DateTime? datetime;
   final int? limit;
+  final double? fromLat;
+  final double? fromLng;
+  final double? toLat;
+  final double? toLng;
 
   SearchRequest({
     required this.from,
     required this.to,
     this.datetime,
     this.limit = 20,
+    this.fromLat,
+    this.fromLng,
+    this.toLat,
+    this.toLng,
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +40,10 @@ class SearchRequest {
       'to': to,
       if (formattedDatetime != null) 'datetime': formattedDatetime,
       if (limit != null) 'limit': limit,
+      if (fromLat != null) 'from_lat': fromLat,
+      if (fromLng != null) 'from_lng': fromLng,
+      if (toLat != null) 'to_lat': toLat,
+      if (toLng != null) 'to_lng': toLng,
     };
   }
 }
