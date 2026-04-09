@@ -850,3 +850,156 @@ func (r *SearchRepository) GetRouteStopsForTrip(masterRouteID string, busOwnerRo
 
 	return stops, nil
 }
+func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat, fromLng, toLat, toLng *float64, afterTime time.Time, limit int) ([]models.TripResult, error) {
+	var userLat, userLng float64
+	var destLat, destLng float64
+	var err error
+
+	// Resolve From coordinates
+	if fromLat != nil && fromLng != nil {
+		userLat = *fromLat
+		userLng = *fromLng
+	} else {
+		userLat, userLng, err = r.resolveCoordinates(fromName)
+		if err != nil {
+			return nil, nil // Silently fail if coordinates can't be resolved
+		}
+	}
+
+	// Resolve To coordinates
+	if toLat != nil && toLng != nil {
+		destLat = *toLat
+		destLng = *toLng
+	} else {
+		destLat, destLng, err = r.resolveCoordinates(toName)
+		if err != nil {
+			return nil, nil
+		}
+	}
+
+	// This query finds a transit hub (stop) that connects two routes
+	// Leg 1: From user location to hub
+	// Leg 2: From hub to destination
+	query := `
+		WITH 
+		origin_routes AS (
+			SELECT mrs.master_route_id, mrs.id as start_stop_id, mrs.stop_name as start_stop_name, mrs.stop_order as start_order
+			FROM master_route_stops mrs
+			WHERE mrs.latitude IS NOT NULL AND mrs.longitude IS NOT NULL
+			AND SQRT(POWER((mrs.latitude - $1) * 111.0, 2) + POWER((mrs.longitude - $2) * 111.0 * COS(RADIANS($1)), 2)) < 15.0
+		),
+		destination_routes AS (
+			SELECT mrs.master_route_id, mrs.id as end_stop_id, mrs.stop_name as end_stop_name, mrs.stop_order as end_order
+			FROM master_route_stops mrs
+			WHERE mrs.latitude IS NOT NULL AND mrs.longitude IS NOT NULL
+			AND SQRT(POWER((mrs.latitude - $3) * 111.0, 2) + POWER((mrs.longitude - $4) * 111.0 * COS(RADIANS($3)), 2)) < 15.0
+		),
+		transit_hubs AS (
+			SELECT 
+				h1.stop_name as hub_name,
+				h1.id as hub_id_leg1,
+				h2.id as hub_id_leg2,
+				oroutes.master_route_id as route1_id,
+				droutes.master_route_id as route2_id,
+				oroutes.start_stop_id,
+				droutes.end_stop_id,
+				oroutes.start_stop_name,
+				droutes.end_stop_name
+			FROM master_route_stops h1
+			JOIN origin_routes oroutes ON oroutes.master_route_id = h1.master_route_id
+			JOIN master_route_stops h2 ON h2.stop_name = h1.stop_name -- Match by name for hub
+			JOIN destination_routes droutes ON droutes.master_route_id = h2.master_route_id
+			WHERE h1.stop_order > oroutes.start_order
+			AND h2.stop_order < droutes.end_order
+			AND h1.master_route_id != h2.master_route_id -- Different routes
+			AND h1.is_major_stop = true -- Prefer major stops as hubs
+			LIMIT 5
+		)
+		SELECT hub_name, hub_id_leg1, hub_id_leg2, route1_id, route2_id, start_stop_id, end_stop_id, start_stop_name, end_stop_name FROM transit_hubs
+	`
+
+	rows, err := r.db.Queryx(query, userLat, userLng, destLat, destLng)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.TripResult
+	for rows.Next() {
+		var h struct {
+			HubName        string    `db:"hub_name"`
+			HubIDLeg1      uuid.UUID `db:"hub_id_leg1"`
+			HubIDLeg2      uuid.UUID `db:"hub_id_leg2"`
+			Route1ID       uuid.UUID `db:"route1_id"`
+			Route2ID       uuid.UUID `db:"route2_id"`
+			StartStopID    uuid.UUID `db:"start_stop_id"`
+			EndStopID      uuid.UUID `db:"end_stop_id"`
+			StartStopName  string    `db:"start_stop_name"`
+			EndStopName    string    `db:"end_stop_name"`
+		}
+		if err := rows.StructScan(&h); err != nil {
+			continue
+		}
+
+		// Find trips for leg 1
+		trips1, err := r.FindDirectTrips(h.StartStopID, h.HubIDLeg1, afterTime, 3)
+		if err != nil || len(trips1) == 0 {
+			// If no actual trips, create a skeleton for leg 1
+			trips1 = []models.TripResult{{
+				TripID:        uuid.New(),
+				RouteName:     "Route 1 to " + h.HubName,
+				BoardingPoint: h.StartStopName,
+				DroppingPoint: h.HubName,
+				IsBookable:    false,
+				BusType:       "Normal",
+				DepartureTime: afterTime,
+				EstimatedArrival: afterTime.Add(2 * time.Hour),
+			}}
+		}
+
+		// Find trips for leg 2
+		// For leg 2, we search slightly after leg 1 arrives
+		for _, t1 := range trips1 {
+			trips2, err := r.FindDirectTrips(h.HubIDLeg2, h.EndStopID, t1.EstimatedArrival.Add(30*time.Minute), 2)
+			if err != nil || len(trips2) == 0 {
+				// Skeleton for leg 2
+				trips2 = []models.TripResult{{
+					TripID:        uuid.New(),
+					RouteName:     "Route 2 from " + h.HubName,
+					BoardingPoint: h.HubName,
+					DroppingPoint: h.EndStopName,
+					IsBookable:    false,
+					BusType:       "Normal",
+					DepartureTime: t1.EstimatedArrival.Add(1 * time.Hour),
+					EstimatedArrival: t1.EstimatedArrival.Add(4 * time.Hour),
+				}}
+			}
+
+			for _, t2 := range trips2 {
+				// Combine into a transit trip
+				transitTrip := models.TripResult{
+					TripID:           uuid.New(),
+					RouteName:        fmt.Sprintf("via %s", h.HubName),
+					IsTransit:        true,
+					TransitPoint:     h.HubName,
+					TransitPointID:   &h.HubIDLeg1,
+					BoardingPoint:    t1.BoardingPoint,
+					DroppingPoint:    t2.DroppingPoint,
+					DepartureTime:    t1.DepartureTime,
+					EstimatedArrival: t2.EstimatedArrival,
+					DurationMinutes:  int(t2.EstimatedArrival.Sub(t1.DepartureTime).Minutes()),
+					Fare:             t1.Fare + t2.Fare,
+					Leg1:             &t1,
+					Leg2:             &t2,
+					IsBookable:       t1.IsBookable && t2.IsBookable,
+				}
+				results = append(results, transitTrip)
+				if len(results) >= limit {
+					return results, nil
+				}
+			}
+		}
+	}
+
+	return results, nil
+}

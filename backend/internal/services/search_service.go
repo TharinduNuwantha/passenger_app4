@@ -189,11 +189,17 @@ func (s *SearchService) SearchTrips(
 
 	response.Results = trips
 
+	// Step 4: Add Connecting Transit Journeys if needed
+	transitTrips, err := s.repo.FindTransitJourneys(req.From, req.To, req.FromLat, req.FromLng, req.ToLat, req.ToLng, startTime, 3)
+	if err == nil && len(transitTrips) > 0 {
+		response.Results = append(response.Results, transitTrips...)
+	}
+
 	// Step 5: Build appropriate message
-	if len(trips) == 0 {
+	if len(response.Results) == 0 {
 		response.Status = "success"
 		response.Message = fmt.Sprintf(
-			"No direct trips found from %s to %s for the selected date. Showing potential route details.",
+			"No direct or connecting trips found from %s to %s for the selected date. Showing potential route details.",
 			stopPair.FromStop.Name,
 			stopPair.ToStop.Name,
 		)
@@ -220,12 +226,29 @@ func (s *SearchService) SearchTrips(
 		response.Results = append(response.Results, skeletonTrip)
 	} else {
 		response.Status = "success"
-		response.Message = fmt.Sprintf(
-			"Found %d trip(s) from %s to %s",
-			len(trips),
-			stopPair.FromStop.Name,
-			stopPair.ToStop.Name,
-		)
+		hasTransit := false
+		for _, r := range response.Results {
+			if r.IsTransit {
+				hasTransit = true
+				break
+			}
+		}
+
+		if hasTransit && len(trips) == 0 {
+			response.Message = fmt.Sprintf(
+				"No direct buses found, but we found %d connecting journey(s) from %s to %s via transit hubs.",
+				len(transitTrips),
+				stopPair.FromStop.Name,
+				stopPair.ToStop.Name,
+			)
+		} else {
+			response.Message = fmt.Sprintf(
+				"Found %d journey(s) from %s to %s",
+				len(response.Results),
+				stopPair.FromStop.Name,
+				stopPair.ToStop.Name,
+			)
+		}
 	}
 
 	// Step 7: Calculate search time
