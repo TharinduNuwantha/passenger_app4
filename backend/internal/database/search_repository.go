@@ -250,6 +250,7 @@ func (r *SearchRepository) resolveCoordinates(locationName string) (float64, flo
 //  6. Return that stop as the boarding point + the destination stop as the alighting point
 func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLat, fromLng *float64) (*StopPairResult, error) {
 	var userLat, userLng float64
+	var err error
 
 	if fromLat != nil && fromLng != nil {
 		userLat = *fromLat
@@ -257,7 +258,6 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLa
 		fmt.Printf("Using provided coordinates for '%s': %.6f, %.6f\n", fromName, userLat, userLng)
 	} else {
 		// First: Resolve User Location Coordinates physically
-		var err error
 		userLat, userLng, err = r.resolveCoordinates(fromName)
 		if err != nil {
 			fmt.Printf("Could not resolve coordinates for '%s': %v\n", fromName, err)
