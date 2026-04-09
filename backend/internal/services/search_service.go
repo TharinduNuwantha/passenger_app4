@@ -79,7 +79,7 @@ func (s *SearchService) SearchTrips(
 		var interceptPair *database.StopPairResult
 		var interceptErr error
 		
-		interceptPair, interceptErr = s.repo.FindInterceptStopPair(req.From, req.To, req.FromLat, req.FromLng)
+		interceptPair, interceptErr = s.repo.FindInterceptStopPair(req.From, req.To, req.FromLat, req.FromLng, req.ToLat, req.ToLng)
 		
 		if interceptErr != nil {
 			s.logger.WithError(interceptErr).Error("Error finding intercept pair")

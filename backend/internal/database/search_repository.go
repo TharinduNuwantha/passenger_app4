@@ -248,41 +248,54 @@ func (r *SearchRepository) resolveCoordinates(locationName string) (float64, flo
 //  4. Resolve all those stop IDs to (id, stop_name, lat, lng) from master_route_stops
 //  5. Find the stop in that list geographically nearest to location B coordinates
 //  6. Return that stop as the boarding point + the destination stop as the alighting point
-func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLat, fromLng *float64) (*StopPairResult, error) {
+func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLat, fromLng, toLat, toLng *float64) (*StopPairResult, error) {
 	var userLat, userLng float64
+	var destLat, destLng float64
 	var err error
 
+	// Resolve From coordinates
 	if fromLat != nil && fromLng != nil {
 		userLat = *fromLat
 		userLng = *fromLng
-		fmt.Printf("Using provided coordinates for '%s': %.6f, %.6f\n", fromName, userLat, userLng)
 	} else {
-		// First: Resolve User Location Coordinates physically
 		userLat, userLng, err = r.resolveCoordinates(fromName)
 		if err != nil {
-			fmt.Printf("Could not resolve coordinates for '%s': %v\n", fromName, err)
 			return &StopPairResult{Matched: false}, nil
 		}
 	}
 
-	// ---------- Core Matching Logic ----------
+	// Resolve To coordinates
+	if toLat != nil && toLng != nil {
+		destLat = *toLat
+		destLng = *toLng
+	} else {
+		destLat, destLng, err = r.resolveCoordinates(toName)
+		if err != nil {
+			return &StopPairResult{Matched: false}, nil
+		}
+	}
+
 	query := `
 		WITH
-		-- Step 1: find destination stop on any active route
+		-- Step 1: find destination stops near destination coordinates
 		destination_stops AS (
-			SELECT DISTINCT
-			       mrs.id       AS dest_id,
+			SELECT mrs.id       AS dest_id,
 			       mrs.stop_name AS dest_name,
 			       mrs.stop_order AS dest_order,
-			       mrs.master_route_id
+			       mrs.master_route_id,
+				   -- Distance to destination city center
+				   SQRT(POWER(mrs.latitude - $3, 2) + POWER(mrs.longitude - $4, 2)) as dest_dist
 			FROM   master_route_stops mrs
-			WHERE  LOWER(mrs.stop_name) LIKE LOWER('%' || $1 || '%')
+			WHERE  mrs.latitude IS NOT NULL AND mrs.longitude IS NOT NULL
+			-- Within 20km of destination city (Kandy/Jaffna etc)
+			AND SQRT(POWER((mrs.latitude - $3) * 111.0, 2) + POWER((mrs.longitude - $4) * 111.0 * COS(RADIANS($3)), 2)) < 20.0
 		),
 
-		-- Step 2: find routes that contain this destination stop
+		-- Step 2: find routes that contain ANY of these destination stops
 		matching_routes AS (
-			SELECT mr.id          AS master_route_id,
-			       mr.route_name
+			SELECT DISTINCT mr.id AS master_route_id,
+			       mr.route_name,
+				   mr.route_number
 			FROM   master_routes mr
 			JOIN   destination_stops ds ON ds.master_route_id = mr.id
 			WHERE  mr.is_active = true
@@ -297,7 +310,7 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLa
 			       mrs.latitude,
 			       mrs.longitude,
 			       mrs.is_major_stop,
-			       mr.master_route_id
+			       mrs.master_route_id
 			FROM   master_route_stops mrs
 			JOIN   matching_routes mr ON mr.master_route_id = mrs.master_route_id
 			WHERE  mrs.latitude  IS NOT NULL
@@ -314,13 +327,13 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLa
 			mr.route_name,
 			-- Approximate Euclidean distance (fine for nearby-stop detection)
 			SQRT(
-			  POWER(cs.latitude  - $2,  2) +
-			  POWER(cs.longitude - $3, 2)
+			  POWER(cs.latitude  - $1,  2) +
+			  POWER(cs.longitude - $2, 2)
 			)                                                                    AS distance,
 			-- Convert degree-distance to km (rough: 1° ≈ 111 km)
 			SQRT(
-			  POWER((cs.latitude  - $2)  * 111.0, 2) +
-			  POWER((cs.longitude - $3) * 111.0 * COS(RADIANS($2)), 2)
+			  POWER((cs.latitude  - $1)  * 111.0, 2) +
+			  POWER((cs.longitude - $2) * 111.0 * COS(RADIANS($1)), 2)
 			)                                                                    AS distance_km,
 			mr.route_number
 		FROM   candidate_stops cs
@@ -328,7 +341,7 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLa
 		JOIN   matching_routes   mr  ON mr.master_route_id = cs.master_route_id
 		-- Ensure boarding stop comes before destination stop on the route
 		WHERE  cs.stop_order < ds.dest_order
-		ORDER  BY distance ASC
+		ORDER  BY distance ASC, ds.dest_dist ASC
 		LIMIT  1
 	`
 
@@ -344,18 +357,12 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLa
 		DistanceKm  float64   `db:"distance_km"`
 	}
 
-	err = r.db.Get(&result, query, strings.TrimSpace(toName), userLat, userLng)
+	err = r.db.Get(&result, query, userLat, userLng, destLat, destLng)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return &StopPairResult{Matched: false}, nil
 		}
 		return nil, fmt.Errorf("error finding intercept stop pair: %w", err)
-	}
-
-	// Reject if the nearest join point is more than 30 km away.
-	// (Beyond that the "intercept" suggestion would be impractical.)
-	if result.DistanceKm > 30.0 {
-		return &StopPairResult{Matched: false}, nil
 	}
 
 	distanceStr := fmt.Sprintf("%.1f km away", result.DistanceKm)
