@@ -60,7 +60,31 @@ func (s *SearchService) SearchTrips(
 		Results: []models.TripResult{},
 	}
 
-	// Step 1: Find stop pair on same route with fuzzy matching
+	// Step 1: Try Prioritized Lounge Search if coordinates are provided
+	if req.FromLat != nil && req.FromLng != nil && req.ToLat != nil && req.ToLng != nil {
+		s.logger.Info("Attempting Prioritized Lounge Search using coordinates...")
+		loungeTrips, err := s.repo.FindDirectTripsByLounges(
+			*req.FromLat, *req.FromLng, 
+			*req.ToLat, *req.ToLng, 
+			req.GetSearchDateTime(), 
+			req.Limit,
+		)
+		if err == nil && len(loungeTrips) > 0 {
+			s.logger.WithField("trips_found", len(loungeTrips)).Info("Found trips via prioritized lounge search")
+			response.Results = loungeTrips
+			response.SearchDetails.SearchType = "prioritized_lounge"
+			response.Message = fmt.Sprintf("Found %d trip(s) between lounges near your locations", len(loungeTrips))
+			
+			// Step 7: Calculate search time
+			responseTime := time.Since(startTime)
+			response.SearchTimeMs = responseTime.Milliseconds()
+			s.logSearch(req, response, userID, &ipAddress, responseTime)
+			return response, nil
+		}
+		s.logger.Info("No trips found via prioritized lounge search, falling back to stop-based search")
+	}
+
+	// Step 2: Traditional stop-based search (fallback or if no coordinates)
 	stopPair, err := s.repo.FindStopPairOnSameRoute(req.From, req.To)
 	if err != nil {
 		s.logger.WithError(err).Error("Error finding stop pair")

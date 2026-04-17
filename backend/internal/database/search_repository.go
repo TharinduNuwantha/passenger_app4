@@ -1003,3 +1003,154 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 
 	return results, nil
 }
+
+// FindDirectTripsByLounges implements a prioritized "Direct Route" search algorithm
+// using a nested fail-over pattern via an optimized SQL CROSS JOIN.
+// Proximity weights ensure nearest start lounges are checked first against all drop lounges.
+func (r *SearchRepository) FindDirectTripsByLounges(
+	startLat, startLng float64,
+	dropLat, dropLng float64,
+	afterTime time.Time,
+	limit int,
+) ([]models.TripResult, error) {
+	query := `
+		WITH 
+		-- Step 1: Find candidate lounges near the start point (within 3km)
+		start_candidates AS (
+			SELECT 
+				l.id AS lounge_id,
+				l.latitude,
+				l.longitude,
+				-- Euclidean approximation for proximity weighting (fine for 3km radius)
+				SQRT(POWER((l.latitude - $1) * 111, 2) + POWER((l.longitude - $2) * 111 * COS(RADIANS($1)), 2)) as dist
+			FROM lounges l
+			WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+			AND SQRT(POWER((l.latitude - $1) * 111, 2) + POWER((l.longitude - $2) * 111 * COS(RADIANS($1)), 2)) <= 3.0
+		),
+
+		-- Step 2: Find candidate lounges near the drop point (within 3km)
+		drop_candidates AS (
+			SELECT 
+				l.id AS lounge_id,
+				l.latitude,
+				l.longitude,
+				SQRT(POWER((l.latitude - $3) * 111, 2) + POWER((l.longitude - $4) * 111 * COS(RADIANS($3)), 2)) as dist
+			FROM lounges l
+			WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+			AND SQRT(POWER((l.latitude - $3) * 111, 2) + POWER((l.longitude - $4) * 111 * COS(RADIANS($3)), 2)) <= 3.0
+		),
+
+		-- Step 3: Prioritized Cross Join and Filter
+		ranked_trips AS (
+			SELECT DISTINCT ON (sl.dist, dl.dist, st.id)
+				st.id as trip_id,
+				COALESCE(bor.custom_route_name, mr.route_name) as route_name,
+				mr.route_number,
+				b.bus_type,
+				st.departure_datetime as departure_time,
+				st.departure_datetime + (COALESCE(st.estimated_duration_minutes, 0) * interval '1 minute') as estimated_arrival,
+				COALESCE(st.estimated_duration_minutes, 0) as duration_minutes,
+				COALESCE(bslt.total_seats, 0) as total_seats,
+				COALESCE(rp.approved_fare, st.base_fare, 0) as fare,
+				mrs1.stop_name as boarding_point,
+				mrs2.stop_name as dropping_point,
+				COALESCE(b.has_wifi, false) as has_wifi,
+				COALESCE(b.has_ac, false) as has_ac,
+				COALESCE(b.has_charging_ports, false) as has_charging_ports,
+				COALESCE(b.has_entertainment, false) as has_entertainment,
+				COALESCE(b.has_refreshments, false) as has_refreshments,
+				st.is_bookable,
+				bor.id as bus_owner_route_id,
+				mr.id::text as master_route_id,
+				sl.dist as start_proximity,
+				dl.dist as drop_proximity
+			FROM start_candidates sl
+			CROSS JOIN drop_candidates dl
+			JOIN lounge_routes lr1 ON lr1.lounge_id = sl.lounge_id
+			JOIN lounge_routes lr2 ON lr2.lounge_id = dl.lounge_id AND lr2.master_route_id = lr1.master_route_id
+			JOIN master_route_stops mrs1 ON mrs1.id = lr1.stop_before_id
+			JOIN master_route_stops mrs2 ON mrs2.id = lr2.stop_before_id
+			JOIN master_routes mr ON mr.id = lr1.master_route_id
+			JOIN scheduled_trips st ON (
+				st.bus_owner_route_id IN (SELECT id FROM bus_owner_routes WHERE master_route_id = mr.id)
+				OR st.permit_id IN (SELECT id FROM route_permits WHERE master_route_id = mr.id)
+			)
+			LEFT JOIN bus_owner_routes bor ON st.bus_owner_route_id = bor.id
+			LEFT JOIN route_permits rp ON st.permit_id = rp.id
+			LEFT JOIN buses b ON rp.bus_registration_number = b.license_plate
+			LEFT JOIN bus_seat_layout_templates bslt ON b.seat_layout_id = bslt.id
+			WHERE 
+				mrs1.stop_order < mrs2.stop_order
+				AND st.departure_datetime > $5
+				AND st.status IN ('scheduled', 'confirmed')
+				AND st.is_bookable = true
+			ORDER BY sl.dist ASC, dl.dist ASC, st.id
+		)
+
+		SELECT * FROM ranked_trips
+		ORDER BY start_proximity ASC, drop_proximity ASC, departure_time ASC
+		LIMIT $6
+	`
+
+	type tripWithFeatures struct {
+		TripID           uuid.UUID `db:"trip_id"`
+		RouteName        string    `db:"route_name"`
+		RouteNumber      *string   `db:"route_number"`
+		BusType          *string   `db:"bus_type"`
+		DepartureTime    time.Time `db:"departure_time"`
+		EstimatedArrival time.Time `db:"estimated_arrival"`
+		DurationMinutes  int       `db:"duration_minutes"`
+		TotalSeats       int       `db:"total_seats"`
+		Fare             float64   `db:"fare"`
+		BoardingPoint    string    `db:"boarding_point"`
+		DroppingPoint    string    `db:"dropping_point"`
+		HasWiFi          bool      `db:"has_wifi"`
+		HasAC            bool      `db:"has_ac"`
+		HasChargingPorts bool      `db:"has_charging_ports"`
+		HasEntertainment bool      `db:"has_entertainment"`
+		HasRefreshments  bool      `db:"has_refreshments"`
+		IsBookable       bool      `db:"is_bookable"`
+		BusOwnerRouteID  *string   `db:"bus_owner_route_id"`
+		MasterRouteID    *string   `db:"master_route_id"`
+	}
+
+	var tempTrips []tripWithFeatures
+	err := r.db.Select(&tempTrips, query, startLat, startLng, dropLat, dropLng, afterTime, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error in prioritized lounge search: %w", err)
+	}
+
+	trips := make([]models.TripResult, len(tempTrips))
+	for i, temp := range tempTrips {
+		busType := "Standard"
+		if temp.BusType != nil {
+			busType = *temp.BusType
+		}
+
+		trips[i] = models.TripResult{
+			TripID:           temp.TripID,
+			RouteName:        temp.RouteName,
+			RouteNumber:      temp.RouteNumber,
+			BusType:          busType,
+			DepartureTime:    temp.DepartureTime,
+			EstimatedArrival: temp.EstimatedArrival,
+			DurationMinutes:  temp.DurationMinutes,
+			TotalSeats:       temp.TotalSeats,
+			Fare:             temp.Fare,
+			BoardingPoint:    temp.BoardingPoint,
+			DroppingPoint:    temp.DroppingPoint,
+			BusFeatures: models.BusFeatures{
+				HasWiFi:          temp.HasWiFi,
+				HasAC:            temp.HasAC,
+				HasChargingPorts: temp.HasChargingPorts,
+				HasEntertainment: temp.HasEntertainment,
+				HasRefreshments:  temp.HasRefreshments,
+			},
+			IsBookable:      temp.IsBookable,
+			BusOwnerRouteID: temp.BusOwnerRouteID,
+			MasterRouteID:   temp.MasterRouteID,
+		}
+	}
+
+	return trips, nil
+}
