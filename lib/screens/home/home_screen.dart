@@ -136,6 +136,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _loadUpcomingBookings();
     _loadDummyAdvertisements();
     _loadNotifications(silent: true);
+    
+    // Auto-detect current location for pickup
+    _useCurrentLocation(isPickup: true);
   }
 
   void _startRefreshTimer() {
@@ -1046,6 +1049,301 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         );
       }
     }
+  }
+
+  Widget _buildModernLocationSelector() {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+            border: Border.all(color: Colors.grey.withOpacity(0.1)),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                // Icons Column (Connected with vertical line)
+                _buildModernIconsColumn(),
+
+                // Fields Column
+                Expanded(
+                  child: Column(
+                    children: [
+                      _buildModernField(
+                        controller: pickupController,
+                        hint: 'Your Location',
+                        isPickup: true,
+                        showSuggestions: showPickupSuggestions,
+                      ),
+                      const Divider(
+                        height: 1,
+                        indent: 0,
+                        endIndent: 15,
+                        thickness: 0.5,
+                      ),
+                      _buildModernField(
+                        controller: dropController,
+                        hint: 'Where to?',
+                        isPickup: false,
+                        showSuggestions: showDropSuggestions,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Swap Button on the right
+                _buildSwapButtonBlock(),
+              ],
+            ),
+          ),
+        ),
+
+        // Intelligent Suggestions Panel
+        if (showPickupSuggestions || showDropSuggestions)
+          _buildCompactSuggestionsPanel(),
+
+        const SizedBox(height: 16),
+
+        // Modern Search Button
+        if (!showPickupSuggestions && !showDropSuggestions)
+          _buildModernSearchButton(),
+      ],
+    );
+  }
+
+  Widget _buildModernIconsColumn() {
+    return Container(
+      width: 50,
+      padding: const EdgeInsets.symmetric(vertical: 22),
+      child: Column(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
+          ),
+          Expanded(
+            child: Container(
+              width: 1.5,
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ),
+          const Icon(Icons.location_on, color: Colors.red, size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernField({
+    required TextEditingController controller,
+    required String hint,
+    required bool isPickup,
+    required bool showSuggestions,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Focus(
+        onFocusChange: (hasFocus) {
+          setState(() {
+            if (isPickup) {
+              showPickupSuggestions = hasFocus;
+            } else {
+              showDropSuggestions = hasFocus;
+            }
+          });
+        },
+        child: TextField(
+          controller: controller,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (controller.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                    onPressed: () {
+                      setState(() {
+                        controller.clear();
+                        if (isPickup) {
+                          pickupLat = null;
+                          pickupLng = null;
+                        } else {
+                          dropLat = null;
+                          dropLng = null;
+                        }
+                      });
+                    },
+                  ),
+                IconButton(
+                  icon: Icon(
+                    isPickup ? Icons.my_location : Icons.map_outlined,
+                    size: 20,
+                    color: AppColors.primary.withOpacity(0.7),
+                  ),
+                  onPressed: () {
+                    if (isPickup) {
+                      _useCurrentLocation(isPickup: true);
+                    } else {
+                      _navigateToMapForLocation(isPickup: false);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwapButtonBlock() {
+    return Container(
+      width: 45,
+      alignment: Alignment.center,
+      child: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.05),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.swap_vert, color: AppColors.primary, size: 22),
+        ),
+        onPressed: _swapLocations,
+      ),
+    );
+  }
+
+  Widget _buildCompactSuggestionsPanel() {
+    final bool isPickup = showPickupSuggestions;
+    final suggestions = isPickup ? pickupAutocompleteSuggestions : dropAutocompleteSuggestions;
+    final isLoading = isPickup ? isLoadingPickupSuggestions : isLoadingDropSuggestions;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else ...[
+            if (isPickup && pickupController.text.isEmpty && _searchHistory.isNotEmpty)
+              ..._searchHistory.take(3).map((history) => ListTile(
+                leading: const Icon(Icons.history, size: 18, color: Colors.grey),
+                title: Text(history['pickup']!, style: const TextStyle(fontSize: 14)),
+                onTap: () {
+                  setState(() {
+                    pickupController.text = history['pickup']!;
+                    dropController.text = history['drop']!;
+                    showPickupSuggestions = false;
+                  });
+                  FocusScope.of(context).unfocus();
+                },
+              )),
+            
+            ...suggestions.take(5).map((s) => ListTile(
+              leading: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.primary),
+              title: Text(
+                s['description'],
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: () {
+                setState(() {
+                  if (isPickup) {
+                    pickupController.text = s['description'];
+                    showPickupSuggestions = false;
+                  } else {
+                    dropController.text = s['description'];
+                    showDropSuggestions = false;
+                  }
+                });
+                FocusScope.of(context).unfocus();
+                _autoNavigateToBooking();
+              },
+            )),
+
+            if (suggestions.isEmpty && !isLoading)
+              ListTile(
+                leading: const Icon(Icons.map_outlined, color: AppColors.primary),
+                title: const Text('Select on map', style: TextStyle(fontSize: 14)),
+                onTap: () {
+                   setState(() {
+                    showPickupSuggestions = false;
+                    showDropSuggestions = false;
+                  });
+                  FocusScope.of(context).unfocus();
+                  _navigateToMapForLocation(isPickup: isPickup);
+                },
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernSearchButton() {
+    final bool isReady = pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: isReady ? _autoNavigateToBooking : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: isReady ? 4 : 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shadowColor: AppColors.primary.withOpacity(0.4),
+        ),
+        child: const Text(
+          'SEARCH TRIPS',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+        ),
+      ),
+    );
   }
 
   void _onItemTapped(int index) {
@@ -1985,696 +2283,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 20),
 
-          // Input Fields - Enhanced Card
-          Container(
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 255, 255, 255),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // PICKUP FIELD - Enhanced
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.trip_origin,
-                        color: Colors.green,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'From',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Focus(
-                  onFocusChange: (hasFocus) {
-                    setState(() {
-                      showPickupSuggestions = hasFocus;
-                      if (!hasFocus) {
-                        // Clear suggestions when losing focus
-                        pickupAutocompleteSuggestions.clear();
-                      }
-                    });
-                  },
-                  child: TextField(
-                    controller: pickupController,
-                    style: const TextStyle(color: Colors.black87, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Enter pickup location',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[800],
-                        fontSize: 14,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: Colors.grey[800],
-                        size: 20,
-                      ),
-                      suffixIcon: pickupController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  pickupController.clear();
-                                  pickupAutocompleteSuggestions.clear();
-                                });
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    onTap: () {
-                      setState(() {
-                        showPickupSuggestions = true;
-                      });
-                    },
-                  ),
-                ),
-
-                // PICKUP SUGGESTIONS
-                if (showPickupSuggestions) ...[
-                  const SizedBox(height: 10),
-
-                  // Show Search History (if no search text and history exists)
-                  if (pickupController.text.isEmpty &&
-                      _searchHistory.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.0),
-                              child: Text(
-                                'Recent Searches',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black54,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        ..._searchHistory.asMap().entries.map((entry) {
-                          int index = entry.key;
-                          Map<String, String> search = entry.value;
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.history,
-                                  color: AppColors.primary,
-                                  size: 20,
-                                ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          search['pickup'] ?? '',
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.arrow_downward,
-                                              size: 12,
-                                              color: Colors.grey,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                search['drop'] ?? '',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey.shade600,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.grey,
-                                  size: 20,
-                                ),
-                                onPressed: () {
-                                  _removeFromSearchHistory(index);
-                                },
-                              ),
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                setState(() {
-                                  pickupController.text =
-                                      search['pickup'] ?? '';
-                                  dropController.text = search['drop'] ?? '';
-                                  showPickupSuggestions = false;
-                                  showDropSuggestions = false;
-                                  FocusScope.of(context).unfocus();
-                                });
-                                _autoNavigateToBooking();
-                              },
-                            ),
-                          );
-                        }),
-                        const Divider(height: 20),
-                      ],
-                    ),
-
-                  // Show loading indicator for pickup
-                  if (isLoadingPickupSuggestions)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-
-                  // Show Google autocomplete suggestions for pickup
-                  if (!isLoadingPickupSuggestions &&
-                      pickupAutocompleteSuggestions.isNotEmpty)
-                    Column(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            'Search Results',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                        ...pickupAutocompleteSuggestions.map(
-                          (suggestion) => ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(
-                              Icons.location_on,
-                              color: AppColors.primary,
-                            ),
-                            title: Text(
-                              suggestion['description'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
-                              ),
-                            ),
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                pickupController.text =
-                                    suggestion['description'];
-                                showPickupSuggestions = false;
-                                pickupAutocompleteSuggestions.clear();
-                                FocusScope.of(context).unfocus();
-                              });
-                              // Auto-navigate to booking after selection
-                              _autoNavigateToBooking();
-                            },
-                          ),
-                        ),
-                        const Divider(height: 20),
-                      ],
-                    ),
-
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.my_location,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                    ),
-                    title: const Text(
-                      'Use Current Location',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Detect my location using GPS',
-                      style: TextStyle(color: Colors.black54, fontSize: 12),
-                    ),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.black54,
-                    ),
-                    onTap: () async {
-                      setState(() {
-                        showPickupSuggestions = false;
-                      });
-                      FocusScope.of(context).unfocus();
-                      await _useCurrentLocation(isPickup: true);
-                    },
-                  ),
-
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.location_on_outlined,
-                      color: AppColors.primary,
-                    ),
-                    title: const Text(
-                      'Set location on map',
-                      style: TextStyle(color: Colors.black54),
-                    ),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.black54,
-                    ),
-                    onTap: () {
-                      setState(() {
-                        showPickupSuggestions = false;
-                      });
-                      FocusScope.of(context).unfocus();
-                      _navigateToMapForLocation(isPickup: true);
-                    },
-                  ),
-                ],
-                const SizedBox(height: 25),
-                // Swap button and visual connector between From and To
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    children: [
-                      // Dotted line aligned with leading icons
-                      Container(
-                        width: 32, // Matches leading icon box width
-                        alignment: Alignment.center,
-                        child: Column(
-                          children: List.generate(
-                            4,
-                            (index) => Container(
-                              width: 1.5,
-                              height: 4,
-                              margin: const EdgeInsets.symmetric(vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[400],
-                                borderRadius: BorderRadius.circular(1),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Centered swap button
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            InkWell(
-                              onTap: () {
-                                if (pickupController.text.isNotEmpty ||
-                                    dropController.text.isNotEmpty) {
-                                  _swapLocations();
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(25),
-                              child: Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color:
-                                      (pickupController.text.isEmpty &&
-                                          dropController.text.isEmpty)
-                                      ? Colors.grey[200]
-                                      : AppColors.primary.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color:
-                                        (pickupController.text.isEmpty &&
-                                            dropController.text.isEmpty)
-                                        ? Colors.grey[400]!
-                                        : AppColors.primary.withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.swap_vert_rounded,
-                                  color:
-                                      (pickupController.text.isEmpty &&
-                                          dropController.text.isEmpty)
-                                      ? Colors.grey[600]
-                                      : AppColors.primary,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Tap to swap locations',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Right side balance
-                      const SizedBox(width: 32),
-                    ],
-                  ),
-                ),
-
-                // DROP FIELD - Enhanced
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'To',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Focus(
-                  onFocusChange: (hasFocus) {
-                    setState(() {
-                      showDropSuggestions = hasFocus;
-                      if (!hasFocus) {
-                        // Clear suggestions when losing focus
-                        dropAutocompleteSuggestions.clear();
-                      }
-                    });
-                  },
-                  child: TextField(
-                    controller: dropController,
-                    style: const TextStyle(color: Colors.black87, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Enter destination',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[800],
-                        fontSize: 14,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: Colors.grey[800],
-                        size: 20,
-                      ),
-                      suffixIcon: dropController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  dropController.clear();
-                                  dropAutocompleteSuggestions.clear();
-                                });
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    onTap: () {
-                      setState(() {
-                        showDropSuggestions = true;
-                      });
-                    },
-                  ),
-                ),
-
-                // DROP SUGGESTIONS
-                if (showDropSuggestions) ...[
-                  const SizedBox(height: 10),
-
-                  // Show loading indicator
-                  if (isLoadingDropSuggestions)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-
-                  // Show Google autocomplete suggestions
-                  if (!isLoadingDropSuggestions &&
-                      dropAutocompleteSuggestions.isNotEmpty)
-                    Column(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            'Search Results',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ),
-                        ...dropAutocompleteSuggestions.map(
-                          (suggestion) => ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(
-                              Icons.location_on,
-                              color: AppColors.primary,
-                            ),
-                            title: Text(
-                              suggestion['description'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
-                              ),
-                            ),
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                dropController.text = suggestion['description'];
-                                showDropSuggestions = false;
-                                dropAutocompleteSuggestions.clear();
-                                FocusScope.of(context).unfocus();
-                              });
-                              // Auto-navigate to booking after selection
-                              _autoNavigateToBooking();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.location_on_outlined,
-                      color: AppColors.primary,
-                    ),
-                    title: const Text(
-                      'Set location on map',
-                      style: TextStyle(color: Colors.black54),
-                    ),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.black54,
-                    ),
-                    onTap: () {
-                      setState(() {
-                        showDropSuggestions = false;
-                      });
-                      FocusScope.of(context).unfocus();
-                      _navigateToMapForLocation(isPickup: false);
-                    },
-                  ),
-                ],
-
-                // Search Trips Button
-                if (!showPickupSuggestions && !showDropSuggestions) ...[
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed:
-                          (pickupController.text.isEmpty ||
-                              dropController.text.isEmpty)
-                          ? null
-                          : () {
-                              HapticFeedback.lightImpact();
-                              FocusScope.of(context).unfocus();
-                              _autoNavigateToBooking();
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey[300],
-                        disabledForegroundColor: Colors.grey[500],
-                        elevation:
-                            (pickupController.text.isEmpty ||
-                                dropController.text.isEmpty)
-                            ? 0
-                            : 4,
-                        shadowColor: AppColors.primary.withOpacity(0.4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.search_rounded, size: 24),
-                          const SizedBox(width: 12),
-                          Text(
-                            (pickupController.text.isEmpty ||
-                                    dropController.text.isEmpty)
-                                ? 'Enter locations to search'
-                                : 'Search Trips',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          // MODERN PICKME STYLE LOCATION SELECTOR
+          _buildModernLocationSelector(),
           const SizedBox(height: 20),
-
           // Advertisement carousel (auto-rotating every 5s)
           SizedBox(
             height: 200,
@@ -2827,217 +2438,4 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 }
 
-// Map Selection Screen with Google Maps
-class MapSelectionScreen extends StatefulWidget {
-  final String apiKey;
 
-  const MapSelectionScreen({super.key, required this.apiKey});
-
-  @override
-  State<MapSelectionScreen> createState() => _MapSelectionScreenState();
-}
-
-class _MapSelectionScreenState extends State<MapSelectionScreen> {
-  GoogleMapController? _mapController;
-  LatLng _selectedLocation = const LatLng(7.2905, 80.6337); // Sri Lanka center
-  String _selectedAddress = 'Selected Location';
-  bool _isLoading = false;
-  final Set<Marker> _markers = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _getCurrentLocation();
-  }
-
-  // Get current location
-  Future<void> _getCurrentLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition();
-        setState(() {
-          _selectedLocation = LatLng(position.latitude, position.longitude);
-        });
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(_selectedLocation, 15),
-        );
-        _getAddressFromLatLng(_selectedLocation);
-      }
-    } catch (e) {
-      print('Error getting location: $e');
-    }
-  }
-
-  // Get address from coordinates using Geocoding API
-  Future<void> _getAddressFromLatLng(LatLng position) async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final String url =
-        'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=${widget.apiKey}';
-
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK' && data['results'].isNotEmpty) {
-          setState(() {
-            _selectedAddress = data['results'][0]['formatted_address'];
-            _markers.clear();
-            _markers.add(
-              Marker(
-                markerId: const MarkerId('selected'),
-                position: position,
-                infoWindow: InfoWindow(title: _selectedAddress),
-              ),
-            );
-          });
-        }
-      }
-    } catch (e) {
-      print('Error getting address: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Handle map tap
-  void _onMapTapped(LatLng position) {
-    setState(() {
-      _selectedLocation = position;
-    });
-    _getAddressFromLatLng(position);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        title: const Text('Select Location on Map'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Stack(
-        children: [
-          // Google Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _selectedLocation,
-              zoom: 15,
-            ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
-            onTap: _onMapTapped,
-            markers: _markers,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            zoomControlsEnabled: true,
-          ),
-
-          // Address display card
-          Positioned(
-            top: 20,
-            left: 20,
-            right: 20,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on, color: AppColors.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _isLoading
-                          ? const Text('Loading address...')
-                          : Text(
-                              _selectedAddress,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Confirm button at bottom
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(context, _selectedAddress);
-              },
-              child: const Text(
-                'Confirm Location',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// --- PLACEHOLDER PAGES ---
-
-class LocationPage extends StatelessWidget {
-  const LocationPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(child: Text('Offers Page', style: AppTextStyles.h2)),
-    );
-  }
-}
-
-class WeekendPage extends StatelessWidget {
-  const WeekendPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(child: Text('Tours Page', style: AppTextStyles.h2)),
-    );
-  }
-}
-
-class profile extends StatelessWidget {
-  const profile({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(child: Text('Tours Page', style: AppTextStyles.h2)),
-    );
-  }
-}
