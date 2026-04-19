@@ -878,8 +878,6 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 	}
 
 	// This query finds a transit hub (stop) that connects two routes
-	// Leg 1: From user location to hub
-	// Leg 2: From hub to destination
 	query := `
 		WITH 
 		origin_routes AS (
@@ -907,12 +905,12 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 				droutes.end_stop_name
 			FROM master_route_stops h1
 			JOIN origin_routes oroutes ON oroutes.master_route_id = h1.master_route_id
-			JOIN master_route_stops h2 ON h2.stop_name = h1.stop_name -- Match by name for hub
+			JOIN master_route_stops h2 ON h2.stop_name = h1.stop_name
 			JOIN destination_routes droutes ON droutes.master_route_id = h2.master_route_id
 			WHERE h1.stop_order > oroutes.start_order
 			AND h2.stop_order < droutes.end_order
-			AND h1.master_route_id != h2.master_route_id -- Different routes
-			AND h1.is_major_stop = true -- Prefer major stops as hubs
+			AND h1.master_route_id != h2.master_route_id
+			AND h1.is_major_stop = true
 			LIMIT 5
 		)
 		SELECT hub_name, hub_id_leg1, hub_id_leg2, route1_id, route2_id, start_stop_id, end_stop_id, start_stop_name, end_stop_name FROM transit_hubs
@@ -927,15 +925,15 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 	var results []models.TripResult
 	for rows.Next() {
 		var h struct {
-			HubName        string    `db:"hub_name"`
-			HubIDLeg1      uuid.UUID `db:"hub_id_leg1"`
-			HubIDLeg2      uuid.UUID `db:"hub_id_leg2"`
-			Route1ID       uuid.UUID `db:"route1_id"`
-			Route2ID       uuid.UUID `db:"route2_id"`
-			StartStopID    uuid.UUID `db:"start_stop_id"`
-			EndStopID      uuid.UUID `db:"end_stop_id"`
-			StartStopName  string    `db:"start_stop_name"`
-			EndStopName    string    `db:"end_stop_name"`
+			HubName       string    `db:"hub_name"`
+			HubIDLeg1     uuid.UUID `db:"hub_id_leg1"`
+			HubIDLeg2     uuid.UUID `db:"hub_id_leg2"`
+			Route1ID      uuid.UUID `db:"route1_id"`
+			Route2ID      uuid.UUID `db:"route2_id"`
+			StartStopID   uuid.UUID `db:"start_stop_id"`
+			EndStopID     uuid.UUID `db:"end_stop_id"`
+			StartStopName string    `db:"start_stop_name"`
+			EndStopName   string    `db:"end_stop_name"`
 		}
 		if err := rows.StructScan(&h); err != nil {
 			continue
@@ -944,39 +942,35 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 		// Find trips for leg 1
 		trips1, err := r.FindDirectTrips(h.StartStopID, h.HubIDLeg1, afterTime, 3)
 		if err != nil || len(trips1) == 0 {
-			// If no actual trips, create a skeleton for leg 1
 			trips1 = []models.TripResult{{
-				TripID:        uuid.New(),
-				RouteName:     "Route 1 to " + h.HubName,
-				BoardingPoint: h.StartStopName,
-				DroppingPoint: h.HubName,
-				IsBookable:    false,
-				BusType:       "Normal",
-				DepartureTime: afterTime,
+				TripID:           uuid.New(),
+				RouteName:        "Route 1 to " + h.HubName,
+				BoardingPoint:    h.StartStopName,
+				DroppingPoint:    h.HubName,
+				IsBookable:       false,
+				BusType:          "Normal",
+				DepartureTime:    afterTime,
 				EstimatedArrival: afterTime.Add(2 * time.Hour),
 			}}
 		}
 
 		// Find trips for leg 2
-		// For leg 2, we search slightly after leg 1 arrives
 		for _, t1 := range trips1 {
 			trips2, err := r.FindDirectTrips(h.HubIDLeg2, h.EndStopID, t1.EstimatedArrival.Add(30*time.Minute), 2)
 			if err != nil || len(trips2) == 0 {
-				// Skeleton for leg 2
 				trips2 = []models.TripResult{{
-					TripID:        uuid.New(),
-					RouteName:     "Route 2 from " + h.HubName,
-					BoardingPoint: h.HubName,
-					DroppingPoint: h.EndStopName,
-					IsBookable:    false,
-					BusType:       "Normal",
-					DepartureTime: t1.EstimatedArrival.Add(1 * time.Hour),
+					TripID:           uuid.New(),
+					RouteName:        "Route 2 from " + h.HubName,
+					BoardingPoint:    h.HubName,
+					DroppingPoint:    h.EndStopName,
+					IsBookable:       false,
+					BusType:          "Normal",
+					DepartureTime:    t1.EstimatedArrival.Add(1 * time.Hour),
 					EstimatedArrival: t1.EstimatedArrival.Add(4 * time.Hour),
 				}}
 			}
 
 			for _, t2 := range trips2 {
-				// Combine into a transit trip
 				transitTrip := models.TripResult{
 					TripID:           uuid.New(),
 					RouteName:        fmt.Sprintf("via %s", h.HubName),
@@ -1003,6 +997,7 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 
 	return results, nil
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FindLoungeDirectRoutes — Lounge-centric Direct Route Discovery
