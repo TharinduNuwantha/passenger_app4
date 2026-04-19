@@ -80,6 +80,9 @@ type TripResult struct {
 	DroppingPoint string      `json:"dropping_point" db:"dropping_point"`
 	BusFeatures   BusFeatures `json:"bus_features"`
 	IsBookable    bool        `json:"is_bookable" db:"is_bookable"`
+	// Lounge-centric fields
+	FromLounge *string `json:"from_lounge,omitempty"`
+	ToLounge   *string `json:"to_lounge,omitempty"`
 	// Route stops for passenger to select boarding/alighting points
 	RouteStops []RouteStop `json:"route_stops,omitempty"`
 	// Route IDs for lounge lookup
