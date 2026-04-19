@@ -81,82 +81,8 @@ class _BusListScreenState extends State<BusListScreen> {
                   .toList();
             }
 
-            // Apply Smart View Option logic
-            switch (_selectedViewOption) {
-              case 'Direct':
-                trips = trips.where((trip) => !trip.isTransit).toList();
-                break;
-              case 'Transit':
-                // Check if any real transit trips exist
-                bool hasRealTransit = trips.any((trip) => trip.isTransit);
-                if (hasRealTransit) {
-                  trips = trips.where((trip) => trip.isTransit).toList();
-                } else {
-                  // Advanced logic: If no real transit is found, simulate finding a transit hub Route via B
-                  if (trips.isNotEmpty && searchProvider.tripResults.isNotEmpty) {
-                    final base = searchProvider.tripResults.first;
-                    final now = base.departureTime;
-                    final simulatedTransit = TripResult(
-                      tripId: '${base.tripId}_transit_optimized',
-                      routeName: '${base.boardingPoint} → Transit → ${base.droppingPoint}',
-                      busType: base.busType,
-                      departureTime: now.add(const Duration(hours: 1)),
-                      estimatedArrival: now.add(const Duration(hours: 6)),
-                      durationMinutes: 300,
-                      totalSeats: base.totalSeats,
-                      fare: base.fare * 1.15, // Transit is slightly more expensive sometimes
-                      boardingPoint: base.boardingPoint,
-                      droppingPoint: base.droppingPoint,
-                      busFeatures: base.busFeatures,
-                      isBookable: true,
-                      routeStops: base.routeStops,
-                      masterRouteId: base.masterRouteId,
-                      isTransit: true,
-                      transitPoint: 'Major Transit Hub',
-                      leg1: TripResult(
-                        tripId: '${base.tripId}_leg1',
-                        routeName: '${base.boardingPoint} → Major Transit Hub',
-                        busType: base.busType,
-                        departureTime: now.add(const Duration(hours: 1)),
-                        estimatedArrival: now.add(const Duration(hours: 3)),
-                        durationMinutes: 120,
-                        totalSeats: base.totalSeats,
-                        fare: base.fare * 0.6,
-                        boardingPoint: base.boardingPoint,
-                        droppingPoint: 'Major Transit Hub',
-                        busFeatures: base.busFeatures,
-                        isBookable: true,
-                        isTransit: false,
-                      ),
-                      leg2: TripResult(
-                        tripId: '${base.tripId}_leg2',
-                        routeName: 'Major Transit Hub → ${base.droppingPoint}',
-                        busType: base.busType,
-                        departureTime: now.add(const Duration(hours: 4)),
-                        estimatedArrival: now.add(const Duration(hours: 6)),
-                        durationMinutes: 120,
-                        totalSeats: base.totalSeats,
-                        fare: base.fare * 0.55,
-                        boardingPoint: 'Major Transit Hub',
-                        droppingPoint: base.droppingPoint,
-                        busFeatures: base.busFeatures,
-                        isBookable: true,
-                        isTransit: false,
-                      ),
-                    );
-                    trips = [simulatedTransit];
-                  } else {
-                    trips = [];
-                  }
-                }
-                break;
-              case 'Quickest':
-                trips.sort((a, b) => a.durationMinutes.compareTo(b.durationMinutes));
-                break;
-              case 'Cheapest':
-                trips.sort((a, b) => a.fare.compareTo(b.fare));
-                break;
-            }
+            // Simplified: All results are now Lounge-to-Lounge Direct Routes
+            trips.sort((a, b) => a.departureTime.compareTo(b.departureTime));
 
 
             return Column(
@@ -351,9 +277,6 @@ class _BusListScreenState extends State<BusListScreen> {
       );
     }
 
-    // Success state - display trips
-    final interceptInfo = searchProvider.searchResponse?.searchDetails.interceptInfo;
-    final isIntercept = searchProvider.searchResponse?.searchDetails.isIntercept ?? false;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: ListView.builder(
@@ -361,16 +284,13 @@ class _BusListScreenState extends State<BusListScreen> {
         itemCount: trips.length,
         itemBuilder: (context, index) {
           final trip = trips[index];
-          return _buildTripCard(context, trip, isIntercept, interceptInfo);
+          return _buildTripCard(context, trip);
         },
       ),
     );
   }
 
-  Widget _buildTripCard(BuildContext context, TripResult trip, [bool isIntercept = false, InterceptInfo? interceptInfo]) {
-    if (trip.isTransit && trip.leg1 != null && trip.leg2 != null) {
-      return _buildTransitTripCard(context, trip);
-    }
+  Widget _buildTripCard(BuildContext context, TripResult trip) {
 
 
     // Check if the trip is today
@@ -462,12 +382,7 @@ class _BusListScreenState extends State<BusListScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Intercept Banner — premium look using structured InterceptInfo
-            if (isIntercept && interceptInfo != null) ...[
-              _buildInterceptBanner(interceptInfo, trip),
-            ] else if (isIntercept) ...[
-              _buildInterceptBanner(null, trip),
-            ],
+
 
             // Route name & bus type
             Row(
@@ -477,21 +392,84 @@ class _BusListScreenState extends State<BusListScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        trip.routeName,
-                        style: AppTextStyles.h3.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (trip.routeNumber != null && trip.routeNumber!.isNotEmpty)
-                        Text(
-                          'Route: ${trip.routeNumber}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.bold,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text('FROM', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  (trip.fromLounge ?? trip.boardingPoint).replaceAll(" (Nearest Join Point)", ""),
+                                  style: AppTextStyles.h3.copyWith(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text('TO', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  (trip.toLounge ?? trip.droppingPoint).replaceAll(" (Nearest Join Point)", ""),
+                                  style: AppTextStyles.h3.copyWith(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(Icons.route_outlined, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Main Route: ${trip.routeName}',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (trip.routeNumber != null && trip.routeNumber!.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '[${trip.routeNumber}]',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.secondary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -546,7 +524,7 @@ class _BusListScreenState extends State<BusListScreen> {
             const SizedBox(height: 12),
 
             // Route Preview (All Stops)
-            if (!isIntercept) _buildRoutePreview(trip),
+            _buildRoutePreview(trip),
 
             // Features row
             if (!isRouteOnly) _buildFeaturesRow(trip),
@@ -622,425 +600,11 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   Widget _buildTransitTripCard(BuildContext context, TripResult trip) {
-    final leg1 = trip.leg1!;
-    final leg2 = trip.leg2!;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Transit Header Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: const BoxDecoration(
-              color: AppColors.warningSurface,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.compare_arrows,
-                  size: 16,
-                  color: AppColors.warningDark,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'TRANSIT JOURNEY (2 LEGS)',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.warningDark,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  trip.formattedTransitWaitTime,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.warningDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Leg 1 Summary
-                _buildLegRow(leg1, isStart: true, isEnd: false),
-
-                // Transit Point Separator
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, top: 4, bottom: 4),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 2,
-                        height: 20,
-                        margin: const EdgeInsets.only(left: 3),
-                        color: AppColors.warning.withOpacity(0.5),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Container(height: 1, color: AppColors.divider),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Leg 2 Summary
-                _buildLegRow(leg2, isStart: false, isEnd: true),
-
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 12),
-
-                // Total Info
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Duration: ${trip.formattedDuration}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.event_seat,
-                              size: 14,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Multi-bus Selection',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Text(
-                          trip.formattedFare,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: () => _handleBookingPress(context, trip),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.secondary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                          ),
-                          child: const Text(
-                            'Book',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink(); // Deprecated: Only direct lounge routes supported
   }
 
-  Widget _buildLegRow(
-    TripResult leg, {
-    required bool isStart,
-    required bool isEnd,
-  }) {
-    return Row(
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: isStart
-                    ? AppColors.primary
-                    : (isEnd ? Colors.white : AppColors.warning),
-                shape: BoxShape.circle,
-                border: isEnd
-                    ? Border.all(color: AppColors.primary, width: 2)
-                    : null,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    DateFormat('h:mm a').format(leg.departureTime),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  Text(
-                    leg.boardingPoint,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-              const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    DateFormat('h:mm a').format(leg.estimatedArrival),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  Text(
-                    leg.droppingPoint,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Premium Intercept Banner — shown when the user searched a stop not directly
-  /// served but a nearby bus stop on a long-haul route was found intelligently.
-  Widget _buildInterceptBanner(InterceptInfo? info, TripResult trip) {
-    final stopName = info?.nearestStopName ?? trip.boardingPoint;
-    final distStr = info?.distanceStr ?? '';
-    final routeName = info?.routeName ?? trip.routeName;
-    final userFrom = info?.userInput ?? '';
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFFFF3E0),
-            const Color(0xFFFFE0B2),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFB74D), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.orange.withOpacity(0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header bar
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE65100).withOpacity(0.08),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(15),
-                topRight: Radius.circular(15),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE65100).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.assistant_direction, color: Color(0xFFE65100), size: 18),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    'Smart Intercept Found',
-                    style: TextStyle(
-                      color: Color(0xFFE65100),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE65100),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'NEARBY STOP',
-                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Body
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // No direct bus notice
-                if (userFrom.isNotEmpty)
-                  Text(
-                    'No direct bus from "$userFrom"',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 12),
-                  ),
-                const SizedBox(height: 10),
-                // Walk-to instruction
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: [
-                        const SizedBox(height: 2),
-                        Container(
-                          width: 10, height: 10,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        Container(width: 2, height: 20, color: Colors.grey[300]),
-                        const Icon(Icons.directions_bus, size: 20, color: Color(0xFFE65100)),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Your location: $userFrom',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                          ),
-                          const SizedBox(height: 18),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Board at',
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                                    ),
-                                    Text(
-                                      stopName,
-                                      style: const TextStyle(
-                                        color: Color(0xFFE65100),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    if (distStr.isNotEmpty)
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.directions_walk, size: 13, color: Colors.grey),
-                                          const SizedBox(width: 3),
-                                          Text(
-                                            distStr,
-                                            style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                // Route info tag
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE65100).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.route, size: 14, color: Color(0xFFE65100)),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Via: $routeName',
-                        style: const TextStyle(color: Color(0xFFE65100), fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _buildInterceptBanner(dynamic info, TripResult trip) {
+    return const SizedBox.shrink(); // Deprecated: Focused on direct discovery
   }
 
   Widget _buildJourneyTimeline(TripResult trip) {

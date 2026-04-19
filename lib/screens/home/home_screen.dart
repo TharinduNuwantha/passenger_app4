@@ -46,7 +46,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   DateTime? selectedDate;
   bool showPickupSuggestions = false;
   bool showDropSuggestions = false;
-  bool showStopSuggestions = false;
 
   late AdvertisementService _advertisementService;
   late NotificationService _notificationService;
@@ -77,14 +76,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController dropController = TextEditingController();
-  final TextEditingController stopController = TextEditingController();
 
   List<Map<String, dynamic>> pickupAutocompleteSuggestions = [];
   List<Map<String, dynamic>> dropAutocompleteSuggestions = [];
-  List<Map<String, dynamic>> stopAutocompleteSuggestions = [];
   bool isLoadingPickupSuggestions = false;
   bool isLoadingDropSuggestions = false;
-  bool isLoadingStopSuggestions = false;
 
   final String googleMapsApiKey = 'AIzaSyAuA_RMUaOuqKOasnd5GU8MdYvrDmToXPg';
 
@@ -123,7 +119,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     pickupController.addListener(_onPickupTextChanged);
     dropController.addListener(_onDropTextChanged);
-    stopController.addListener(_onStopTextChanged);
     _startAdCarousel();
     _startBookingCarousel();
     _startRefreshTimer();
@@ -162,10 +157,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _calendarScrollController.dispose();
     pickupController.removeListener(_onPickupTextChanged);
     dropController.removeListener(_onDropTextChanged);
-    stopController.removeListener(_onStopTextChanged);
     pickupController.dispose();
     dropController.dispose();
-    stopController.dispose();
     super.dispose();
   }
 
@@ -184,14 +177,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     setState(() {
       pickupController.clear();
       dropController.clear();
-      stopController.clear();
       selectedDate = null;
       pickupAutocompleteSuggestions.clear();
       dropAutocompleteSuggestions.clear();
-      stopAutocompleteSuggestions.clear();
       showPickupSuggestions = false;
       showDropSuggestions = false;
-      showStopSuggestions = false;
     });
   }
 
@@ -534,7 +524,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     if (text.length >= 2) {
       // Use Google Maps autocomplete for better UX
-      _fetchAutocompleteSuggestions(text, isPickup: false, isStop: false);
+      _fetchAutocompleteSuggestions(text, isPickup: false);
     } else {
       setState(() {
         dropAutocompleteSuggestions.clear();
@@ -543,30 +533,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
   }
 
-  // Listen to stop field changes and fetch Google Maps autocomplete
-  void _onStopTextChanged() {
-    final text = stopController.text;
-    if (text.length >= 2) {
-      _fetchAutocompleteSuggestions(text, isPickup: false, isStop: true);
-    } else {
-      setState(() {
-        stopAutocompleteSuggestions.clear();
-        isLoadingStopSuggestions = false;
-      });
-    }
-  }
+
 
   // Fetch Google Places Autocomplete suggestions
   Future<void> _fetchAutocompleteSuggestions(
     String input, {
     required bool isPickup,
-    bool isStop = false,
   }) async {
     setState(() {
       if (isPickup) {
         isLoadingPickupSuggestions = true;
-      } else if (isStop) {
-        isLoadingStopSuggestions = true;
       } else {
         isLoadingDropSuggestions = true;
       }
@@ -597,16 +573,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ),
               );
               isLoadingPickupSuggestions = false;
-            } else if (isStop) {
-              stopAutocompleteSuggestions = List<Map<String, dynamic>>.from(
-                data['predictions'].map(
-                  (prediction) => {
-                    'description': prediction['description'],
-                    'place_id': prediction['place_id'],
-                  },
-                ),
-              );
-              isLoadingStopSuggestions = false;
             } else {
               dropAutocompleteSuggestions = List<Map<String, dynamic>>.from(
                 data['predictions'].map(
@@ -628,9 +594,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             if (isPickup) {
               pickupAutocompleteSuggestions.clear();
               isLoadingPickupSuggestions = false;
-            } else if (isStop) {
-              stopAutocompleteSuggestions.clear();
-              isLoadingStopSuggestions = false;
             } else {
               dropAutocompleteSuggestions.clear();
               isLoadingDropSuggestions = false;
@@ -644,9 +607,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         if (isPickup) {
           pickupAutocompleteSuggestions.clear();
           isLoadingPickupSuggestions = false;
-        } else if (isStop) {
-          stopAutocompleteSuggestions.clear();
-          isLoadingStopSuggestions = false;
         } else {
           dropAutocompleteSuggestions.clear();
           isLoadingDropSuggestions = false;
@@ -736,37 +696,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     return keyword;
   }
 
-  // Fuzzy match Google location to backend bus stop
-  Future<String?> _fuzzyMatchToStop(String googleLocation) async {
-    try {
-      // Extract keywords from the Google location
-      final keywords = _extractKeywords(googleLocation);
 
-      // Call backend autocomplete API with extracted keywords
-      final suggestions = await _searchService.getStopAutocomplete(
-        searchTerm: keywords,
-        limit: 5,
-      );
-
-      // If we have matches, use the first one (highest relevance)
-      if (suggestions.isNotEmpty) {
-        print(
-          'Fuzzy matched "$googleLocation" → "${suggestions.first.stopName}"',
-        );
-        return suggestions.first.stopName;
-      }
-
-      // If no match, return the extracted keywords
-      print(
-        'No fuzzy match for "$googleLocation", using keywords: "$keywords"',
-      );
-      return keywords;
-    } catch (e) {
-      print('Error fuzzy matching: $e');
-      // Fallback to extracted keywords
-      return _extractKeywords(googleLocation);
-    }
-  }
 
   // Swap pickup and drop locations
   void _swapLocations() {
@@ -864,26 +794,21 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       print('🔍 Raw Pickup: "${pickupController.text}"');
       print('🔍 Raw Drop: "${dropController.text}"');
 
-      // Fuzzy match pickup location to bus stop
-      final fromStop = await _fuzzyMatchToStop(pickupController.text);
-
-      // Fuzzy match drop location to bus stop
-      final toStop = await _fuzzyMatchToStop(dropController.text);
-
-      print('🔍 Matched Pickup: "$fromStop"');
-      print('🔍 Matched Drop: "$toStop"');
+      // Using direct coordinate-based search for Lounge-to-Lounge discovery
+      final fromDisplay = pickupController.text;
+      final toDisplay = dropController.text;
 
       // Dismiss loading dialog
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
       }
 
-      if (fromStop == null || toStop == null) {
-        // Show error if fuzzy matching failed completely
+      if (fromDisplay.isEmpty || toDisplay.isEmpty) {
+        // Show error if locations are empty
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Could not find bus stops for selected locations'),
+              content: Text('Please select valid start and end locations'),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -907,13 +832,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           MaterialPageRoute(
             builder: (context) => BusListScreen(
               date: searchDate,
-              pickup: fromStop,
-              drop: toStop,
+              pickup: fromDisplay,
+              drop: toDisplay,
               fromLat: pickupLat,
               fromLng: pickupLng,
               toLat: dropLat,
               toLng: dropLng,
-              stop: null, // Remove stop parameter
+              stop: null, 
             ),
           ),
         ).then((_) {

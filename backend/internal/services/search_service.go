@@ -24,7 +24,13 @@ func NewSearchService(repo *database.SearchRepository, logger *logrus.Logger) *S
 	}
 }
 
-// SearchTrips searches for available trips between two locations
+// radiusSteps defines the incremental search radius expansion in meters.
+// The algorithm tries each radius in sequence until lounges are found on both sides.
+var radiusSteps = []float64{3000, 6000, 10000, 20000}
+
+// SearchTrips implements the Lounge-centric Direct Route Discovery algorithm.
+// It uses a single-query approach with incremental radius expansion to find
+// direct bus paths between the nearest candidate lounges.
 func (s *SearchService) SearchTrips(
 	req *models.SearchRequest,
 	userID *uuid.UUID,
@@ -37,259 +43,101 @@ func (s *SearchService) SearchTrips(
 		return nil, err
 	}
 
-	s.logger.WithFields(logrus.Fields{
-		"from":    req.From,
-		"to":      req.To,
-		"user_id": userID,
-	}).Info("=== SearchService: Processing search request ===")
+	// Coordinates are REQUIRED for lounge-centric search.
+	if req.FromLat == nil || req.FromLng == nil || req.ToLat == nil || req.ToLng == nil {
+		return &models.SearchResponse{
+			Status:  "error",
+			Message: "Coordinates (from_lat, from_lng, to_lat, to_lng) are required for lounge-centric search.",
+			Results: []models.TripResult{},
+		}, nil
+	}
 
-	// Initialize response
+	s.logger.WithFields(logrus.Fields{
+		"from":     req.From,
+		"to":       req.To,
+		"from_lat": *req.FromLat,
+		"from_lng": *req.FromLng,
+		"to_lat":   *req.ToLat,
+		"to_lng":   *req.ToLng,
+	}).Info("=== SearchService: Starting Lounge-centric Direct Route Discovery ===")
+
+	searchTime := req.GetSearchDateTime()
+
+	// --- INCREMENTAL RADIUS EXPANSION LOOP ---
+	// Tries progressively larger radii until results are found or max radius is exhausted.
+	var results []models.TripResult
+	var usedRadius float64
+	var err error
+
+	for _, radius := range radiusSteps {
+		usedRadius = radius
+		s.logger.WithField("radius_m", radius).Info("Attempting lounge discovery at radius")
+
+		results, err = s.repo.FindLoungeDirectRoutes(
+			*req.FromLat, *req.FromLng,
+			*req.ToLat, *req.ToLng,
+			radius,
+			searchTime,
+			req.Limit,
+		)
+		if err != nil {
+			s.logger.WithError(err).WithField("radius_m", radius).Error("Error during lounge route discovery")
+			return nil, fmt.Errorf("lounge route discovery failed at radius %.0fm: %w", radius, err)
+		}
+
+		if len(results) > 0 {
+			s.logger.WithFields(logrus.Fields{
+				"radius_m":      radius,
+				"results_found": len(results),
+			}).Info("Lounge-centric routes discovered successfully")
+			break
+		}
+
+		s.logger.WithField("radius_m", radius).Info("No lounges found at this radius, expanding...")
+	}
+
+	// Build the response
 	response := &models.SearchResponse{
 		Status: "success",
 		SearchDetails: models.SearchDetails{
 			FromStop: models.StopInfo{
 				OriginalInput: req.From,
-				Matched:       false,
+				Matched:       len(results) > 0,
 			},
 			ToStop: models.StopInfo{
 				OriginalInput: req.To,
-				Matched:       false,
+				Matched:       len(results) > 0,
 			},
-			SearchType: "exact",
+			SearchType: "lounge_direct",
 		},
-		Results: []models.TripResult{},
+		Results: results,
 	}
 
-	// Step 1: Try Prioritized Lounge Search if coordinates are provided
-	if req.FromLat != nil && req.FromLng != nil && req.ToLat != nil && req.ToLng != nil {
-		s.logger.Info("Attempting Prioritized Lounge Search using coordinates...")
-		loungeTrips, err := s.repo.FindDirectTripsByLounges(
-			*req.FromLat, *req.FromLng, 
-			*req.ToLat, *req.ToLng, 
-			req.GetSearchDateTime(), 
-			req.Limit,
-		)
-		if err == nil && len(loungeTrips) > 0 {
-			s.logger.WithField("trips_found", len(loungeTrips)).Info("Found trips via prioritized lounge search")
-			response.Results = loungeTrips
-			response.SearchDetails.SearchType = "prioritized_lounge"
-			response.Message = fmt.Sprintf("Found %d trip(s) between lounges near your locations", len(loungeTrips))
-			
-			// Step 7: Calculate search time
-			responseTime := time.Since(startTime)
-			response.SearchTimeMs = responseTime.Milliseconds()
-			s.logSearch(req, response, userID, &ipAddress, responseTime)
-			return response, nil
-		}
-		s.logger.Info("No trips found via prioritized lounge search, falling back to stop-based search")
-	}
-
-	// Step 2: Traditional stop-based search (fallback or if no coordinates)
-	stopPair, err := s.repo.FindStopPairOnSameRoute(req.From, req.To)
-	if err != nil {
-		s.logger.WithError(err).Error("Error finding stop pair")
-		return nil, fmt.Errorf("error searching for stops: %w", err)
-	}
-
-	response.SearchDetails.FromStop = *stopPair.FromStop
-	response.SearchDetails.ToStop = *stopPair.ToStop
-
-	// Check if stop pair was found
-	if !stopPair.Matched {
-		// FALLBACK: Intelligent Intercept Discovery
-		s.logger.Info("Direct route not found, attempting Intelligent Intercept Discovery...")
-		
-		// Use provided coordinates if available, otherwise fallback to repository resolution
-		var interceptPair *database.StopPairResult
-		var interceptErr error
-		
-		interceptPair, interceptErr = s.repo.FindInterceptStopPair(req.From, req.To, req.FromLat, req.FromLng, req.ToLat, req.ToLng)
-		
-		if interceptErr != nil {
-			s.logger.WithError(interceptErr).Error("Error finding intercept pair")
-		} else if interceptPair != nil && interceptPair.Matched {
-			s.logger.WithFields(logrus.Fields{
-				"intercept_from": interceptPair.FromStop.Name,
-				"intercept_to":   interceptPair.ToStop.Name,
-				"route":          interceptPair.RouteName,
-			}).Info("Successfully discovered intercept stop for route segment")
-			
-			// Override stopPair with our intelligent intercept pair
-			stopPair = interceptPair
-			response.SearchDetails.FromStop = *stopPair.FromStop
-			response.SearchDetails.ToStop = *stopPair.ToStop
-			response.SearchDetails.SearchType = "intercept"
-			response.SearchDetails.InterceptInfo = &models.InterceptInfo{
-				UserInput:       req.From,
-				NearestStopName: interceptPair.FromStop.Name,
-				DistanceKm:      interceptPair.DistanceKm,
-				DistanceStr:     interceptPair.DistanceStr,
-				RouteName:       interceptPair.RouteName,
-			}
-			response.Message = fmt.Sprintf(
-				"No direct bus from %s to %s. You can join the '%s' service at '%s' (%s from your location).",
-				req.From,
-				req.To,
-				stopPair.RouteName,
-				stopPair.FromStop.Name,
-				interceptPair.DistanceStr,
-			)
-
-		}
-
-		if !stopPair.Matched {
-			// If even the intercept approach failed, return the partial failure
-			response.Status = "partial"
-			if !stopPair.FromStop.Matched && !stopPair.ToStop.Matched {
-				response.Message = fmt.Sprintf(
-					"Could not find stops '%s' and '%s' on any active route. Please check spelling or try nearby locations.",
-					req.From,
-					req.To,
-				)
-			} else if !stopPair.FromStop.Matched {
-				response.Message = fmt.Sprintf(
-					"Origin stop '%s' not found on any route to '%s' (nor any intercept points could be found).",
-					req.From,
-					req.To,
-				)
-			} else {
-				response.Message = fmt.Sprintf(
-					"Destination stop '%s' not found on any route from '%s'.",
-					req.To,
-					req.From,
-				)
-			}
-			response.SearchDetails.SearchType = "failed"
-			s.logSearch(req, response, userID, &ipAddress, time.Since(startTime))
-			return response, nil
-		}
-	}
-
-	s.logger.WithFields(logrus.Fields{
-		"from_stop": stopPair.FromStop.Name,
-		"to_stop":   stopPair.ToStop.Name,
-		"route":     stopPair.RouteName,
-		"route_id":  stopPair.RouteID,
-	}).Info("Found stop pair on same route")
-
-	// Step 2: Get search datetime (default to now if not provided)
-	searchTime := req.GetSearchDateTime()
-
-	// Step 3: Find available trips
-	s.logger.WithFields(logrus.Fields{
-		"from_stop_id": stopPair.FromID.String(),
-		"to_stop_id":   stopPair.ToID.String(),
-		"search_time":  searchTime,
-		"limit":        req.Limit,
-	}).Info("Querying database for trips...")
-
-	trips, err := s.repo.FindDirectTrips(stopPair.FromID, stopPair.ToID, searchTime, req.Limit)
-	if err != nil {
-		s.logger.WithError(err).Error("Error finding trips from database")
-		return nil, fmt.Errorf("error searching for trips: %w", err)
-	}
-
-	s.logger.WithField("trips_found", len(trips)).Info("Database query completed successfully")
-
-	// Step 4: Fetch route stops for each trip (for passenger to select boarding/alighting)
-	for i := range trips {
-		// Debug: Log master_route_id for each trip
-		if trips[i].MasterRouteID != nil {
-			s.logger.WithFields(logrus.Fields{
-				"trip_id":         trips[i].TripID,
-				"master_route_id": *trips[i].MasterRouteID,
-			}).Info("Trip has master_route_id")
-			stops, err := s.repo.GetRouteStopsForTrip(*trips[i].MasterRouteID, trips[i].BusOwnerRouteID)
-			if err != nil {
-				s.logger.WithError(err).WithField("trip_id", trips[i].TripID).Warn("Failed to fetch route stops for trip")
-				// Continue without stops - not a fatal error
-			} else {
-				trips[i].RouteStops = stops
-			}
-		} else {
-			s.logger.WithField("trip_id", trips[i].TripID).Warn("Trip has NULL master_route_id!")
-		}
-	}
-
-	response.Results = trips
-
-	// Step 4: Add Connecting Transit Journeys if needed
-	transitTrips, err := s.repo.FindTransitJourneys(req.From, req.To, req.FromLat, req.FromLng, req.ToLat, req.ToLng, startTime, 3)
-	if err == nil && len(transitTrips) > 0 {
-		response.Results = append(response.Results, transitTrips...)
-	}
-
-	// Step 5: Build appropriate message
-	if len(response.Results) == 0 {
+	if len(results) == 0 {
 		response.Status = "success"
 		response.Message = fmt.Sprintf(
-			"No direct or connecting trips found from %s to %s for the selected date. Showing potential route details.",
-			stopPair.FromStop.Name,
-			stopPair.ToStop.Name,
+			"No direct lounge-to-lounge routes found from '%s' to '%s' even within %.0fkm. Please try a different date or time.",
+			req.From, req.To, usedRadius/1000,
 		)
-
-		// Create a skeleton TripResult to show the route details
-		skeletonID := uuid.New()
-		skeletonTrip := models.TripResult{
-			TripID:        skeletonID,
-			RouteName:     stopPair.RouteName,
-			RouteNumber:   &stopPair.RouteNumber,
-			BoardingPoint: stopPair.FromStop.Name,
-			DroppingPoint: stopPair.ToStop.Name,
-			IsBookable:    false, // IMPORTANT: mark as not bookable
-			BusType:       "Unknown",
-		}
-
-		// Fetch route stops for the skeleton trip
-		routeIDStr := stopPair.RouteID.String()
-		stops, err := s.repo.GetRouteStopsForTrip(routeIDStr, nil)
-		if err == nil {
-			skeletonTrip.RouteStops = stops
-		}
-
-		response.Results = append(response.Results, skeletonTrip)
 	} else {
-		response.Status = "success"
-		hasTransit := false
-		for _, r := range response.Results {
-			if r.IsTransit {
-				hasTransit = true
-				break
-			}
-		}
-
-		if hasTransit && len(trips) == 0 {
-			response.Message = fmt.Sprintf(
-				"No direct buses found, but we found %d connecting journey(s) from %s to %s via transit hubs.",
-				len(transitTrips),
-				stopPair.FromStop.Name,
-				stopPair.ToStop.Name,
-			)
-		} else {
-			response.Message = fmt.Sprintf(
-				"Found %d journey(s) from %s to %s",
-				len(response.Results),
-				stopPair.FromStop.Name,
-				stopPair.ToStop.Name,
-			)
-		}
+		response.Message = fmt.Sprintf(
+			"Found %d direct lounge route(s) from '%s' to '%s' (search radius: %.0fkm).",
+			len(results), req.From, req.To, usedRadius/1000,
+		)
 	}
 
-	// Step 7: Calculate search time
+	// Log timing
 	responseTime := time.Since(startTime)
 	response.SearchTimeMs = responseTime.Milliseconds()
 
-	// Step 8: Log search for analytics
+	// Async analytics logging
 	s.logSearch(req, response, userID, &ipAddress, responseTime)
 
 	s.logger.WithFields(logrus.Fields{
-		"from":        req.From,
-		"to":          req.To,
-		"results":     len(trips),
+		"results":     len(results),
+		"radius_used": usedRadius,
 		"response_ms": response.SearchTimeMs,
-	}).Info("Search completed successfully")
-
-	s.logger.Info("=== SearchService: Returning response (JSON marshaling will happen next) ===")
+	}).Info("=== SearchService: Lounge-centric search completed ===")
 
 	return response, nil
 }
@@ -309,7 +157,6 @@ func (s *SearchService) GetPopularRoutes(limit int) ([]models.PopularRoute, erro
 		return nil, fmt.Errorf("error retrieving popular routes: %w", err)
 	}
 
-	// If no popular routes from analytics, return hardcoded popular routes
 	if len(routes) == 0 {
 		routes = s.getDefaultPopularRoutes()
 	}
@@ -357,7 +204,7 @@ func (s *SearchService) GetSearchAnalytics(days int) (map[string]interface{}, er
 	return analytics, nil
 }
 
-// logSearch logs the search request for analytics
+// logSearch logs the search request for analytics asynchronously.
 func (s *SearchService) logSearch(
 	req *models.SearchRequest,
 	response *models.SearchResponse,
@@ -374,15 +221,6 @@ func (s *SearchService) logSearch(
 		IPAddress:      ipAddress,
 	}
 
-	// Add stop IDs if matched
-	if response.SearchDetails.FromStop.ID != nil {
-		log.FromStopID = response.SearchDetails.FromStop.ID
-	}
-	if response.SearchDetails.ToStop.ID != nil {
-		log.ToStopID = response.SearchDetails.ToStop.ID
-	}
-
-	// Log asynchronously to not block response
 	go func() {
 		if err := s.repo.LogSearch(log); err != nil {
 			s.logger.WithError(err).Warn("Failed to log search")

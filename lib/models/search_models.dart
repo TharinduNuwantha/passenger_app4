@@ -85,13 +85,11 @@ class SearchDetails {
   final StopInfo fromStop;
   final StopInfo toStop;
   final String searchType;
-  final InterceptInfo? interceptInfo;
 
   SearchDetails({
     required this.fromStop,
     required this.toStop,
     required this.searchType,
-    this.interceptInfo,
   });
 
   factory SearchDetails.fromJson(Map<String, dynamic> json) {
@@ -99,40 +97,11 @@ class SearchDetails {
       fromStop: StopInfo.fromJson(json['from_stop'] ?? {}),
       toStop: StopInfo.fromJson(json['to_stop'] ?? {}),
       searchType: json['search_type'] as String? ?? 'exact',
-      interceptInfo: json['intercept_info'] != null
-          ? InterceptInfo.fromJson(json['intercept_info'] as Map<String, dynamic>)
-          : null,
-    );
-  }
-
-  bool get isIntercept => searchType == 'intercept';
-}
-
-class InterceptInfo {
-  final String userInput;
-  final String nearestStopName;
-  final double distanceKm;
-  final String distanceStr;
-  final String routeName;
-
-  InterceptInfo({
-    required this.userInput,
-    required this.nearestStopName,
-    required this.distanceKm,
-    required this.distanceStr,
-    required this.routeName,
-  });
-
-  factory InterceptInfo.fromJson(Map<String, dynamic> json) {
-    return InterceptInfo(
-      userInput: json['user_input'] as String? ?? '',
-      nearestStopName: json['nearest_stop_name'] as String? ?? '',
-      distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0.0,
-      distanceStr: json['distance_str'] as String? ?? '',
-      routeName: json['route_name'] as String? ?? '',
     );
   }
 }
+
+
 
 class StopInfo {
   final String? id;
@@ -171,6 +140,8 @@ class TripResult {
   final double fare;
   final String boardingPoint;
   final String droppingPoint;
+  final String? fromLounge;
+  final String? toLounge;
   final BusFeatures busFeatures;
   final bool isBookable;
   final List<RouteStop> routeStops;
@@ -194,6 +165,8 @@ class TripResult {
     required this.fare,
     required this.boardingPoint,
     required this.droppingPoint,
+    this.fromLounge,
+    this.toLounge,
     required this.busFeatures,
     required this.isBookable,
     this.routeStops = const [],
@@ -218,6 +191,8 @@ class TripResult {
       fare: (json['fare'] as num?)?.toDouble() ?? 0.0,
       boardingPoint: json['boarding_point'] as String? ?? '',
       droppingPoint: json['dropping_point'] as String? ?? '',
+      fromLounge: json['from_lounge'] as String?,
+      toLounge: json['to_lounge'] as String?,
       busFeatures: BusFeatures.fromJson(json['bus_features'] ?? {}),
       isBookable: json['is_bookable'] as bool? ?? false,
       routeStops:
