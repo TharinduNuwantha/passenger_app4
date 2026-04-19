@@ -1003,16 +1003,6 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 
 	return results, nil
 }
-				HasRefreshments:  temp.HasRefreshments,
-			},
-			IsBookable:      temp.IsBookable,
-			BusOwnerRouteID: temp.BusOwnerRouteID,
-			MasterRouteID:   temp.MasterRouteID,
-		}
-	}
-
-	return trips, nil
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FindLoungeDirectRoutes — Lounge-centric Direct Route Discovery
