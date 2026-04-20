@@ -1233,3 +1233,207 @@ LIMIT $7
 
 	return trips, nil
 }
+
+// FindLoungeOriginRoutes finds trips that start at a lounge near origin coordinates
+// but end at a regular stop matching the destination name.
+func (r *SearchRepository) FindLoungeOriginRoutes(
+	fromLat, fromLng float64,
+	toName string,
+	radiusMeters float64,
+	afterTime time.Time,
+	limit int,
+) ([]models.TripResult, error) {
+
+	if limit <= 0 {
+		limit = 20
+	}
+
+	const loungeOriginQuery = `
+WITH
+-- 1. Candidate lounges near the ORIGIN
+start_lounges AS (
+    SELECT
+        l.id           AS lounge_id,
+        l.lounge_name,
+        6371000 * 2 * ASIN(SQRT(
+            POWER(SIN(RADIANS((l.latitude  - $1) / 2)), 2) +
+            COS(RADIANS($1)) * COS(RADIANS(l.latitude)) *
+            POWER(SIN(RADIANS((l.longitude - $2) / 2)), 2)
+        )) AS dist_m
+    FROM lounges l
+    WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+      AND 6371000 * 2 * ASIN(SQRT(
+              POWER(SIN(RADIANS((l.latitude  - $1) / 2)), 2) +
+              COS(RADIANS($1)) * COS(RADIANS(l.latitude)) *
+              POWER(SIN(RADIANS((l.longitude - $2) / 2)), 2)
+          )) <= $3
+      AND l.status = 'approved' AND l.is_operational = true
+    ORDER BY dist_m ASC
+),
+
+-- 2. Destination stops matching toName
+drop_stops AS (
+    SELECT 
+        mrs.id as stop_id,
+        mrs.stop_name,
+        mrs.master_route_id,
+        mrs.stop_order
+    FROM master_route_stops mrs
+    WHERE LOWER(mrs.stop_name) LIKE LOWER('%' || $4 || '%')
+),
+
+-- 3. Routes connecting start lounges to destination stops
+matched_routes AS (
+    SELECT
+        sl.lounge_id          AS start_lounge_id,
+        sl.lounge_name        AS start_lounge_name,
+        sl.dist_m             AS start_dist_m,
+        ds.stop_id            AS drop_stop_id,
+        ds.stop_name          AS drop_stop_name,
+        lr_s.master_route_id,
+        mr.route_name,
+        mr.route_number,
+        lr_s.stop_before_id   AS boarding_stop_id
+    FROM start_lounges sl
+    JOIN lounge_routes lr_s ON lr_s.lounge_id = sl.lounge_id
+    JOIN drop_stops ds ON ds.master_route_id = lr_s.master_route_id
+    JOIN master_route_stops mrs_s ON mrs_s.id = lr_s.stop_before_id
+    JOIN master_routes mr ON mr.id = lr_s.master_route_id AND mr.is_active = true
+    WHERE mrs_s.stop_order < ds.stop_order
+    ORDER BY sl.dist_m ASC
+)
+
+-- 4. Get scheduled trips
+SELECT
+    mr_data.start_lounge_name,
+    NULL                      AS drop_lounge_name,
+    mr_data.route_name,
+    mr_data.route_number,
+    mr_data.start_dist_m,
+    0.0                       AS drop_dist_m,
+    mr_data.master_route_id::text,
+    boarding_stop.stop_name   AS boarding_point,
+    mr_data.drop_stop_name    AS dropping_point,
+    sched.trip_id,
+    sched.departure_time,
+    sched.estimated_arrival,
+    sched.duration_minutes,
+    sched.total_seats,
+    sched.fare,
+    sched.bus_type,
+    sched.is_bookable,
+    sched.has_wifi,
+    sched.has_ac,
+    sched.has_charging_ports,
+    sched.has_entertainment,
+    sched.has_refreshments,
+    sched.bus_owner_route_id,
+    sched.trip_master_route_id
+FROM matched_routes mr_data
+JOIN master_route_stops boarding_stop ON boarding_stop.id = mr_data.boarding_stop_id
+JOIN LATERAL (
+    SELECT
+        st.id::text                                                             AS trip_id,
+        st.departure_datetime                                                   AS departure_time,
+        st.departure_datetime +
+            (COALESCE(st.estimated_duration_minutes,0) * INTERVAL '1 minute')  AS estimated_arrival,
+        COALESCE(st.estimated_duration_minutes, 0)                              AS duration_minutes,
+        COALESCE(bslt.total_seats, 0)                                           AS total_seats,
+        COALESCE(rp.approved_fare, st.base_fare, 0)                             AS fare,
+        COALESCE(b.bus_type, 'Normal')                                          AS bus_type,
+        st.is_bookable,
+        COALESCE(b.has_wifi,           false) AS has_wifi,
+        COALESCE(b.has_ac,             false) AS has_ac,
+        COALESCE(b.has_charging_ports, false) AS has_charging_ports,
+        COALESCE(b.has_entertainment,  false) AS has_entertainment,
+        COALESCE(b.has_refreshments,   false) AS has_refreshments,
+        bor.id::text                                                             AS bus_owner_route_id,
+        COALESCE(bor.master_route_id, rp.master_route_id)::text                AS trip_master_route_id
+    FROM scheduled_trips st
+    LEFT JOIN bus_owner_routes bor          ON bor.id = st.bus_owner_route_id
+    LEFT JOIN route_permits rp              ON rp.id  = st.permit_id
+    LEFT JOIN buses b                       ON b.license_plate = rp.bus_registration_number
+    LEFT JOIN bus_seat_layout_templates bslt ON bslt.id = b.seat_layout_id
+    WHERE COALESCE(bor.master_route_id, rp.master_route_id) = mr_data.master_route_id
+      AND st.is_bookable = true
+      AND st.status IN ('scheduled', 'confirmed')
+      AND st.departure_datetime > $5
+    ORDER BY st.departure_datetime ASC
+    LIMIT 3
+) sched ON true
+ORDER BY mr_data.start_dist_m ASC, sched.departure_time ASC
+LIMIT $6
+`
+
+	type loungeRow struct {
+		StartLoungeName   string    `db:"start_lounge_name"`
+		DropLoungeName    *string   `db:"drop_lounge_name"`
+		RouteName         string    `db:"route_name"`
+		RouteNumber       *string   `db:"route_number"`
+		StartDistM        float64   `db:"start_dist_m"`
+		DropDistM         float64   `db:"drop_dist_m"`
+		MasterRouteID     string    `db:"master_route_id"`
+		BoardingPoint     string    `db:"boarding_point"`
+		DroppingPoint     string    `db:"dropping_point"`
+		TripID            string    `db:"trip_id"`
+		DepartureTime     time.Time `db:"departure_time"`
+		EstimatedArrival  time.Time `db:"estimated_arrival"`
+		DurationMinutes   int       `db:"duration_minutes"`
+		TotalSeats        int       `db:"total_seats"`
+		Fare              float64   `db:"fare"`
+		BusType           string    `db:"bus_type"`
+		IsBookable        bool      `db:"is_bookable"`
+		HasWiFi           bool      `db:"has_wifi"`
+		HasAC             bool      `db:"has_ac"`
+		HasChargingPorts  bool      `db:"has_charging_ports"`
+		HasEntertainment  bool      `db:"has_entertainment"`
+		HasRefreshments   bool      `db:"has_refreshments"`
+		BusOwnerRouteID   *string   `db:"bus_owner_route_id"`
+		TripMasterRouteID *string   `db:"trip_master_route_id"`
+	}
+
+	var rows []loungeRow
+	if err := r.db.Select(&rows, loungeOriginQuery,
+		fromLat, fromLng,
+		radiusMeters,
+		toName,
+		afterTime,
+		limit,
+	); err != nil {
+		return nil, fmt.Errorf("FindLoungeOriginRoutes: %w", err)
+	}
+
+	trips := make([]models.TripResult, 0, len(rows))
+	for _, row := range rows {
+		tripID, _ := uuid.Parse(row.TripID)
+		startLounge := row.StartLoungeName
+		trips = append(trips, models.TripResult{
+			TripID:           tripID,
+			RouteName:        row.RouteName,
+			RouteNumber:      row.RouteNumber,
+			BusType:          row.BusType,
+			DepartureTime:    row.DepartureTime,
+			EstimatedArrival: row.EstimatedArrival,
+			DurationMinutes:  row.DurationMinutes,
+			TotalSeats:       row.TotalSeats,
+			Fare:             row.Fare,
+			BoardingPoint:    row.BoardingPoint,
+			DroppingPoint:    row.DroppingPoint,
+			FromLounge:       &startLounge,
+			ToLounge:         nil,
+			BusFeatures: models.BusFeatures{
+				HasWiFi:          row.HasWiFi,
+				HasAC:            row.HasAC,
+				HasChargingPorts: row.HasChargingPorts,
+				HasEntertainment: row.HasEntertainment,
+				HasRefreshments:  row.HasRefreshments,
+			},
+			IsBookable:      row.IsBookable,
+			BusOwnerRouteID: row.BusOwnerRouteID,
+			MasterRouteID:   row.TripMasterRouteID,
+		})
+	}
+
+	return trips, nil
+}
+

@@ -94,6 +94,23 @@ func (s *SearchService) SearchTrips(
 			break
 		}
 
+		// --- NEW: Try Lounge-to-Stop (Origin Lounge Only) ---
+		s.logger.WithField("radius_m", radius).Info("Trying Lounge-to-Stop discovery...")
+		results, err = s.repo.FindLoungeOriginRoutes(
+			*req.FromLat, *req.FromLng,
+			req.To,
+			radius,
+			searchTime,
+			req.Limit,
+		)
+		if err == nil && len(results) > 0 {
+			s.logger.WithFields(logrus.Fields{
+				"radius_m":      radius,
+				"results_found": len(results),
+			}).Info("Lounge-to-Stop routes discovered successfully")
+			break
+		}
+
 		s.logger.WithField("radius_m", radius).Info("No lounges found at this radius, expanding...")
 	}
 
