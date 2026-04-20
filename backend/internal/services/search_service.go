@@ -97,6 +97,24 @@ func (s *SearchService) SearchTrips(
 		s.logger.WithField("radius_m", radius).Info("No lounges found at this radius, expanding...")
 	}
 
+	// --- FALLBACK TO REGULAR SEARCH IF NO LOUNGES FOUND ---
+	searchType := "lounge_direct"
+	fallbackMessage := ""
+
+	if len(results) == 0 {
+		s.logger.Info("No lounges found, falling back to regular stop-to-stop search")
+
+		pair, err := s.repo.FindStopPairOnSameRoute(req.From, req.To)
+		if err == nil && pair.Matched {
+			results, err = s.repo.FindDirectTrips(pair.FromID, pair.ToID, searchTime, req.Limit)
+			if err == nil && len(results) > 0 {
+				searchType = "stop_direct"
+				fallbackMessage = fmt.Sprintf("No lounges found near your locations. Found %d regular schedules from '%s' to '%s' instead.", len(results), pair.FromStop.Name, pair.ToStop.Name)
+				s.logger.WithField("results_found", len(results)).Info("Regular stop-to-stop routes discovered as fallback")
+			}
+		}
+	}
+
 	// Build the response
 	response := &models.SearchResponse{
 		Status: "success",
@@ -109,7 +127,7 @@ func (s *SearchService) SearchTrips(
 				OriginalInput: req.To,
 				Matched:       len(results) > 0,
 			},
-			SearchType: "lounge_direct",
+			SearchType: searchType,
 		},
 		Results: results,
 	}
@@ -117,9 +135,11 @@ func (s *SearchService) SearchTrips(
 	if len(results) == 0 {
 		response.Status = "success"
 		response.Message = fmt.Sprintf(
-			"No direct lounge-to-lounge routes found from '%s' to '%s' even within %.0fkm. Please try a different date or time.",
+			"No routes found from '%s' to '%s' even after expanding search radius to %.0fkm. Please try a different date or time.",
 			req.From, req.To, usedRadius/1000,
 		)
+	} else if fallbackMessage != "" {
+		response.Message = fallbackMessage
 	} else {
 		response.Message = fmt.Sprintf(
 			"Found %d direct lounge route(s) from '%s' to '%s' (search radius: %.0fkm).",
