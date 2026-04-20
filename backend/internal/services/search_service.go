@@ -26,7 +26,8 @@ func NewSearchService(repo *database.SearchRepository, logger *logrus.Logger) *S
 
 // radiusSteps defines the incremental search radius expansion in meters.
 // The algorithm tries each radius in sequence until lounges are found on both sides.
-var radiusSteps = []float64{3000, 6000, 10000, 20000}
+// Steps: 3km, 6km, 16km, 26km, 36km
+var radiusSteps = []float64{3000, 6000, 16000, 26000, 36000}
 
 // SearchTrips implements the Lounge-centric Direct Route Discovery algorithm.
 // It uses a single-query approach with incremental radius expansion to find
