@@ -25,9 +25,8 @@ func NewSearchService(repo *database.SearchRepository, logger *logrus.Logger) *S
 }
 
 // radiusSteps defines the incremental search radius expansion in meters.
-// The algorithm tries each radius in sequence until lounges are found on both sides.
-// Steps: 3km, 6km, 16km, 26km, 36km
-var radiusSteps = []float64{3000, 6000, 16000, 26000, 36000}
+// The algorithm tries each radius in sequence (3km steps) until lounges are found.
+var radiusSteps = []float64{3000, 6000, 9000, 12000, 15000}
 
 // SearchTrips implements the Lounge-centric Direct Route Discovery algorithm.
 // It uses a single-query approach with incremental radius expansion to find
@@ -79,7 +78,7 @@ func (s *SearchService) SearchTrips(
 	searchTime := req.GetSearchDateTime()
 
 	// --- INCREMENTAL RADIUS EXPANSION LOOP ---
-	// Tries progressively larger radii until results are found or max radius is exhausted.
+	// Tries progressively larger radii until lounges are found.
 	var results []models.TripResult
 	var usedRadius float64
 	var err error
@@ -88,42 +87,37 @@ func (s *SearchService) SearchTrips(
 	if fromLat != nil && fromLng != nil && toLat != nil && toLng != nil {
 		for _, radius := range radiusSteps {
 			usedRadius = radius
-			s.logger.WithField("radius_m", radius).Info("Attempting lounge discovery at radius")
+			s.logger.WithField("radius_m", radius).Info("Checking for lounges at radius...")
 
-			results, err = s.repo.FindLoungeDirectRoutes(
-				*fromLat, *fromLng,
-				*toLat, *toLng,
-				radius,
-				searchTime,
-				req.Limit,
-			)
-			if err != nil {
-				s.logger.WithError(err).WithField("radius_m", radius).Error("Error during lounge route discovery")
-				return nil, fmt.Errorf("lounge route discovery failed at radius %.0fm: %w", radius, err)
-			}
+			// Check if any lounges exist within this radius
+			hasLounges, _ := s.repo.HasLoungesWithinRadius(*fromLat, *fromLng, radius)
 
-			if len(results) > 0 {
-				s.logger.WithFields(logrus.Fields{
-					"radius_m":      radius,
-					"results_found": len(results),
-				}).Info("Lounge-centric routes discovered successfully")
-				break
-			}
+			if hasLounges {
+				s.logger.WithField("radius_m", radius).Info("Found lounges! Running trip discovery...")
 
-			// --- NEW: Try Lounge-to-Stop (Origin Lounge Only) ---
-			s.logger.WithField("radius_m", radius).Info("Trying Lounge-to-Stop discovery...")
-			results, err = s.repo.FindLoungeOriginRoutes(
-				*fromLat, *fromLng,
-				req.To,
-				radius,
-				searchTime,
-				req.Limit,
-			)
-			if err == nil && len(results) > 0 {
-				s.logger.WithFields(logrus.Fields{
-					"radius_m":      radius,
-					"results_found": len(results),
-				}).Info("Lounge-to-Stop routes discovered successfully")
+				// Found lounges! Now try to find direct lounge-to-lounge trips.
+				results, err = s.repo.FindLoungeDirectRoutes(
+					*fromLat, *fromLng,
+					*toLat, *toLng,
+					radius,
+					searchTime,
+					req.Limit,
+				)
+
+				// If no direct lounge-to-lounge trips, try Lounge-to-Stop
+				if err == nil && len(results) == 0 {
+					s.logger.WithField("radius_m", radius).Info("No direct lounge-to-lounge, trying Lounge-to-Stop...")
+					results, _ = s.repo.FindLoungeOriginRoutes(
+						*fromLat, *fromLng,
+						req.To,
+						radius,
+						searchTime,
+						req.Limit,
+					)
+				}
+
+				// CRITICAL: We stop expanding the radius once lounges are found, 
+				// even if no trips are found for these specific lounges.
 				break
 			}
 

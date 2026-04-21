@@ -1437,3 +1437,21 @@ LIMIT $6
 	return trips, nil
 }
 
+// HasLoungesWithinRadius checks if there are any lounges within the given radius of a point
+func (r *SearchRepository) HasLoungesWithinRadius(lat, lng, radiusMeters float64) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM lounges
+			WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+			  AND 6371000 * 2 * ASIN(SQRT(
+				  POWER(SIN(RADIANS((latitude  - $1) / 2)), 2) +
+				  COS(RADIANS($1)) * COS(RADIANS(latitude)) *
+				  POWER(SIN(RADIANS((longitude - $2) / 2)), 2)
+			  )) <= $3
+			  AND status = 'approved' AND is_operational = true
+		)
+	`
+	var exists bool
+	err := r.db.Get(&exists, query, lat, lng, radiusMeters)
+	return exists, err
+}
