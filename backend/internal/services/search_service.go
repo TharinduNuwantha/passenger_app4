@@ -104,9 +104,21 @@ func (s *SearchService) SearchTrips(
 					req.Limit,
 				)
 
-				// If no direct lounge-to-lounge trips, try Lounge-to-Stop
+				// If no direct routes, try Dynamic One-Transit Discovery
 				if err == nil && len(results) == 0 {
-					s.logger.WithField("radius_m", radius).Info("No direct lounge-to-lounge, trying Lounge-to-Stop...")
+					s.logger.WithField("radius_m", radius).Info("No direct routes, trying Transit Discovery...")
+					results, _ = s.repo.FindLoungeTransitRoutes(
+						*fromLat, *fromLng,
+						*toLat, *toLng,
+						radius,
+						searchTime,
+						req.Limit,
+					)
+				}
+
+				// If still no results, try Lounge-to-Stop
+				if err == nil && len(results) == 0 {
+					s.logger.WithField("radius_m", radius).Info("No lounge-to-lounge/transit, trying Lounge-to-Stop...")
 					results, _ = s.repo.FindLoungeOriginRoutes(
 						*fromLat, *fromLng,
 						req.To,

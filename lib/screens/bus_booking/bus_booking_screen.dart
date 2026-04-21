@@ -784,11 +784,11 @@ class _BusListScreenState extends State<BusListScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'DIRECT',
+                trip.isTransit ? '1 STOP' : 'DIRECT',
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.primary.withOpacity(0.6),
+                  color: trip.isTransit ? AppColors.secondary : AppColors.primary.withOpacity(0.6),
                   letterSpacing: 1.5,
                 ),
               ),
@@ -831,43 +831,67 @@ class _BusListScreenState extends State<BusListScreen> {
 
     return Column(
       children: [
+    return Column(
+      children: [
         _buildLocationRow(
-          fromName,
-          trip.fromLounge != null ? 'Lounge Departure' : 'Boarding Point',
-          AppColors.success,
-          true,
-          trip.fromLoungeDistKm,
-          fromName, // Target for start is the lounge itself
+          title: fromName,
+          subtitle: trip.fromLounge != null ? 'Lounge Departure' : 'Boarding Point',
+          color: AppColors.success,
+          isStart: true,
+          distKm: trip.fromLoungeDistKm,
+          targetName: fromName,
         ),
-        const SizedBox(height: 4),
-        Padding(
-          padding: const EdgeInsets.only(left: 11),
-          child: Column(
-            children: List.generate(
-              3,
-              (index) => Container(
-                margin: const EdgeInsets.symmetric(vertical: 2),
-                width: 2,
-                height: 4,
-                color: Colors.grey[300],
-              ),
-            ),
+        if (trip.isTransit) ...[
+          _buildTimelineConnector(),
+          _buildLocationRow(
+            title: trip.transitPoint ?? 'Transit Hub',
+            subtitle: 'Transit Hub (Change Bus)',
+            color: AppColors.secondary,
+            isStart: false,
+            distKm: 0,
+            targetName: trip.transitPoint ?? 'Transit Hub',
+            icon: Icons.transfer_within_a_station_rounded,
           ),
-        ),
-        const SizedBox(height: 4),
+        ],
+        _buildTimelineConnector(),
         _buildLocationRow(
-          toName,
-          trip.toLounge != null ? 'Lounge Arrival' : 'Alighting Point',
-          AppColors.error,
-          false,
-          trip.toLoungeDistKm,
-          _cleanLocation(widget.drop), // Target for end is the user's selected destination
+          title: toName,
+          subtitle: trip.toLounge != null ? 'Lounge Arrival' : 'Alighting Point',
+          color: AppColors.error,
+          isStart: false,
+          distKm: trip.toLoungeDistKm,
+          targetName: _cleanLocation(widget.drop),
         ),
       ],
     );
   }
 
-  Widget _buildLocationRow(String title, String subtitle, Color color, bool isStart, [double distKm = 0.0, String? targetName]) {
+  Widget _buildTimelineConnector() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 11),
+      child: Column(
+        children: List.generate(
+          3,
+          (index) => Container(
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            width: 2,
+            height: 4,
+            color: Colors.grey[300],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationRow({
+    required String title,
+    required String subtitle,
+    required Color color,
+    required bool isStart,
+    double distKm = 0.0,
+    String? targetName,
+    IconData? icon,
+  }) {
     return Row(
       children: [
         Container(
@@ -879,13 +903,10 @@ class _BusListScreenState extends State<BusListScreen> {
             border: Border.all(color: color, width: 2),
           ),
           child: Center(
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
+            child: Icon(
+              icon ?? Icons.circle,
+              size: icon != null ? 14 : 8,
+              color: color,
             ),
           ),
         ),

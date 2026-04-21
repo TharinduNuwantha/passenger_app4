@@ -1458,3 +1458,195 @@ func (r *SearchRepository) HasLoungesWithinRadius(lat, lng, radiusMeters float64
 	err := r.db.Get(&exists, query, lat, lng, radiusMeters)
 	return exists, err
 }
+
+// FindLoungeTransitRoutes implements the Dynamic One-Transit Route Discovery algorithm.
+// It finds paths between Start Lounge -> Transit Lounge -> Drop Lounge.
+func (r *SearchRepository) FindLoungeTransitRoutes(
+	fromLat, fromLng float64,
+	toLat, toLng float64,
+	radiusMeters float64,
+	afterTime time.Time,
+	limit int,
+) ([]models.TripResult, error) {
+
+	if limit <= 0 {
+		limit = 10
+	}
+
+	const transitQuery = `
+WITH 
+-- 1. Candidate Start Lounges
+start_lounges AS (
+    SELECT id, lounge_name, latitude, longitude,
+           6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) as dist_m
+    FROM lounges 
+    WHERE status = 'approved' AND is_operational = true
+      AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) <= $5
+),
+-- 2. Candidate Drop Lounges
+drop_lounges AS (
+    SELECT id, lounge_name, latitude, longitude,
+           6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) as dist_m
+    FROM lounges 
+    WHERE status = 'approved' AND is_operational = true
+      AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) <= $5
+),
+-- 3. Potential Transit Lounges (exclude start/drop)
+transit_lounges AS (
+    SELECT id, lounge_name FROM lounges WHERE status = 'approved' AND is_operational = true
+),
+-- 4. One-Transit Chain Discovery
+matched_chains AS (
+    SELECT 
+        sl.id as sl_id, sl.lounge_name as sl_name, sl.dist_m as sl_dist,
+        tl.id as tl_id, tl.lounge_name as tl_name,
+        dl.id as dl_id, dl.lounge_name as dl_name, dl.dist_m as dl_dist,
+        lr1.master_route_id as r1_id, lr2.master_route_id as r2_id,
+        lr1.stop_before_id as b1_id, lrt1.stop_before_id as d1_id,
+        lrt2.stop_before_id as b2_id, lr2.stop_before_id as d2_id
+    FROM start_lounges sl
+    CROSS JOIN drop_lounges dl
+    JOIN transit_lounges tl ON tl.id NOT IN (sl.id, dl.id)
+    -- Leg 1: sl -> tl
+    JOIN lounge_routes lr1 ON lr1.lounge_id = sl.id
+    JOIN lounge_routes lrt1 ON lrt1.lounge_id = tl.id AND lrt1.master_route_id = lr1.master_route_id
+    JOIN master_route_stops mrs1_s ON mrs1_s.id = lr1.stop_before_id
+    JOIN master_route_stops mrs1_t ON mrs1_t.id = lrt1.stop_before_id
+    -- Leg 2: tl -> dl
+    JOIN lounge_routes lrt2 ON lrt2.lounge_id = tl.id
+    JOIN lounge_routes lr2 ON lr2.lounge_id = dl.id AND lr2.master_route_id = lrt2.master_route_id
+    JOIN master_route_stops mrs2_t ON mrs2_t.id = lrt2.stop_before_id
+    JOIN master_route_stops mrs2_d ON mrs2_d.id = lr2.stop_before_id
+    WHERE mrs1_s.stop_order < mrs1_t.stop_order
+      AND mrs2_t.stop_order < mrs2_d.stop_order
+    ORDER BY sl.dist_m ASC, dl.dist_m ASC
+    LIMIT 20
+)
+SELECT 
+    mc.sl_name as start_lounge_name, mc.sl_dist as start_dist_m,
+    mc.tl_name as transit_lounge_name, mc.tl_id::text as transit_lounge_id,
+    mc.dl_name as drop_lounge_name, mc.dl_dist as drop_dist_m,
+    -- Leg 1 Details
+    l1.trip_id as l1_trip_id, l1.departure_time as l1_dep, l1.estimated_arrival as l1_arr,
+    l1.route_name as l1_route_name, l1.route_number as l1_route_number, l1.fare as l1_fare,
+    l1.bus_type as l1_bus_type, l1.master_route_id as l1_master_id,
+    b1.stop_name as l1_boarding, d1.stop_name as l1_dropping,
+    -- Leg 2 Details
+    l2.trip_id as l2_trip_id, l2.departure_time as l2_dep, l2.estimated_arrival as l2_arr,
+    l2.route_name as l2_route_name, l2.route_number as l2_route_number, l2.fare as l2_fare,
+    l2.bus_type as l2_bus_type, l2.master_route_id as l2_master_id,
+    b2.stop_name as l2_boarding, d2.stop_name as l2_dropping
+FROM matched_chains mc
+JOIN master_route_stops b1 ON b1.id = mc.b1_id
+JOIN master_route_stops d1 ON d1.id = mc.d1_id
+JOIN master_route_stops b2 ON b2.id = mc.b2_id
+JOIN master_route_stops d2 ON d2.id = mc.d2_id
+JOIN LATERAL (
+    SELECT st.id::text as trip_id, st.departure_datetime as departure_time,
+           st.departure_datetime + (COALESCE(st.estimated_duration_minutes,0) * INTERVAL '1 minute') as estimated_arrival,
+           mr.route_name, mr.route_number, COALESCE(st.base_fare, 0) as fare,
+           COALESCE(b.bus_type, 'Normal') as bus_type, mr.id::text as master_route_id
+    FROM scheduled_trips st
+    JOIN master_routes mr ON mr.id = st.master_route_id
+    LEFT JOIN buses b ON b.id = st.bus_id
+    WHERE st.master_route_id = mc.r1_id AND st.departure_datetime >= $6
+    ORDER BY st.departure_datetime ASC LIMIT 1
+) l1 ON true
+JOIN LATERAL (
+    SELECT st.id::text as trip_id, st.departure_datetime as departure_time,
+           st.departure_datetime + (COALESCE(st.estimated_duration_minutes,0) * INTERVAL '1 minute') as estimated_arrival,
+           mr.route_name, mr.route_number, COALESCE(st.base_fare, 0) as fare,
+           COALESCE(b.bus_type, 'Normal') as bus_type, mr.id::text as master_route_id
+    FROM scheduled_trips st
+    JOIN master_routes mr ON mr.id = st.master_route_id
+    LEFT JOIN buses b ON b.id = st.bus_id
+    WHERE st.master_route_id = mc.r2_id 
+      AND st.departure_datetime >= l1.estimated_arrival + INTERVAL '15 minutes'
+    ORDER BY st.departure_datetime ASC LIMIT 1
+) l2 ON true
+LIMIT $7;
+`
+
+	type transitRow struct {
+		StartLoungeName   string    `db:"start_lounge_name"`
+		StartDistM        float64   `db:"start_dist_m"`
+		TransitLoungeName string    `db:"transit_lounge_name"`
+		TransitLoungeID   string    `db:"transit_lounge_id"`
+		DropLoungeName    string    `db:"drop_lounge_name"`
+		DropDistM         float64   `db:"drop_dist_m"`
+		L1TripID          string    `db:"l1_trip_id"`
+		L1Dep             time.Time `db:"l1_dep"`
+		L1Arr             time.Time `db:"l1_arr"`
+		L1RouteName       string    `db:"l1_route_name"`
+		L1RouteNumber     *string   `db:"l1_route_number"`
+		L1Fare            float64   `db:"l1_fare"`
+		L1BusType         string    `db:"l1_bus_type"`
+		L1MasterID        string    `db:"l1_master_id"`
+		L1Boarding        string    `db:"l1_boarding"`
+		L1Dropping        string    `db:"l1_dropping"`
+		L2TripID          string    `db:"l2_trip_id"`
+		L2Dep             time.Time `db:"l2_dep"`
+		L2Arr             time.Time `db:"l2_arr"`
+		L2RouteName       string    `db:"l2_route_name"`
+		L2RouteNumber     *string   `db:"l2_route_number"`
+		L2Fare            float64   `db:"l2_fare"`
+		L2BusType         string    `db:"l2_bus_type"`
+		L2MasterID        string    `db:"l2_master_id"`
+		L2Boarding        string    `db:"l2_boarding"`
+		L2Dropping        string    `db:"l2_dropping"`
+	}
+
+	var rows []transitRow
+	err := r.db.Select(&rows, transitQuery, fromLat, fromLng, toLat, toLng, radiusMeters, afterTime, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]models.TripResult, 0, len(rows))
+	for _, row := range rows {
+		l1ID, _ := uuid.Parse(row.L1TripID)
+		l2ID, _ := uuid.Parse(row.L2TripID)
+		tLoungeID, _ := uuid.Parse(row.TransitLoungeID)
+
+		leg1 := models.TripResult{
+			TripID:           l1ID,
+			RouteName:        row.L1RouteName,
+			RouteNumber:      row.L1RouteNumber,
+			DepartureTime:    row.L1Dep,
+			EstimatedArrival: row.L1Arr,
+			Fare:             row.L1Fare,
+			BusType:          row.L1BusType,
+			BoardingPoint:    row.L1Boarding,
+			DroppingPoint:    row.L1Dropping,
+		}
+
+		leg2 := models.TripResult{
+			TripID:           l2ID,
+			RouteName:        row.L2RouteName,
+			RouteNumber:      row.L2RouteNumber,
+			DepartureTime:    row.L2Dep,
+			EstimatedArrival: row.L2Arr,
+			Fare:             row.L2Fare,
+			BusType:          row.L2BusType,
+			BoardingPoint:    row.L2Boarding,
+			DroppingPoint:    row.L2Dropping,
+		}
+
+		results = append(results, models.TripResult{
+			IsTransit:        true,
+			TransitPointID:   &tLoungeID,
+			TransitPoint:     row.TransitLoungeName,
+			FromLounge:       &row.StartLoungeName,
+			ToLounge:         &row.DropLoungeName,
+			FromLoungeDistKm: row.StartDistM / 1000.0,
+			ToLoungeDistKm:   row.DropDistM / 1000.0,
+			Leg1:             &leg1,
+			Leg2:             &leg2,
+			Fare:             row.L1Fare + row.L2Fare,
+			DepartureTime:    row.L1Dep,
+			EstimatedArrival: row.L2Arr,
+		})
+	}
+
+	return results, nil
+}
