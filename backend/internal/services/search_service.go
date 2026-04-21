@@ -45,21 +45,35 @@ func (s *SearchService) SearchTrips(
 	}
 
 	// Coordinates are REQUIRED for lounge-centric search.
-	if req.FromLat == nil || req.FromLng == nil || req.ToLat == nil || req.ToLng == nil {
-		return &models.SearchResponse{
-			Status:  "error",
-			Message: "Coordinates (from_lat, from_lng, to_lat, to_lng) are required for lounge-centric search.",
-			Results: []models.TripResult{},
-		}, nil
+	// If missing, attempt to resolve them from names.
+	fromLat, fromLng := req.FromLat, req.FromLng
+	toLat, toLng := req.ToLat, req.ToLng
+
+	if fromLat == nil || fromLng == nil {
+		s.logger.WithField("location", req.From).Info("Resolving origin coordinates...")
+		lat, lng, err := s.repo.ResolveCoordinates(req.From)
+		if err == nil {
+			fromLat = &lat
+			fromLng = &lng
+		}
+	}
+
+	if toLat == nil || toLng == nil {
+		s.logger.WithField("location", req.To).Info("Resolving destination coordinates...")
+		lat, lng, err := s.repo.ResolveCoordinates(req.To)
+		if err == nil {
+			toLat = &lat
+			toLng = &lng
+		}
 	}
 
 	s.logger.WithFields(logrus.Fields{
 		"from":     req.From,
 		"to":       req.To,
-		"from_lat": *req.FromLat,
-		"from_lng": *req.FromLng,
-		"to_lat":   *req.ToLat,
-		"to_lng":   *req.ToLng,
+		"from_lat": fromLat,
+		"from_lng": fromLng,
+		"to_lat":   toLat,
+		"to_lng":   toLng,
 	}).Info("=== SearchService: Starting Lounge-centric Direct Route Discovery ===")
 
 	searchTime := req.GetSearchDateTime()
@@ -70,48 +84,53 @@ func (s *SearchService) SearchTrips(
 	var usedRadius float64
 	var err error
 
-	for _, radius := range radiusSteps {
-		usedRadius = radius
-		s.logger.WithField("radius_m", radius).Info("Attempting lounge discovery at radius")
+	// Only perform lounge search if coordinates are available (resolved or provided)
+	if fromLat != nil && fromLng != nil && toLat != nil && toLng != nil {
+		for _, radius := range radiusSteps {
+			usedRadius = radius
+			s.logger.WithField("radius_m", radius).Info("Attempting lounge discovery at radius")
 
-		results, err = s.repo.FindLoungeDirectRoutes(
-			*req.FromLat, *req.FromLng,
-			*req.ToLat, *req.ToLng,
-			radius,
-			searchTime,
-			req.Limit,
-		)
-		if err != nil {
-			s.logger.WithError(err).WithField("radius_m", radius).Error("Error during lounge route discovery")
-			return nil, fmt.Errorf("lounge route discovery failed at radius %.0fm: %w", radius, err)
+			results, err = s.repo.FindLoungeDirectRoutes(
+				*fromLat, *fromLng,
+				*toLat, *toLng,
+				radius,
+				searchTime,
+				req.Limit,
+			)
+			if err != nil {
+				s.logger.WithError(err).WithField("radius_m", radius).Error("Error during lounge route discovery")
+				return nil, fmt.Errorf("lounge route discovery failed at radius %.0fm: %w", radius, err)
+			}
+
+			if len(results) > 0 {
+				s.logger.WithFields(logrus.Fields{
+					"radius_m":      radius,
+					"results_found": len(results),
+				}).Info("Lounge-centric routes discovered successfully")
+				break
+			}
+
+			// --- NEW: Try Lounge-to-Stop (Origin Lounge Only) ---
+			s.logger.WithField("radius_m", radius).Info("Trying Lounge-to-Stop discovery...")
+			results, err = s.repo.FindLoungeOriginRoutes(
+				*fromLat, *fromLng,
+				req.To,
+				radius,
+				searchTime,
+				req.Limit,
+			)
+			if err == nil && len(results) > 0 {
+				s.logger.WithFields(logrus.Fields{
+					"radius_m":      radius,
+					"results_found": len(results),
+				}).Info("Lounge-to-Stop routes discovered successfully")
+				break
+			}
+
+			s.logger.WithField("radius_m", radius).Info("No lounges found at this radius, expanding...")
 		}
-
-		if len(results) > 0 {
-			s.logger.WithFields(logrus.Fields{
-				"radius_m":      radius,
-				"results_found": len(results),
-			}).Info("Lounge-centric routes discovered successfully")
-			break
-		}
-
-		// --- NEW: Try Lounge-to-Stop (Origin Lounge Only) ---
-		s.logger.WithField("radius_m", radius).Info("Trying Lounge-to-Stop discovery...")
-		results, err = s.repo.FindLoungeOriginRoutes(
-			*req.FromLat, *req.FromLng,
-			req.To,
-			radius,
-			searchTime,
-			req.Limit,
-		)
-		if err == nil && len(results) > 0 {
-			s.logger.WithFields(logrus.Fields{
-				"radius_m":      radius,
-				"results_found": len(results),
-			}).Info("Lounge-to-Stop routes discovered successfully")
-			break
-		}
-
-		s.logger.WithField("radius_m", radius).Info("No lounges found at this radius, expanding...")
+	} else {
+		s.logger.Warn("Coordinates could not be resolved; skipping lounge-centric search.")
 	}
 
 	// --- FALLBACK TO REGULAR SEARCH IF NO LOUNGES FOUND ---
