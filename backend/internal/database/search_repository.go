@@ -1451,7 +1451,6 @@ func (r *SearchRepository) HasLoungesWithinRadius(lat, lng, radiusMeters float64
 				  COS(RADIANS($1)) * COS(RADIANS(latitude)) *
 				  POWER(SIN(RADIANS((longitude - $2) / 2)), 2)
 			  )) <= $3
-			  AND status = 'approved' AND is_operational = true
 		)
 	`
 	var exists bool
@@ -1480,20 +1479,18 @@ start_lounges AS (
     SELECT id, lounge_name, latitude, longitude,
            6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) as dist_m
     FROM lounges 
-    WHERE status = 'approved' AND is_operational = true
-      AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) <= $5
+    WHERE 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) <= $5
 ),
 -- 2. Candidate Drop Lounges
 drop_lounges AS (
     SELECT id, lounge_name, latitude, longitude,
            6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) as dist_m
     FROM lounges 
-    WHERE status = 'approved' AND is_operational = true
-      AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) <= $5
+    WHERE 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) <= $5
 ),
 -- 3. Potential Transit Lounges (exclude start/drop)
 transit_lounges AS (
-    SELECT id, lounge_name FROM lounges WHERE status = 'approved' AND is_operational = true
+    SELECT id, lounge_name FROM lounges
 ),
 -- 4. One-Transit Chain Discovery
 matched_chains AS (

@@ -79,17 +79,17 @@ func (s *SearchService) SearchTrips(
 
 	// --- INCREMENTAL RADIUS EXPANSION LOOP ---
 	// Tries progressively larger radii until lounges are found.
+	// --- INCREMENTAL RADIUS EXPANSION LOOP ---
 	var results []models.TripResult
 	var usedRadius float64
+	var searchType = "lounge_direct"
 	var err error
 
-	// Only perform lounge search if coordinates are available (resolved or provided)
 	if fromLat != nil && fromLng != nil && toLat != nil && toLng != nil {
 		for _, radius := range radiusSteps {
 			usedRadius = radius
 			s.logger.WithField("radius_m", radius).Info("Checking for lounges at radius...")
 
-			// Check if any lounges exist within this radius
 			hasLounges, _ := s.repo.HasLoungesWithinRadius(*fromLat, *fromLng, radius)
 
 			if hasLounges {
@@ -103,6 +103,9 @@ func (s *SearchService) SearchTrips(
 					searchTime,
 					req.Limit,
 				)
+				if len(results) > 0 {
+					searchType = "lounge_direct"
+				}
 
 				// 2. If no direct routes, try Dynamic One-Transit Discovery
 				if err == nil && len(results) == 0 {
@@ -114,6 +117,9 @@ func (s *SearchService) SearchTrips(
 						searchTime,
 						req.Limit,
 					)
+					if len(results) > 0 {
+						searchType = "lounge_transit"
+					}
 				}
 
 				// 3. If still no results, try Lounge-to-Stop (Intercept)
@@ -126,39 +132,30 @@ func (s *SearchService) SearchTrips(
 						searchTime,
 						req.Limit,
 					)
+					if len(results) > 0 {
+						searchType = "lounge_intercept"
+					}
 				}
 
-				// If we actually found trips, we stop expanding.
-				// If we found lounges but NO trips, we CONTINUE expanding to see if
-				// lounges at a slightly larger radius are part of the desired route.
 				if len(results) > 0 {
 					s.logger.WithField("radius_m", radius).Info("Found valid trips! Stopping expansion.")
 					break
 				}
-				
 				s.logger.WithField("radius_m", radius).Info("Lounges found but no valid routes; continuing expansion...")
 			}
-
-			s.logger.WithField("radius_m", radius).Info("No lounges found at this radius, expanding...")
 		}
-	} else {
-		s.logger.Warn("Coordinates could not be resolved; skipping lounge-centric search.")
 	}
 
 	// --- FALLBACK TO REGULAR SEARCH IF NO LOUNGES FOUND ---
-	searchType := "lounge_direct"
 	fallbackMessage := ""
-
 	if len(results) == 0 {
 		s.logger.Info("No lounges found, falling back to regular stop-to-stop search")
-
 		pair, err := s.repo.FindStopPairOnSameRoute(req.From, req.To)
 		if err == nil && pair.Matched {
 			results, err = s.repo.FindDirectTrips(pair.FromID, pair.ToID, searchTime, req.Limit)
 			if err == nil && len(results) > 0 {
 				searchType = "stop_direct"
 				fallbackMessage = fmt.Sprintf("No lounges found near your locations. Found %d regular schedules from '%s' to '%s' instead.", len(results), pair.FromStop.Name, pair.ToStop.Name)
-				s.logger.WithField("results_found", len(results)).Info("Regular stop-to-stop routes discovered as fallback")
 			}
 		}
 	}
