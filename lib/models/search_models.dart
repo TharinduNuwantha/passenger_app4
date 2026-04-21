@@ -142,6 +142,8 @@ class TripResult {
   final String droppingPoint;
   final String? fromLounge;
   final String? toLounge;
+  final double fromLoungeDistKm;
+  final double toLoungeDistKm;
   final BusFeatures busFeatures;
   final bool isBookable;
   final List<RouteStop> routeStops;
@@ -167,6 +169,8 @@ class TripResult {
     required this.droppingPoint,
     this.fromLounge,
     this.toLounge,
+    this.fromLoungeDistKm = 0.0,
+    this.toLoungeDistKm = 0.0,
     required this.busFeatures,
     required this.isBookable,
     this.routeStops = const [],
@@ -193,6 +197,8 @@ class TripResult {
       droppingPoint: json['dropping_point'] as String? ?? '',
       fromLounge: json['from_lounge'] as String?,
       toLounge: json['to_lounge'] as String?,
+      fromLoungeDistKm: (json['from_lounge_dist_km'] as num?)?.toDouble() ?? 0.0,
+      toLoungeDistKm: (json['to_lounge_dist_km'] as num?)?.toDouble() ?? 0.0,
       busFeatures: BusFeatures.fromJson(json['bus_features'] ?? {}),
       isBookable: json['is_bookable'] as bool? ?? false,
       routeStops:

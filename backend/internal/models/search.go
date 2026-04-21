@@ -83,6 +83,9 @@ type TripResult struct {
 	// Lounge-centric fields
 	FromLounge *string `json:"from_lounge,omitempty"`
 	ToLounge   *string `json:"to_lounge,omitempty"`
+	// Distances from user coordinates to lounges (in km)
+	FromLoungeDistKm float64 `json:"from_lounge_dist_km,omitempty"`
+	ToLoungeDistKm   float64 `json:"to_lounge_dist_km,omitempty"`
 	// Route stops for passenger to select boarding/alighting points
 	RouteStops []RouteStop `json:"route_stops,omitempty"`
 	// Route IDs for lounge lookup

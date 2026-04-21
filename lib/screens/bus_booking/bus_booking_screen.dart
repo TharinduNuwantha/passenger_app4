@@ -703,6 +703,7 @@ class _BusListScreenState extends State<BusListScreen> {
           trip.fromLounge != null ? 'Lounge Departure' : 'Boarding Point',
           AppColors.success,
           true,
+          trip.fromLoungeDistKm,
         ),
         const SizedBox(height: 4),
         Padding(
@@ -725,12 +726,13 @@ class _BusListScreenState extends State<BusListScreen> {
           trip.toLounge != null ? 'Lounge Arrival' : 'Alighting Point',
           AppColors.error,
           false,
+          trip.toLoungeDistKm,
         ),
       ],
     );
   }
 
-  Widget _buildLocationRow(String title, String subtitle, Color color, bool isStart) {
+  Widget _buildLocationRow(String title, String subtitle, Color color, bool isStart, [double distKm = 0.0]) {
     return Row(
       children: [
         Container(
@@ -767,13 +769,35 @@ class _BusListScreenState extends State<BusListScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[500],
-                ),
+              Row(
+                children: [
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  if (distKm > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${distKm.toStringAsFixed(1)} km away',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

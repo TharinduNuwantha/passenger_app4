@@ -1218,6 +1218,8 @@ LIMIT $7
 			DroppingPoint:    row.DroppingPoint,
 			FromLounge:       &startLounge,
 			ToLounge:         &dropLounge,
+			FromLoungeDistKm: row.StartDistM / 1000.0,
+			ToLoungeDistKm:   row.DropDistM / 1000.0,
 			BusFeatures: models.BusFeatures{
 				HasWiFi:          row.HasWiFi,
 				HasAC:            row.HasAC,
@@ -1421,6 +1423,7 @@ LIMIT $6
 			DroppingPoint:    row.DroppingPoint,
 			FromLounge:       &startLounge,
 			ToLounge:         nil,
+			FromLoungeDistKm: row.StartDistM / 1000.0,
 			BusFeatures: models.BusFeatures{
 				HasWiFi:          row.HasWiFi,
 				HasAC:            row.HasAC,
