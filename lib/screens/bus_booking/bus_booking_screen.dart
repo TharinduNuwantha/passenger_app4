@@ -831,8 +831,6 @@ class _BusListScreenState extends State<BusListScreen> {
 
     return Column(
       children: [
-    return Column(
-      children: [
         _buildLocationRow(
           title: fromName,
           subtitle: trip.fromLounge != null ? 'Lounge Departure' : 'Boarding Point',
