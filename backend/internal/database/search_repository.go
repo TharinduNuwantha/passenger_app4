@@ -183,8 +183,8 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 	}, nil
 }
 
-// resolveCoordinates finds geographic coordinates first checking DB, then checking external Open-Meteo API
-func (r *SearchRepository) resolveCoordinates(locationName string) (float64, float64, error) {
+// ResolveCoordinates finds geographic coordinates first checking DB, then checking external Open-Meteo API
+func (r *SearchRepository) ResolveCoordinates(locationName string) (float64, float64, error) {
 	// First check database
 	var lat, lng float64
 	query := `
@@ -258,7 +258,7 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLa
 		userLat = *fromLat
 		userLng = *fromLng
 	} else {
-		userLat, userLng, err = r.resolveCoordinates(fromName)
+		userLat, userLng, err = r.ResolveCoordinates(fromName)
 		if err != nil {
 			return &StopPairResult{Matched: false}, nil
 		}
@@ -269,7 +269,7 @@ func (r *SearchRepository) FindInterceptStopPair(fromName, toName string, fromLa
 		destLat = *toLat
 		destLng = *toLng
 	} else {
-		destLat, destLng, err = r.resolveCoordinates(toName)
+		destLat, destLng, err = r.ResolveCoordinates(toName)
 		if err != nil {
 			return &StopPairResult{Matched: false}, nil
 		}
@@ -860,7 +860,7 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 		userLat = *fromLat
 		userLng = *fromLng
 	} else {
-		userLat, userLng, err = r.resolveCoordinates(fromName)
+		userLat, userLng, err = r.ResolveCoordinates(fromName)
 		if err != nil {
 			return nil, nil // Silently fail if coordinates can't be resolved
 		}
@@ -871,7 +871,7 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 		destLat = *toLat
 		destLng = *toLng
 	} else {
-		destLat, destLng, err = r.resolveCoordinates(toName)
+		destLat, destLng, err = r.ResolveCoordinates(toName)
 		if err != nil {
 			return nil, nil
 		}
