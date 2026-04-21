@@ -78,72 +78,48 @@ func (s *SearchService) SearchTrips(
 	searchTime := req.GetSearchDateTime()
 
 	// --- INCREMENTAL RADIUS EXPANSION LOOP ---
-	// Tries progressively larger radii until lounges are found.
-	// --- INCREMENTAL RADIUS EXPANSION LOOP ---
+	// Each step makes ONE database round-trip via FindMultiModalRoutes.
+	// That query handles Direct → Transit fail-over internally in SQL.
+	// We expand the radius only when zero results come back.
 	var results []models.TripResult
 	var usedRadius float64
-	var searchType = "lounge_direct"
-	var err error
 
 	if fromLat != nil && fromLng != nil && toLat != nil && toLng != nil {
 		for _, radius := range radiusSteps {
 			usedRadius = radius
-			s.logger.WithField("radius_m", radius).Info("Checking for lounges at radius...")
+			s.logger.WithField("radius_m", radius).Info("Running multi-modal lounge search...")
 
-			hasLounges, _ := s.repo.HasLoungesWithinRadius(*fromLat, *fromLng, radius)
-
-			if hasLounges {
-				s.logger.WithField("radius_m", radius).Info("Found lounges! Running trip discovery...")
-
-				// 1. Try Direct Lounge-to-Lounge
-				results, err = s.repo.FindLoungeDirectRoutes(
-					*fromLat, *fromLng,
-					*toLat, *toLng,
-					radius,
-					searchTime,
-					req.Limit,
-				)
-				if len(results) > 0 {
-					searchType = "lounge_direct"
-				}
-
-				// 2. If no direct routes, try Dynamic One-Transit Discovery
-				if err == nil && len(results) == 0 {
-					s.logger.WithField("radius_m", radius).Info("No direct routes, trying Transit Discovery...")
-					results, _ = s.repo.FindLoungeTransitRoutes(
-						*fromLat, *fromLng,
-						*toLat, *toLng,
-						radius,
-						searchTime,
-						req.Limit,
-					)
-					if len(results) > 0 {
-						searchType = "lounge_transit"
-					}
-				}
-
-				// 3. If still no results, try Lounge-to-Stop (Intercept)
-				if err == nil && len(results) == 0 {
-					s.logger.WithField("radius_m", radius).Info("No lounge-to-lounge/transit, trying Lounge-to-Stop...")
-					results, _ = s.repo.FindLoungeOriginRoutes(
-						*fromLat, *fromLng,
-						req.To,
-						radius,
-						searchTime,
-						req.Limit,
-					)
-					if len(results) > 0 {
-						searchType = "lounge_intercept"
-					}
-				}
-
-				if len(results) > 0 {
-					s.logger.WithField("radius_m", radius).Info("Found valid trips! Stopping expansion.")
-					break
-				}
-				s.logger.WithField("radius_m", radius).Info("Lounges found but no valid routes; continuing expansion...")
+			var err error
+			results, err = s.repo.FindMultiModalRoutes(
+				*fromLat, *fromLng,
+				*toLat, *toLng,
+				radius,
+				searchTime,
+				req.Limit,
+			)
+			if err != nil {
+				s.logger.WithError(err).WithField("radius_m", radius).Warn("FindMultiModalRoutes error; expanding radius")
+				continue
 			}
+
+			if len(results) > 0 {
+				s.logger.WithFields(logrus.Fields{
+					"radius_m": radius,
+					"count":    len(results),
+					"type":     results[0].IsTransit,
+				}).Info("Found routes — stopping radius expansion.")
+				break
+			}
+			s.logger.WithField("radius_m", radius).Info("No routes at this radius; expanding...")
 		}
+	} else {
+		s.logger.Warn("Coordinates unavailable; skipping lounge-centric search.")
+	}
+
+	// Determine search type from results
+	searchType := "lounge_direct"
+	if len(results) > 0 && results[0].IsTransit {
+		searchType = "lounge_transit"
 	}
 
 	// --- FALLBACK TO REGULAR SEARCH IF NO LOUNGES FOUND ---
