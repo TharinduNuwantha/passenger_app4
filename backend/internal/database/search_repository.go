@@ -1618,6 +1618,7 @@ LIMIT $7;
 			BusType:          row.L1BusType,
 			BoardingPoint:    row.L1Boarding,
 			DroppingPoint:    row.L1Dropping,
+			IsBookable:       true, // Basic trips from lateral are bookable
 		}
 
 		leg2 := models.TripResult{
@@ -1630,9 +1631,13 @@ LIMIT $7;
 			BusType:          row.L2BusType,
 			BoardingPoint:    row.L2Boarding,
 			DroppingPoint:    row.L2Dropping,
+			IsBookable:       true,
 		}
 
+		duration := int(row.L2Arr.Sub(row.L1Dep).Minutes())
+
 		results = append(results, models.TripResult{
+			TripID:           l1ID, // Use Leg 1 ID as the primary ID for the combined trip
 			IsTransit:        true,
 			TransitPointID:   &tLoungeID,
 			TransitPoint:     row.TransitLoungeName,
@@ -1645,6 +1650,15 @@ LIMIT $7;
 			Fare:             row.L1Fare + row.L2Fare,
 			DepartureTime:    row.L1Dep,
 			EstimatedArrival: row.L2Arr,
+			DurationMinutes:  duration,
+			RouteName:        fmt.Sprintf("%s ➔ %s", row.L1RouteName, row.L2RouteName),
+			BusType:          row.L1BusType,
+			IsBookable:       true,
+			TotalSeats:       40, // Default for now
+			BusFeatures: models.BusFeatures{
+				HasWiFi: true, // Transit routes usually high quality
+				HasAC:   true,
+			},
 		})
 	}
 

@@ -95,7 +95,7 @@ func (s *SearchService) SearchTrips(
 			if hasLounges {
 				s.logger.WithField("radius_m", radius).Info("Found lounges! Running trip discovery...")
 
-				// Found lounges! Now try to find direct lounge-to-lounge trips.
+				// 1. Try Direct Lounge-to-Lounge
 				results, err = s.repo.FindLoungeDirectRoutes(
 					*fromLat, *fromLng,
 					*toLat, *toLng,
@@ -104,7 +104,7 @@ func (s *SearchService) SearchTrips(
 					req.Limit,
 				)
 
-				// If no direct routes, try Dynamic One-Transit Discovery
+				// 2. If no direct routes, try Dynamic One-Transit Discovery
 				if err == nil && len(results) == 0 {
 					s.logger.WithField("radius_m", radius).Info("No direct routes, trying Transit Discovery...")
 					results, _ = s.repo.FindLoungeTransitRoutes(
@@ -116,7 +116,7 @@ func (s *SearchService) SearchTrips(
 					)
 				}
 
-				// If still no results, try Lounge-to-Stop
+				// 3. If still no results, try Lounge-to-Stop (Intercept)
 				if err == nil && len(results) == 0 {
 					s.logger.WithField("radius_m", radius).Info("No lounge-to-lounge/transit, trying Lounge-to-Stop...")
 					results, _ = s.repo.FindLoungeOriginRoutes(
@@ -128,9 +128,15 @@ func (s *SearchService) SearchTrips(
 					)
 				}
 
-				// CRITICAL: We stop expanding the radius once lounges are found, 
-				// even if no trips are found for these specific lounges.
-				break
+				// If we actually found trips, we stop expanding.
+				// If we found lounges but NO trips, we CONTINUE expanding to see if
+				// lounges at a slightly larger radius are part of the desired route.
+				if len(results) > 0 {
+					s.logger.WithField("radius_m", radius).Info("Found valid trips! Stopping expansion.")
+					break
+				}
+				
+				s.logger.WithField("radius_m", radius).Info("Lounges found but no valid routes; continuing expansion...")
 			}
 
 			s.logger.WithField("radius_m", radius).Info("No lounges found at this radius, expanding...")
