@@ -937,15 +937,23 @@ class _BusListScreenState extends State<BusListScreen> {
     final fromName = (trip.fromLounge ?? trip.boardingPoint).replaceAll(" (Nearest Join Point)", "");
     final toName = (trip.toLounge ?? trip.droppingPoint).replaceAll(" (Nearest Join Point)", "");
 
+    // Build contextual subtitles that clearly communicate this is proximity-based
+    final fromSubtitle = trip.fromLounge != null
+        ? 'Nearest Lounge · Departure'
+        : 'Boarding Point';
+    final toSubtitle = trip.toLounge != null
+        ? 'Nearest Lounge · Arrival Point'
+        : 'Alighting Point';
+
     return Column(
       children: [
         _buildLocationRow(
           title: fromName,
-          subtitle: trip.fromLounge != null ? 'Lounge Departure' : 'Boarding Point',
+          subtitle: fromSubtitle,
           color: AppColors.success,
           isStart: true,
           distKm: trip.fromLoungeDistKm,
-          targetName: fromName,
+          targetName: _cleanLocation(widget.pickup),
         ),
         if (trip.isTransit) ...[
           _buildTimelineConnector(),
@@ -962,7 +970,7 @@ class _BusListScreenState extends State<BusListScreen> {
         _buildTimelineConnector(),
         _buildLocationRow(
           title: toName,
-          subtitle: trip.toLounge != null ? 'Lounge Arrival' : 'Alighting Point',
+          subtitle: toSubtitle,
           color: AppColors.error,
           isStart: false,
           distKm: trip.toLoungeDistKm,
