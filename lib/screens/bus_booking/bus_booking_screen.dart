@@ -645,9 +645,9 @@ class _BusListScreenState extends State<BusListScreen> {
                             ],
                           ),
                           _buildHeaderTag(
-                            trip.busType.toUpperCase(),
-                            AppColors.secondary,
-                            Icons.directions_bus_filled,
+                            trip.isTransit ? 'TRANSIT' : trip.busType.toUpperCase(),
+                            trip.isTransit ? AppColors.secondary : AppColors.primary,
+                            trip.isTransit ? Icons.alt_route_rounded : Icons.directions_bus_filled,
                           ),
                         ],
                       ),
@@ -959,7 +959,9 @@ class _BusListScreenState extends State<BusListScreen> {
           _buildTimelineConnector(),
           _buildLocationRow(
             title: trip.transitPoint ?? 'Transit Hub',
-            subtitle: 'Transit Hub (Change Bus)',
+            subtitle: trip.formattedTransitWaitTime.isNotEmpty 
+                ? 'Transit Lounge • ${trip.formattedTransitWaitTime}'
+                : 'Transit Hub (Change Bus)',
             color: AppColors.secondary,
             isStart: false,
             distKm: 0,
