@@ -123,11 +123,53 @@ class _BusListScreenState extends State<BusListScreen> {
 
   Widget _buildModernAppBar(BuildContext context, SearchProvider searchProvider) {
     return SliverAppBar(
-      expandedHeight: 240,
+      expandedHeight: 220,
       floating: false,
       pinned: true,
       elevation: 0,
       backgroundColor: AppColors.primary,
+      centerTitle: true,
+      title: LayoutBuilder(
+        builder: (context, constraints) {
+          final top = constraints.biggest.height;
+          final isCollapsed = top <= (MediaQuery.of(context).padding.top + kToolbarHeight + 10);
+          
+          return AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: isCollapsed ? 1.0 : 0.0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _cleanLocation(widget.pickup),
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6.0),
+                    child: Icon(Icons.arrow_forward_rounded, color: Colors.white70, size: 12),
+                  ),
+                  Flexible(
+                    child: Text(
+                      _cleanLocation(widget.drop),
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
         onPressed: () => Navigator.pop(context),
@@ -140,32 +182,53 @@ class _BusListScreenState extends State<BusListScreen> {
               end: Alignment.bottomRight,
               colors: [
                 AppColors.primary,
-                AppColors.primary.withBlue(150),
+                AppColors.primary.withBlue(160),
               ],
             ),
           ),
           child: Stack(
             children: [
-              // Abstract design elements
+              // Premium abstract shapes for depth
               Positioned(
-                top: -50,
-                right: -50,
-                child: CircleAvatar(
-                  radius: 100,
-                  backgroundColor: Colors.white.withOpacity(0.05),
+                top: -30,
+                right: -30,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Colors.white.withOpacity(0.12), Colors.transparent],
+                    ),
+                  ),
                 ),
               ),
+              
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 80, 24, 0),
+                padding: const EdgeInsets.fromLTRB(24, 65, 24, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Main Route Header
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
+                          flex: 5,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text(
+                                'Origin',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
                               Text(
                                 _cleanLocation(widget.pickup),
                                 style: const TextStyle(
@@ -174,34 +237,40 @@ class _BusListScreenState extends State<BusListScreen> {
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.5,
                                 ),
-                              ),
-                              Text(
-                                'Origin',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
                         Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.15),
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
                             Icons.swap_horiz_rounded,
                             color: Colors.white,
-                            size: 20,
+                            size: 18,
                           ),
                         ),
                         Expanded(
+                          flex: 5,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
+                              Text(
+                                'Destination',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
                               Text(
                                 _cleanLocation(widget.drop),
                                 style: const TextStyle(
@@ -210,19 +279,51 @@ class _BusListScreenState extends State<BusListScreen> {
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.5,
                                 ),
-                              ),
-                              Text(
-                                'Destination',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 20),
+                    // Date & Passenger Summary
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 14),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.date != null ? DateFormat('EEEE, MMMM d').format(widget.date!) : 'Select Date',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(width: 1, height: 14, color: Colors.white.withOpacity(0.2)),
+                          const SizedBox(width: 12),
+                          const Icon(Icons.person_outline_rounded, color: Colors.white, size: 16),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '1 Adult',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -232,16 +333,23 @@ class _BusListScreenState extends State<BusListScreen> {
         ),
       ),
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
+        preferredSize: const Size.fromHeight(70),
         child: Container(
-          height: 60,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          height: 70,
+          padding: const EdgeInsets.only(top: 15),
           decoration: const BoxDecoration(
             color: Color(0xFFF8FAFC),
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+              topLeft: Radius.circular(35),
+              topRight: Radius.circular(35),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, -5),
+              ),
+            ],
           ),
           child: _buildQuickFilters(),
         ),
