@@ -1337,7 +1337,6 @@ transit_chains AS (
     JOIN master_routes mr2 ON mr2.id = lr2.master_route_id AND mr2.is_active = true
     WHERE mrs1_s.stop_order < mrs1_t.stop_order
       AND mrs2_t.stop_order < mrs2_d.stop_order
-      AND NOT EXISTS (SELECT 1 FROM direct_pairs)
     ORDER BY sl.dist_m ASC, dl.dist_m ASC
     LIMIT 20
 ),

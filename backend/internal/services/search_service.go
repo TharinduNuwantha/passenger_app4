@@ -77,10 +77,13 @@ func (s *SearchService) SearchTrips(
 
 	searchTime := req.GetSearchDateTime()
 
-	// --- INCREMENTAL RADIUS EXPANSION LOOP ---
-	// Each step makes ONE database round-trip via FindMultiModalRoutes.
-	// That query handles Direct → Transit fail-over internally in SQL.
-	// We expand the radius only when zero results come back.
+	// --- SMART MULTI-MODAL RADIUS SEARCH ---
+	// Strategy:
+	//   1. Expand radius until ANY routes are found (Direct or Transit).
+	//   2. Once a radius succeeds, lock it — the SQL already returns BOTH types
+	//      in one query (direct ordered first, transit second).
+	//   3. Smart 3 km cap: if results come back at 3km we stop expanding.
+	//      The user sees both Direct and Transit options simultaneously.
 	var results []models.TripResult
 	var usedRadius float64
 
@@ -103,10 +106,18 @@ func (s *SearchService) SearchTrips(
 			}
 
 			if len(results) > 0 {
+				directCount, transitCount := 0, 0
+				for _, r := range results {
+					if r.IsTransit {
+						transitCount++
+					} else {
+						directCount++
+					}
+				}
 				s.logger.WithFields(logrus.Fields{
 					"radius_m": radius,
-					"count":    len(results),
-					"type":     results[0].IsTransit,
+					"direct":   directCount,
+					"transit":  transitCount,
 				}).Info("Found routes — stopping radius expansion.")
 				break
 			}
@@ -116,9 +127,19 @@ func (s *SearchService) SearchTrips(
 		s.logger.Warn("Coordinates unavailable; skipping lounge-centric search.")
 	}
 
-	// Determine search type from results
+	// Determine search type — mixed results are now possible
 	searchType := "lounge_direct"
-	if len(results) > 0 && results[0].IsTransit {
+	hasTransit, hasDirect := false, false
+	for _, r := range results {
+		if r.IsTransit {
+			hasTransit = true
+		} else {
+			hasDirect = true
+		}
+	}
+	if hasDirect && hasTransit {
+		searchType = "lounge_multimodal"
+	} else if hasTransit {
 		searchType = "lounge_transit"
 	}
 
