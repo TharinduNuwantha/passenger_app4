@@ -131,7 +131,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _loadUpcomingBookings();
     _loadDummyAdvertisements();
     _loadNotifications(silent: true);
-    
+
     // Auto-detect current location for pickup
     _useCurrentLocation(isPickup: true);
   }
@@ -486,7 +486,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   // Listen to pickup field changes and fetch autocomplete
   void _onPickupTextChanged() {
     final text = pickupController.text;
-    
+
     // Reset coordinates on manual text change to avoid stale location data
     if (pickupLat != null || pickupLng != null) {
       if (mounted) {
@@ -532,8 +532,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       });
     }
   }
-
-
 
   // Fetch Google Places Autocomplete suggestions
   Future<void> _fetchAutocompleteSuggestions(
@@ -696,8 +694,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     return keyword;
   }
 
-
-
   // Swap pickup and drop locations
   void _swapLocations() {
     HapticFeedback.mediumImpact();
@@ -838,7 +834,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               fromLng: pickupLng,
               toLat: dropLat,
               toLng: dropLng,
-              stop: null, 
+              stop: null,
             ),
           ),
         ).then((_) {
@@ -1105,7 +1101,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 0,
+              vertical: 12,
+            ),
             suffixIcon: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1158,7 +1157,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             color: AppColors.primary.withOpacity(0.05),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.swap_vert, color: AppColors.primary, size: 22),
+          child: const Icon(
+            Icons.swap_vert,
+            color: AppColors.primary,
+            size: 22,
+          ),
         ),
         onPressed: _swapLocations,
       ),
@@ -1167,8 +1170,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   Widget _buildCompactSuggestionsPanel() {
     final bool isPickup = showPickupSuggestions;
-    final suggestions = isPickup ? pickupAutocompleteSuggestions : dropAutocompleteSuggestions;
-    final isLoading = isPickup ? isLoadingPickupSuggestions : isLoadingDropSuggestions;
+    final suggestions = isPickup
+        ? pickupAutocompleteSuggestions
+        : dropAutocompleteSuggestions;
+    final isLoading = isPickup
+        ? isLoadingPickupSuggestions
+        : isLoadingDropSuggestions;
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -1188,54 +1195,82 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           if (isLoading)
             const Padding(
               padding: EdgeInsets.all(16.0),
-              child: Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             )
           else ...[
-            if (isPickup && pickupController.text.isEmpty && _searchHistory.isNotEmpty)
-              ..._searchHistory.take(3).map((history) => ListTile(
-                leading: const Icon(Icons.history, size: 18, color: Colors.grey),
-                title: Text(history['pickup']!, style: const TextStyle(fontSize: 14)),
-                onTap: () {
-                  setState(() {
-                    pickupController.text = history['pickup']!;
-                    dropController.text = history['drop']!;
-                    showPickupSuggestions = false;
-                  });
-                  FocusScope.of(context).unfocus();
-                },
-              )),
-            
-            ...suggestions.take(5).map((s) => ListTile(
-              leading: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.primary),
-              title: Text(
-                s['description'],
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              onTap: () {
-                setState(() {
-                  if (isPickup) {
-                    pickupController.text = s['description'];
-                    showPickupSuggestions = false;
-                  } else {
-                    dropController.text = s['description'];
-                    showDropSuggestions = false;
-                  }
-                });
-                FocusScope.of(context).unfocus();
-                _autoNavigateToBooking();
-              },
-            )),
+            if (isPickup &&
+                pickupController.text.isEmpty &&
+                _searchHistory.isNotEmpty)
+              ..._searchHistory
+                  .take(3)
+                  .map(
+                    (history) => ListTile(
+                      leading: const Icon(
+                        Icons.history,
+                        size: 18,
+                        color: Colors.grey,
+                      ),
+                      title: Text(
+                        history['pickup']!,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          pickupController.text = history['pickup']!;
+                          dropController.text = history['drop']!;
+                          showPickupSuggestions = false;
+                        });
+                        FocusScope.of(context).unfocus();
+                      },
+                    ),
+                  ),
+
+            ...suggestions
+                .take(5)
+                .map(
+                  (s) => ListTile(
+                    leading: const Icon(
+                      Icons.location_on_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
+                    title: Text(
+                      s['description'],
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () {
+                      setState(() {
+                        if (isPickup) {
+                          pickupController.text = s['description'];
+                          showPickupSuggestions = false;
+                        } else {
+                          dropController.text = s['description'];
+                          showDropSuggestions = false;
+                        }
+                      });
+                      FocusScope.of(context).unfocus();
+                      _autoNavigateToBooking();
+                    },
+                  ),
+                ),
 
             if (suggestions.isEmpty && !isLoading)
               ListTile(
-                leading: const Icon(Icons.map_outlined, color: AppColors.primary),
-                title: const Text('Select on map', style: TextStyle(fontSize: 14)),
+                leading: const Icon(
+                  Icons.map_outlined,
+                  color: AppColors.primary,
+                ),
+                title: const Text(
+                  'Select on map',
+                  style: TextStyle(fontSize: 14),
+                ),
                 onTap: () {
-                   setState(() {
+                  setState(() {
                     showPickupSuggestions = false;
                     showDropSuggestions = false;
                   });
@@ -1250,7 +1285,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   Widget _buildModernSearchButton() {
-    final bool isReady = pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
+    final bool isReady =
+        pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -1260,12 +1296,18 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: isReady ? 4 : 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           shadowColor: AppColors.primary.withOpacity(0.4),
         ),
         child: const Text(
           'SEARCH TRIPS',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+          ),
         ),
       ),
     );
@@ -2362,5 +2404,3 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     );
   }
 }
-
-

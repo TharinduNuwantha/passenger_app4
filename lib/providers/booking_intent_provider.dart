@@ -166,9 +166,7 @@ class BookingIntentProvider with ChangeNotifier {
     List<BusIntentLegRequest>? legs,
   }) async {
     final request = CreateBookingIntentRequest(
-      intentType: legs != null && legs.isNotEmpty
-          ? IntentType.busWithTransitLounge 
-          : IntentType.busOnly,
+      intentType: IntentType.busOnly, // Always start as busOnly, lounges are added later if needed
       bus: BusIntentRequest(
         scheduledTripId: scheduledTripId,
         seats: seats,

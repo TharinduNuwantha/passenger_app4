@@ -44,8 +44,11 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     '/payment-return',
     '/payments/return',  // PAYable return URL
     'status=success',
+    'status=SUCCESS',
+    'status-view',
     'result=approved',
     'result=success',
+    'SUCCESS',
     'payable.lk/success',
     'paymentstatus=success',
   ];
@@ -56,6 +59,8 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     '/payment-failed',
     'status=failed',
     'status=failure',
+    'status=error',
+    'error',
     'result=declined',
     'result=failed',
   ];
@@ -65,6 +70,8 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     '/payment-cancel',
     'status=cancelled',
     'status=canceled',
+    'status=CANCELLED',
+    'CANCELLED',
   ];
 
   @override

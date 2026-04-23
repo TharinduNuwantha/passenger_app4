@@ -726,10 +726,11 @@ func (h *BookingOrchestratorHandler) PaymentWebhook(c *gin.Context) {
 		"correlation_id": correlationID,
 	}).Info("Confirming booking from webhook - amount verified")
 
+	txnID := statusResp.GetTransactionID()
 	bookingResult, err := h.orchestratorService.ConfirmBooking(
 		intent.ID,
 		intent.UserID,
-		&statusResp.TransactionID,
+		&txnID,
 	)
 
 	if err != nil {
