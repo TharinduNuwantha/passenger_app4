@@ -211,6 +211,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           )
           .toList();
 
+      const effectiveName = 'Passenger'; // Default name for hold
+
       // Create bus intent (transit or direct)
       _logger.i('Creating bus-only intent (transit=${widget.trip.isTransit})');
       final success = await provider.createBusIntent(
@@ -221,7 +223,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         alightingStopId: widget.alightingStopId ?? '',
         boardingStopName: widget.boardingPoint,
         alightingStopName: widget.alightingPoint,
-        passengerName: seatPassengerName,
+        passengerName: effectiveName,
         passengerPhone: _phoneController.text.trim(),
         passengerEmail: _emailController.text.trim().isNotEmpty
             ? _emailController.text.trim()

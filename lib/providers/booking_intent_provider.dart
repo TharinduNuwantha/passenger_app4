@@ -166,7 +166,9 @@ class BookingIntentProvider with ChangeNotifier {
     List<BusIntentLegRequest>? legs,
   }) async {
     final request = CreateBookingIntentRequest(
-      intentType: IntentType.busOnly, // Always start as busOnly, lounges are added later if needed
+      intentType: legs != null && legs.isNotEmpty
+          ? IntentType.busWithTransitLounge
+          : IntentType.busOnly,
       bus: BusIntentRequest(
         scheduledTripId: scheduledTripId,
         seats: seats,
@@ -372,8 +374,7 @@ class BookingIntentProvider with ChangeNotifier {
     try {
       _logger.i('Initiating payment for: ${_currentIntent!.intentId}');
 
-      final response =
-          await _service.initiatePayment(_currentIntent!.intentId);
+      final response = await _service.initiatePayment(_currentIntent!.intentId);
       _paymentInfo = response;
 
       _isInitiatingPayment = false;
@@ -422,12 +423,18 @@ class BookingIntentProvider with ChangeNotifier {
       notifyListeners();
 
       _logger.i('Booking confirmed: ${response.masterReference}');
-      _logger.i('Has bus: ${response.busBooking != null}, Has pre-lounge: ${response.preLoungeBooking != null}, Has post-lounge: ${response.postLoungeBooking != null}');
+      _logger.i(
+        'Has bus: ${response.busBooking != null}, Has pre-lounge: ${response.preLoungeBooking != null}, Has post-lounge: ${response.postLoungeBooking != null}',
+      );
       if (response.preLoungeBooking != null) {
-        _logger.i('Pre-lounge in provider: ${response.preLoungeBooking!.reference}');
+        _logger.i(
+          'Pre-lounge in provider: ${response.preLoungeBooking!.reference}',
+        );
       }
       if (response.postLoungeBooking != null) {
-        _logger.i('Post-lounge in provider: ${response.postLoungeBooking!.reference}');
+        _logger.i(
+          'Post-lounge in provider: ${response.postLoungeBooking!.reference}',
+        );
       }
       return true;
     } on IntentExpiredException catch (e) {

@@ -42,13 +42,10 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     '/payment/success',
     '/payment-success',
     '/payment-return',
-    '/payments/return',  // PAYable return URL
+    '/payments/return', // PAYable return URL
     'status=success',
-    'status=SUCCESS',
-    'status-view',
     'result=approved',
     'result=success',
-    'SUCCESS',
     'payable.lk/success',
     'paymentstatus=success',
   ];
@@ -59,8 +56,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     '/payment-failed',
     'status=failed',
     'status=failure',
-    'status=error',
-    'error',
     'result=declined',
     'result=failed',
   ];
@@ -70,8 +65,6 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     '/payment-cancel',
     'status=cancelled',
     'status=canceled',
-    'status=CANCELLED',
-    'CANCELLED',
   ];
 
   @override
@@ -173,10 +166,7 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
 
     Navigator.pop(
       context,
-      PaymentResult(
-        success: true,
-        paymentReference: widget.paymentReference,
-      ),
+      PaymentResult(success: true, paymentReference: widget.paymentReference),
     );
   }
 
@@ -387,10 +377,7 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
                 const Spacer(),
                 Text(
                   'Complete payment quickly!',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red.shade700,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.red.shade700),
                 ),
               ],
             ],
