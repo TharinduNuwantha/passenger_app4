@@ -797,7 +797,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       checkInTime: DateFormat(
         'HH:mm',
       ).format(widget.trip.departureTime.subtract(const Duration(hours: 1))),
-      isExplicitlyBooked: false, // Auto-selected is NOT added to total by default
+      isExplicitlyBooked:
+          false, // Auto-selected is NOT added to total by default
     );
 
     setState(() {
