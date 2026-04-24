@@ -1119,20 +1119,86 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
             _buildSelectedLoungeChip(_selectedTransitLounge!, false, true),
           if (_selectedPostTripLounge != null)
             _buildSelectedLoungeChip(_selectedPostTripLounge!, false, false),
-          
-          const Divider(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _continueWithLounges,
-              icon: const Icon(Icons.check_circle_outline, size: 18),
-              label: const Text(
         ],
       ),
     );
   }
 
   Widget _buildSelectedLoungeChip(SelectedLoungeData data, bool isPreTrip, bool isTransit) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isTransit ? Colors.orange.withOpacity(0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isTransit ? Colors.orange.withOpacity(0.3) : Colors.grey.shade300,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isTransit ? Icons.transfer_within_a_station : (isPreTrip ? Icons.weekend : Icons.hotel),
+            color: isTransit ? Colors.orange : AppColors.primary,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.lounge.loungeName,
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 12,
+                    fontWeight: isTransit ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${data.guests.length} guest(s) • ${_formatPricingType(data.pricingType)}${isTransit ? " • READ-ONLY" : ""}',
+                  style: TextStyle(
+                    color: isTransit ? Colors.orange.shade800 : Colors.grey.shade600, 
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            'LKR ${data.totalPrice.toStringAsFixed(0)}',
+            style: TextStyle(
+              color: isTransit ? Colors.orange.shade900 : AppColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (!isTransit) ...[
+            TextButton(
+              onPressed: () => _configureLoungeBooking(data.lounge, isPreTrip),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+              child: const Text(
+                'Book',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => _removeLounge(isPreTrip),
+              child: Icon(Icons.close, color: Colors.red.shade400, size: 18),
+            ),
+          ],
         ],
       ),
     );
