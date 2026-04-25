@@ -44,6 +44,12 @@ class BookingIntentFlowScreen extends StatefulWidget {
   final List<String>? selectedSeatsLeg1;
   final List<String>? selectedSeatsLeg2;
 
+  /// User GPS coords for proximity-based lounge sorting.
+  final double? fromLat;
+  final double? fromLng;
+  final double? toLat;
+  final double? toLng;
+
   const BookingIntentFlowScreen({
     super.key,
     required this.trip,
@@ -63,6 +69,10 @@ class BookingIntentFlowScreen extends StatefulWidget {
     this.tripLeg2,
     this.selectedSeatsLeg1,
     this.selectedSeatsLeg2,
+    this.fromLat,
+    this.fromLng,
+    this.toLat,
+    this.toLng,
   });
 
   @override
@@ -346,6 +356,11 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                 : null,
             originCity: widget.originCity,
             destinationCity: widget.destinationCity,
+            // Pass real GPS coords for proximity-sorted lounge list
+            startLat: widget.fromLat,
+            startLng: widget.fromLng,
+            dropLat: widget.toLat,
+            dropLng: widget.toLng,
           ),
         ),
       );

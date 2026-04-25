@@ -155,6 +155,13 @@ class AddLoungeScreen extends StatefulWidget {
   final String? originCity;
   final String? destinationCity;
 
+  /// User's exact GPS coordinates from the search request.
+  /// Used to sort lounges by real distance (proximity weight).
+  final double? startLat;
+  final double? startLng;
+  final double? dropLat;
+  final double? dropLng;
+
   const AddLoungeScreen({
     super.key,
     required this.trip,
@@ -170,6 +177,10 @@ class AddLoungeScreen extends StatefulWidget {
     this.passengerEmail,
     this.originCity,
     this.destinationCity,
+    this.startLat,
+    this.startLng,
+    this.dropLat,
+    this.dropLng,
   });
 
   @override
@@ -258,16 +269,48 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     _loadArrivalLounges();
   }
 
+  /// Sort a lounge list by GPS distance from [userLat]/[userLng].
+  /// Lounges without coordinates are placed at the end.
+  List<Lounge> _sortByProximity(
+    List<Lounge> lounges,
+    double? userLat,
+    double? userLng,
+  ) {
+    if (userLat == null || userLng == null) return lounges;
+
+    final distMap = <String, double>{};
+    for (final l in lounges) {
+      if (l.latitude != null && l.longitude != null) {
+        distMap[l.id] = _calculateDistance(
+          userLat,
+          userLng,
+          l.latitude!,
+          l.longitude!,
+        );
+        // Cache for later UI display
+        _loungeDistances[l.id] = distMap[l.id]!;
+      }
+    }
+
+    return List.of(lounges)
+      ..sort((a, b) {
+        final da = distMap[a.id] ?? double.infinity;
+        final db = distMap[b.id] ?? double.infinity;
+        return da.compareTo(db);
+      });
+  }
+
   Future<void> _loadDepartureLounges() async {
+    final routeId = widget.masterRouteId;
+    final stopId = widget.boardingStopId;
+    final city = widget.originCity;
+
     try {
       List<Lounge> allFound = [];
-      String? routeId = widget.masterRouteId;
-      String? stopId = widget.boardingStopId;
-      String? city = widget.originCity;
 
-      // Tier 1: Discovery by Stop with 3km radius (The Business Rule)
+      // Priority 1: Strict 3km from boarding stop (best accuracy)
       if (routeId != null && stopId != null && stopId != 'null') {
-        _logger.i('Tier 1: Fetching lounges near stop $stopId (3km)');
+        _logger.i('Proximity search: boarding stop $stopId on route $routeId (3km)');
         final nearStop = await _loungeService.getLoungesNearStop(
           routeId,
           stopId,
@@ -276,60 +319,64 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         allFound.addAll(nearStop);
       }
 
-      // Tier 2: Discovery by City (Fallback if stop search empty or stopId missing)
-      if (allFound.isEmpty &&
-          city != null &&
-          city.isNotEmpty &&
-          city != 'null') {
-        _logger.i('Tier 2: Fetching lounges in city $city');
+      // Priority 2: City-based (fallback when stop search empty or stopId unavailable)
+      if (allFound.isEmpty && city != null && city.isNotEmpty && city != 'null') {
+        _logger.i('City fallback: boarding lounges in $city');
         final cityLounges = await _loungeService.searchLounges(city: city);
         allFound.addAll(cityLounges);
       }
 
-      // Tier 3: Route-wide (Final fallback)
+      // Priority 3: Route-wide (last resort)
       if (allFound.isEmpty && routeId != null) {
-        _logger.i('Tier 3: Fetching all lounges for route $routeId');
+        _logger.i('Route fallback: all lounges for route $routeId');
         final routeLounges = await _loungeService.getLoungesByRoute(routeId);
         allFound.addAll(routeLounges);
       }
 
-      // Remove duplicates by ID
-      final Map<String, Lounge> uniqueMap = {};
-      for (var l in allFound) {
-        uniqueMap[l.id] = l;
-      }
-      final finalLounges = uniqueMap.values.toList();
+      // De-duplicate by ID
+      final uniqueMap = <String, Lounge>{
+        for (final l in allFound) l.id: l,
+      };
+
+      // Sort by real GPS proximity (closest first)
+      final sorted = _sortByProximity(
+        uniqueMap.values.toList(),
+        widget.startLat,
+        widget.startLng,
+      );
 
       setState(() {
-        _departureLounges = finalLounges;
+        _departureLounges = sorted;
         _isLoadingDeparture = false;
       });
 
-      if (_departureLounges.isNotEmpty && _selectedPreTripLounge == null) {
-        _autoSelectLounge(
-          _pickBestLounge(_departureLounges, widget.trip.fromLounge),
-          true,
-        );
+      _logger.i('Departure: ${sorted.length} lounges loaded');
+
+      // Default-select the highest-proximity lounge (first after sort)
+      if (sorted.isNotEmpty && _selectedPreTripLounge == null) {
+        _autoSelectLounge(sorted.first, true);
+        _suggestedDepartureLoungeId = sorted.first.id;
       }
     } catch (e) {
       _logger.e('Error loading departure lounges: $e');
       setState(() {
-        _departureError = 'No lounges found near ${widget.boardingPoint}';
+        _departureError = 'No lounges available near ${widget.boardingPoint}.';
         _isLoadingDeparture = false;
       });
     }
   }
 
   Future<void> _loadArrivalLounges() async {
+    final routeId = widget.masterRouteId;
+    final stopId = widget.alightingStopId;
+    final city = widget.destinationCity;
+
     try {
       List<Lounge> allFound = [];
-      String? routeId = widget.masterRouteId;
-      String? stopId = widget.alightingStopId;
-      String? city = widget.destinationCity;
 
-      // Tier 1: Discovery by Stop with 3km radius (The Business Rule)
+      // Priority 1: Strict 3km from alighting stop (best accuracy)
       if (routeId != null && stopId != null && stopId != 'null') {
-        _logger.i('Tier 1: Fetching arrival lounges near stop $stopId (3km)');
+        _logger.i('Proximity search: alighting stop $stopId on route $routeId (3km)');
         final nearStop = await _loungeService.getLoungesNearStop(
           routeId,
           stopId,
@@ -338,45 +385,48 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         allFound.addAll(nearStop);
       }
 
-      // Tier 2: Discovery by City (Fallback)
-      if (allFound.isEmpty &&
-          city != null &&
-          city.isNotEmpty &&
-          city != 'null') {
-        _logger.i('Tier 2: Fetching arrival lounges in city $city');
+      // Priority 2: City-based (fallback when stop search empty or stopId unavailable)
+      if (allFound.isEmpty && city != null && city.isNotEmpty && city != 'null') {
+        _logger.i('City fallback: arrival lounges in $city');
         final cityLounges = await _loungeService.searchLounges(city: city);
         allFound.addAll(cityLounges);
       }
 
-      // Tier 3: Route-wide (Final fallback)
+      // Priority 3: Route-wide (last resort)
       if (allFound.isEmpty && routeId != null) {
-        _logger.i('Tier 3: Fetching all lounges for route $routeId');
+        _logger.i('Route fallback: all lounges for route $routeId');
         final routeLounges = await _loungeService.getLoungesByRoute(routeId);
         allFound.addAll(routeLounges);
       }
 
-      // Remove duplicates by ID
-      final Map<String, Lounge> uniqueMap = {};
-      for (var l in allFound) {
-        uniqueMap[l.id] = l;
-      }
-      final finalLounges = uniqueMap.values.toList();
+      // De-duplicate by ID
+      final uniqueMap = <String, Lounge>{
+        for (final l in allFound) l.id: l,
+      };
+
+      // Sort by real GPS proximity (closest first)
+      final sorted = _sortByProximity(
+        uniqueMap.values.toList(),
+        widget.dropLat,
+        widget.dropLng,
+      );
 
       setState(() {
-        _arrivalLounges = finalLounges;
+        _arrivalLounges = sorted;
         _isLoadingArrival = false;
       });
 
-      if (_arrivalLounges.isNotEmpty && _selectedPostTripLounge == null) {
-        _autoSelectLounge(
-          _pickBestLounge(_arrivalLounges, widget.trip.toLounge),
-          false,
-        );
+      _logger.i('Arrival: ${sorted.length} lounges loaded');
+
+      // Default-select the highest-proximity lounge (first after sort)
+      if (sorted.isNotEmpty && _selectedPostTripLounge == null) {
+        _autoSelectLounge(sorted.first, false);
+        _suggestedArrivalLoungeId = sorted.first.id;
       }
     } catch (e) {
       _logger.e('Error loading arrival lounges: $e');
       setState(() {
-        _arrivalError = 'No lounges found near ${widget.alightingPoint}';
+        _arrivalError = 'No lounges available near ${widget.alightingPoint}.';
         _isLoadingArrival = false;
       });
     }
@@ -473,6 +523,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         widget.trip.transitPointId!,
         maxDistance: 3,
       );
+
       setState(() {
         _transitLounges = lounges;
         _isLoadingTransit = false;
@@ -1615,10 +1666,12 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isReadOnly ? Colors.grey.shade100 : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
+            color: isReadOnly
+                ? Colors.grey.shade400
+                : isSelected
                 ? AppColors.primary
                 : (isSuggested
                       ? AppColors.primary.withOpacity(0.5)
@@ -1628,10 +1681,10 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                           149,
                           246,
                         ).withOpacity(0.3)),
-            width: isSelected || isSuggested ? 2 : 1,
+            width: isReadOnly ? 1.5 : (isSelected || isSuggested ? 2 : 1),
           ),
           boxShadow: [
-            if (isSuggested)
+            if (isSuggested && !isReadOnly)
               BoxShadow(
                 color: AppColors.primary.withOpacity(0.1),
                 blurRadius: 10,
@@ -1797,9 +1850,11 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                             ),
                           ),
                           ElevatedButton(
-                            onPressed: onTap,
+                            onPressed: isReadOnly ? null : onTap,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isSelected
+                              backgroundColor: isReadOnly
+                                  ? Colors.grey.shade400
+                                  : isSelected
                                   ? (isExplicitlyBooked
                                       ? Colors.red.withOpacity(0.8)
                                       : Colors.green)
@@ -1813,16 +1868,25 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: Text(
-                              isSelected
-                                  ? (isExplicitlyBooked
-                                      ? 'Cancel'
-                                      : 'Selected ✓')
-                                  : 'Add',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isReadOnly)
+                                  const Icon(Icons.lock, size: 12),
+                                if (isReadOnly)
+                                  const SizedBox(width: 4),
+                                Text(
+                                  isReadOnly
+                                      ? 'Fixed Stop'
+                                      : isSelected
+                                      ? (isExplicitlyBooked ? 'Cancel' : 'Selected ✓')
+                                      : 'Add',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -1832,7 +1896,56 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 ),
               ],
             ),
-            if (isSuggested)
+            // ── Transit Lock Overlay ──────────────────────────────────────
+            if (isReadOnly)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    color: Colors.grey.shade300.withOpacity(0.45),
+                  ),
+                ),
+              ),
+            // ── Transit Lock Badge ────────────────────────────────────────
+            if (isReadOnly)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade700,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_outline, color: Colors.white, size: 13),
+                      SizedBox(width: 4),
+                      Text(
+                        'Fixed Transit Stop',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            // ── Smart Choice Badge (non-transit only) ─────────────────────
+            if (isSuggested && !isReadOnly)
               Positioned(
                 top: 10,
                 right: 10,
@@ -1860,7 +1973,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                       Icon(Icons.auto_awesome, color: Colors.white, size: 14),
                       SizedBox(width: 4),
                       Text(
-                        'Smart Choice',
+                        'Closest Match',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 11,

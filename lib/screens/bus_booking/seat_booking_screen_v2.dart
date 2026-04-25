@@ -34,6 +34,13 @@ class SeatBookingScreenV2 extends StatefulWidget {
   final String? originCity;
   final String? destinationCity;
 
+  /// User GPS coords from the original search request, used for
+  /// proximity-based lounge sorting in the Add Lounge screen.
+  final double? fromLat;
+  final double? fromLng;
+  final double? toLat;
+  final double? toLng;
+
   const SeatBookingScreenV2({
     super.key,
     required this.trip,
@@ -45,6 +52,10 @@ class SeatBookingScreenV2 extends StatefulWidget {
     this.useIntentFlow = true, // Default to new flow
     this.originCity,
     this.destinationCity,
+    this.fromLat,
+    this.fromLng,
+    this.toLat,
+    this.toLng,
   });
 
   @override
@@ -400,6 +411,10 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             userEmail: user?.email,
             originCity: widget.originCity,
             destinationCity: widget.destinationCity,
+            fromLat: widget.fromLat,
+            fromLng: widget.fromLng,
+            toLat: widget.toLat,
+            toLng: widget.toLng,
           ),
         ),
       );
