@@ -13,6 +13,8 @@ import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/map_selection_screen.dart';
 
+
+
 /// Data class to hold selected lounge information for combined booking
 class SelectedLoungeData {
   final Lounge lounge;
@@ -878,170 +880,222 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // Bus booking summary
-            _buildBusSummary(),
-
-            // Selected lounges summary (if any)
-            if (_selectedPreTripLounge != null ||
-                _selectedTransitLounge != null ||
-                _selectedPostTripLounge != null)
-              _buildSelectedLoungesSummary(),
-
-            // Tab bar
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                indicatorPadding: const EdgeInsets.all(4),
-                labelColor: AppColors.primary,
-                unselectedLabelColor: Colors.white70,
-                labelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Flexible(
-                          child: Text(
-                            'Departure',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_selectedPreTripLounge != null)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4),
-                            child: Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: Colors.green,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (widget.trip.isTransit)
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Flexible(
-                            child: Text(
-                              'Transit',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          if (_selectedTransitLounge != null)
-                            const Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: Colors.green,
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.2),
-                                border: Border.all(
-                                  color: Colors.orange,
-                                  width: 0.5,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'Mandatory',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Flexible(
-                          child: Text(
-                            'Arrival',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_selectedPostTripLounge != null)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4),
-                            child: Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: Colors.green,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Content
             Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildLoungeList(
-                      isLoading: _isLoadingDeparture,
-                      error: _departureError,
-                      lounges: _departureLounges,
-                      selectedLounge: _selectedPreTripLounge,
-                      isPreTrip: true,
-                      stopName: widget.boardingPoint,
-                    ),
-                    if (widget.trip.isTransit)
-                      _buildLoungeList(
-                        isLoading: _isLoadingTransit,
-                        error: _transitError,
-                        lounges: _transitLounges,
-                        selectedLounge: _selectedTransitLounge,
-                        isPreTrip:
-                            false, // selection handled by _tabController.index check
-                        stopName: widget.trip.transitPoint ?? 'Station B',
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverOverlapAbsorber(
+                      handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          // Bus booking summary
+                          _buildBusSummary(),
+
+                          // Selected lounges summary (if any)
+                          if (_selectedPreTripLounge != null ||
+                              _selectedTransitLounge != null ||
+                              _selectedPostTripLounge != null)
+                            _buildSelectedLoungesSummary(),
+                        ]),
                       ),
-                    _buildLoungeList(
-                      isLoading: _isLoadingArrival,
-                      error: _arrivalError,
-                      lounges: _arrivalLounges,
-                      selectedLounge: _selectedPostTripLounge,
-                      isPreTrip: false,
-                      stopName: widget.alightingPoint,
                     ),
-                  ],
+
+                    // Pinned Tab Bar
+                    SliverAppBar(
+                      pinned: true,
+                      automaticallyImplyLeading: false,
+                      backgroundColor: AppColors.primary,
+                      toolbarHeight: 0,
+                      elevation: 0,
+                      bottom: PreferredSize(
+                        preferredSize: const Size.fromHeight(58),
+                        child: Container(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: TabBar(
+                              controller: _tabController,
+                              indicator: BoxDecoration(
+                                color: AppColors.primarySurface,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              indicatorPadding: const EdgeInsets.all(4),
+                              labelColor: AppColors.primary,
+                              unselectedLabelColor: Colors.white70,
+                              labelStyle: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              tabs: [
+                                Tab(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Flexible(
+                                        child: Text(
+                                          'Departure',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (_selectedPreTripLounge != null)
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 4),
+                                          child: Icon(
+                                            Icons.check_circle,
+                                            size: 16,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (widget.trip.isTransit)
+                                  Tab(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Flexible(
+                                          child: Text(
+                                            'Transit',
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        if (_selectedTransitLounge != null)
+                                          const Icon(
+                                            Icons.check_circle,
+                                            size: 16,
+                                            color: Colors.green,
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 1,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.withOpacity(
+                                                0.2,
+                                              ),
+                                              border: Border.all(
+                                                color: Colors.orange,
+                                                width: 0.5,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: const Text(
+                                              'Mandatory',
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                color: Colors.orange,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                Tab(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Flexible(
+                                        child: Text(
+                                          'Arrival',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (_selectedPostTripLounge != null)
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 4),
+                                          child: Icon(
+                                            Icons.check_circle,
+                                            size: 16,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ];
+                },
+                body: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                  ),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      Builder(builder: (context) {
+                        return CustomScrollView(
+                          slivers: [
+                            SliverOverlapInjector(
+                              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                            ),
+                            ..._buildLoungeListSlivers(
+                              isLoading: _isLoadingDeparture,
+                              error: _departureError,
+                              lounges: _departureLounges,
+                              selectedLounge: _selectedPreTripLounge,
+                              isPreTrip: true,
+                              stopName: widget.boardingPoint,
+                            ),
+                          ],
+                        );
+                      }),
+                      if (widget.trip.isTransit)
+                        Builder(builder: (context) {
+                          return CustomScrollView(
+                            slivers: [
+                              SliverOverlapInjector(
+                                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                              ),
+                              ..._buildLoungeListSlivers(
+                                isLoading: _isLoadingTransit,
+                                error: _transitError,
+                                lounges: _transitLounges,
+                                selectedLounge: _selectedTransitLounge,
+                                isPreTrip: false,
+                                stopName: widget.trip.transitPoint ?? 'Station B',
+                              ),
+                            ],
+                          );
+                        }),
+                      Builder(builder: (context) {
+                        return CustomScrollView(
+                          slivers: [
+                            SliverOverlapInjector(
+                              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                            ),
+                            ..._buildLoungeListSlivers(
+                              isLoading: _isLoadingArrival,
+                              error: _arrivalError,
+                              lounges: _arrivalLounges,
+                              selectedLounge: _selectedPostTripLounge,
+                              isPreTrip: false,
+                              stopName: widget.alightingPoint,
+                            ),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1214,7 +1268,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
             child: Icon(
               isTransit
                   ? Icons.transfer_within_a_station
-                  : (isPreTrip ? Icons.flight_takeoff : Icons.flight_land),
+                  : (isPreTrip ? Icons.weekend : Icons.hotel),
               color: isTransit ? Colors.orange : AppColors.primary,
               size: 20,
             ),
@@ -1291,7 +1345,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     );
   }
 
-  Widget _buildLoungeList({
+  List<Widget> _buildLoungeListSlivers({
     required bool isLoading,
     required String? error,
     required List<Lounge> lounges,
@@ -1300,182 +1354,192 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     required String stopName,
   }) {
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return [
+        const SliverFillRemaining(
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        ),
+      ];
     }
 
     if (error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.info_outline, size: 48, color: Colors.grey.shade400),
-              const SizedBox(height: 16),
-              Text(
-                error,
-                style: TextStyle(color: Colors.grey.shade600),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (lounges.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.weekend_outlined,
-                size: 64,
-                color: Colors.grey.shade300,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No Lounges Available',
-                style: TextStyle(
-                  color: Colors.grey.shade700,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'There are no partner lounges near\n$stopName at this time.',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return CustomScrollView(
-      slivers: [
-        // Header
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: Row(
-              children: [
-                Icon(
-                  isPreTrip
-                      ? Icons.weekend
-                      : (_tabController.index == 1 && widget.trip.isTransit
-                            ? Icons.transfer_within_a_station
-                            : Icons.hotel),
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isPreTrip
-                            ? 'Lounges at Departure'
-                            : (_tabController.index == 1 &&
-                                      widget.trip.isTransit
-                                  ? 'Transit Lounge'
-                                  : 'Lounges at Arrival'),
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        _smartLocationName != null
-                            ? 'Sorting by proximity to $_smartLocationName'
-                            : (_tabController.index == 1 &&
-                                      widget.trip.isTransit
-                                  ? 'Read-only transit selection'
-                                  : 'Within 3km of $stopName'),
-                        style: TextStyle(
-                          color:
-                              (_tabController.index == 1 &&
-                                  widget.trip.isTransit)
-                              ? Colors.orange.shade700
-                              : Colors.grey.shade600,
-                          fontSize: 12,
-                          fontWeight:
-                              (_tabController.index == 1 &&
-                                  widget.trip.isTransit)
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+      return [
+        SliverFillRemaining(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline, size: 48, color: Colors.grey.shade400),
+                  const SizedBox(height: 16),
+                  Text(
+                    error,
+                    style: TextStyle(color: Colors.grey.shade600),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${lounges.length} available',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
+      ];
+    }
 
-        // Lounge list
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final lounge = lounges[index];
-              final isSelected = selectedLounge?.lounge.id == lounge.id;
-              final isSuggested = isPreTrip
-                  ? _suggestedDepartureLoungeId == lounge.id
-                  : _suggestedArrivalLoungeId == lounge.id;
-              final distance = _loungeDistances[lounge.id];
-
-              final isTransitTab =
-                  _tabController.index == 1 && widget.trip.isTransit;
-
-              return _buildLoungeCard(
-                lounge: lounge,
-                isSelected: isSelected,
-                isSuggested: isSuggested,
-                distance: distance,
-                isPreTrip: isPreTrip,
-                isReadOnly: isTransitTab, // Make transit lounges read-only
-                onTap: isTransitTab
-                    ? () {} // Disable tap for transit
-                    : () => _configureLoungeBooking(lounge, isPreTrip),
-              );
-            }, childCount: lounges.length),
+    if (lounges.isEmpty) {
+      return [
+        SliverFillRemaining(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.weekend_outlined,
+                    size: 64,
+                    color: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Lounges Available',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'There are no partner lounges near\n$stopName at this time.',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
+      ];
+    }
 
-        // Bottom spacer
-        const SliverToBoxAdapter(child: SizedBox(height: 20)),
-      ],
-    );
+    return [
+      // Header
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          child: Row(
+            children: [
+              Icon(
+                isPreTrip
+                    ? Icons.weekend
+                    : (_tabController.index == 1 && widget.trip.isTransit
+                          ? Icons.transfer_within_a_station
+                          : Icons.hotel),
+                color: AppColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isPreTrip
+                          ? 'Lounges at Departure'
+                          : (_tabController.index == 1 &&
+                                    widget.trip.isTransit
+                                ? 'Transit Lounge'
+                                : 'Lounges at Arrival'),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      _smartLocationName != null
+                          ? 'Sorting by proximity to $_smartLocationName'
+                          : (_tabController.index == 1 &&
+                                    widget.trip.isTransit
+                                ? 'Read-only transit selection'
+                                : 'Within 3km of $stopName'),
+                      style: TextStyle(
+                        color:
+                            (_tabController.index == 1 &&
+                                widget.trip.isTransit)
+                            ? Colors.orange.shade700
+                            : Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight:
+                            (_tabController.index == 1 &&
+                                widget.trip.isTransit)
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${lounges.length} available',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+
+      // Lounge list
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final lounge = lounges[index];
+            final isSelected = selectedLounge?.lounge.id == lounge.id;
+            final isSuggested = isPreTrip
+                ? _suggestedDepartureLoungeId == lounge.id
+                : _suggestedArrivalLoungeId == lounge.id;
+            final distance = _loungeDistances[lounge.id];
+
+            final isTransitTab =
+                _tabController.index == 1 && widget.trip.isTransit;
+
+            return _buildLoungeCard(
+              lounge: lounge,
+              isSelected: isSelected,
+              isSuggested: isSuggested,
+              distance: distance,
+              isPreTrip: isPreTrip,
+              isReadOnly: isTransitTab, // Make transit lounges read-only
+              onTap: isTransitTab
+                  ? () {} // Disable tap for transit
+                  : () => _configureLoungeBooking(lounge, isPreTrip),
+            );
+          }, childCount: lounges.length),
+        ),
+      ),
+
+      // Bottom spacer
+      const SliverToBoxAdapter(child: SizedBox(height: 20)),
+    ];
   }
 
   Widget _buildLoungeCard({
