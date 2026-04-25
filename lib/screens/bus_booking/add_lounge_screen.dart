@@ -51,6 +51,40 @@ class SelectedLoungeData {
     this.isExplicitlyBooked = true, // Default to true for manual bookings
   });
 
+  SelectedLoungeData copyWith({
+    Lounge? lounge,
+    String? pricingType,
+    double? pricePerGuest,
+    List<LoungeGuestRequest>? guests,
+    List<PreOrderItemData>? preOrders,
+    double? basePrice,
+    double? preOrderTotal,
+    double? totalPrice,
+    DateTime? tripDate,
+    String? checkInTime,
+    String? transportType,
+    String? pickupLocation,
+    double? transportCost,
+    bool? isExplicitlyBooked,
+  }) {
+    return SelectedLoungeData(
+      lounge: lounge ?? this.lounge,
+      pricingType: pricingType ?? this.pricingType,
+      pricePerGuest: pricePerGuest ?? this.pricePerGuest,
+      guests: guests ?? this.guests,
+      preOrders: preOrders ?? this.preOrders,
+      basePrice: basePrice ?? this.basePrice,
+      preOrderTotal: preOrderTotal ?? this.preOrderTotal,
+      totalPrice: totalPrice ?? this.totalPrice,
+      tripDate: tripDate ?? this.tripDate,
+      checkInTime: checkInTime ?? this.checkInTime,
+      transportType: transportType ?? this.transportType,
+      pickupLocation: pickupLocation ?? this.pickupLocation,
+      transportCost: transportCost ?? this.transportCost,
+      isExplicitlyBooked: isExplicitlyBooked ?? this.isExplicitlyBooked,
+    );
+  }
+
   LoungeIntentRequest toIntentRequest() {
     return LoungeIntentRequest(
       loungeId: lounge.id,
@@ -729,11 +763,20 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   void _removeLounge(bool isPreTrip, {bool isTransit = false}) {
     setState(() {
       if (isPreTrip) {
-        _selectedPreTripLounge = null;
+        if (_selectedPreTripLounge != null) {
+          _selectedPreTripLounge =
+              _selectedPreTripLounge!.copyWith(isExplicitlyBooked: false);
+        }
       } else if (isTransit) {
-        _selectedTransitLounge = null;
+        if (_selectedTransitLounge != null) {
+          _selectedTransitLounge =
+              _selectedTransitLounge!.copyWith(isExplicitlyBooked: false);
+        }
       } else {
-        _selectedPostTripLounge = null;
+        if (_selectedPostTripLounge != null) {
+          _selectedPostTripLounge =
+              _selectedPostTripLounge!.copyWith(isExplicitlyBooked: false);
+        }
       }
     });
   }
@@ -1316,8 +1359,13 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               children: [
                 const SizedBox(height: 8),
                 ElevatedButton(
-                  onPressed: () =>
-                      _configureLoungeBooking(data.lounge, isPreTrip),
+                  onPressed: () {
+                    if (data.isExplicitlyBooked) {
+                      _removeLounge(isPreTrip);
+                    } else {
+                      _configureLoungeBooking(data.lounge, isPreTrip);
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -1325,16 +1373,18 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: data.isExplicitlyBooked
+                        ? Colors.red.withOpacity(0.8)
+                        : AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Book',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  child: Text(
+                    data.isExplicitlyBooked ? 'Cancel' : 'Book',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -1526,12 +1576,20 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               lounge: lounge,
               isSelected: isSelected,
               isSuggested: isSuggested,
+              isExplicitlyBooked: selectedLounge?.isExplicitlyBooked ?? false,
               distance: distance,
               isPreTrip: isPreTrip,
               isReadOnly: isTransitTab, // Make transit lounges read-only
               onTap: isTransitTab
                   ? () {} // Disable tap for transit
-                  : () => _configureLoungeBooking(lounge, isPreTrip),
+                  : () {
+                      if (isSelected &&
+                          selectedLounge?.isExplicitlyBooked == true) {
+                        _removeLounge(isPreTrip);
+                      } else {
+                        _configureLoungeBooking(lounge, isPreTrip);
+                      }
+                    },
             );
           }, childCount: lounges.length),
         ),
@@ -1546,6 +1604,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     required Lounge lounge,
     required bool isSelected,
     required bool isSuggested,
+    required bool isExplicitlyBooked,
     required bool isPreTrip,
     bool isReadOnly = false,
     double? distance,
@@ -1741,7 +1800,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                             onPressed: onTap,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isSelected
-                                  ? Colors.green
+                                  ? (isExplicitlyBooked
+                                      ? Colors.red.withOpacity(0.8)
+                                      : Colors.green)
                                   : AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
@@ -1753,7 +1814,11 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                               ),
                             ),
                             child: Text(
-                              isSelected ? 'Selected ✓' : 'Add',
+                              isSelected
+                                  ? (isExplicitlyBooked
+                                      ? 'Cancel'
+                                      : 'Selected ✓')
+                                  : 'Add',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
