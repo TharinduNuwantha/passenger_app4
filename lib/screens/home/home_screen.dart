@@ -983,18 +983,47 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         final data = json.decode(response.body);
         if (data['status'] == 'OK' && data['results'].isNotEmpty) {
           final address = data['results'][0]['formatted_address'];
+          
+          // Create clean address without numbers
+          String cleanAddress = address;
+          try {
+            final components = data['results'][0]['address_components'] as List;
+            final validParts = components.where((c) {
+              final types = c['types'] as List;
+              return !types.contains('street_number') && 
+                     !types.contains('postal_code') && 
+                     !types.contains('plus_code');
+            }).map((c) => c['long_name']).toList();
+            if (validParts.isNotEmpty) {
+              cleanAddress = validParts.join(', ');
+            }
+          } catch (e) {
+            // ignore
+          }
+
+          // Strip any remaining numbers and cleanup formatting
+          cleanAddress = cleanAddress
+              .replaceAll(RegExp(r'\d+'), '')
+              .replaceAll(RegExp(r',\s*,'), ',')
+              .replaceAll(RegExp(r'^[\s,]+'), '')
+              .replaceAll(RegExp(r'[\s,]+$'), '')
+              .trim();
+              
+          if (cleanAddress.isEmpty) {
+             cleanAddress = 'Unknown Location';
+          }
 
           setState(() {
             if (isPickup) {
               if (pickupController.text != 'Your Location') {
-                pickupController.text = address;
+                pickupController.text = cleanAddress;
               }
-              _resolvedPickupAddress = address;
+              _resolvedPickupAddress = cleanAddress;
               pickupLat = position.latitude;
               pickupLng = position.longitude;
               showPickupSuggestions = false;
             } else {
-              dropController.text = address;
+              dropController.text = cleanAddress;
               dropLat = position.latitude;
               dropLng = position.longitude;
               showDropSuggestions = false;

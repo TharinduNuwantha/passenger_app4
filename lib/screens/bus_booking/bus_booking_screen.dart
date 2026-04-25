@@ -1041,7 +1041,10 @@ class _BusListScreenState extends State<BusListScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Row(
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 10,
+                runSpacing: 6,
                 children: [
                   Text(
                     subtitle,
@@ -1051,10 +1054,8 @@ class _BusListScreenState extends State<BusListScreen> {
                       color: Colors.grey[500],
                     ),
                   ),
-                  if (distKm > 0 && targetName != null) ...[
-                    const SizedBox(width: 10),
+                  if (distKm > 0 && targetName != null)
                     _buildDistancePill(distKm, isStart, targetName),
-                  ],
                 ],
               ),
             ],
@@ -1104,28 +1105,31 @@ class _BusListScreenState extends State<BusListScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: '${distKm.toStringAsFixed(1)} km ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: accentColor,
-                    fontFamily: 'Inter',
+          Flexible(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '${distKm.toStringAsFixed(1)} km ',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: accentColor,
+                      fontFamily: 'Inter',
+                    ),
                   ),
-                ),
-                TextSpan(
-                  text: 'to $targetName',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[400],
-                    fontFamily: 'Inter',
+                  TextSpan(
+                    text: 'to $targetName',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[400],
+                      fontFamily: 'Inter',
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
