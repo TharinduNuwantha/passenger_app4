@@ -76,6 +76,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   final TextEditingController pickupController = TextEditingController();
   final TextEditingController dropController = TextEditingController();
+  final FocusNode _pickupFocusNode = FocusNode();
+  Future<void>? _locationFetchFuture;
+  bool _isFindingLocation = false;
+  String? _resolvedPickupAddress;
 
   List<Map<String, dynamic>> pickupAutocompleteSuggestions = [];
   List<Map<String, dynamic>> dropAutocompleteSuggestions = [];
@@ -117,6 +121,18 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     // Initialize data
     _initializeData();
 
+    _pickupFocusNode.addListener(() {
+      if (_pickupFocusNode.hasFocus) {
+        if (pickupController.text == 'Your Location') {
+          pickupController.clear();
+        }
+      } else {
+        if (pickupController.text.isEmpty && (pickupLat != null || _isFindingLocation)) {
+          pickupController.text = 'Your Location';
+        }
+      }
+    });
+
     pickupController.addListener(_onPickupTextChanged);
     dropController.addListener(_onDropTextChanged);
     _startAdCarousel();
@@ -155,6 +171,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _adPageController.dispose();
     _bookingPageController.dispose();
     _calendarScrollController.dispose();
+    _pickupFocusNode.dispose();
     pickupController.removeListener(_onPickupTextChanged);
     dropController.removeListener(_onDropTextChanged);
     pickupController.dispose();
@@ -487,12 +504,15 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   void _onPickupTextChanged() {
     final text = pickupController.text;
 
+    if (text == 'Your Location') return;
+
     // Reset coordinates on manual text change to avoid stale location data
     if (pickupLat != null || pickupLng != null) {
       if (mounted) {
         setState(() {
           pickupLat = null;
           pickupLng = null;
+          _resolvedPickupAddress = null;
         });
       }
     }
@@ -791,7 +811,27 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       print('🔍 Raw Drop: "${dropController.text}"');
 
       // Using direct coordinate-based search for Lounge-to-Lounge discovery
-      final fromDisplay = pickupController.text;
+      // Wait for location if still finding
+      if (pickupController.text == 'Your Location' && _isFindingLocation && _locationFetchFuture != null) {
+        await _locationFetchFuture;
+      }
+
+      if (pickupController.text == 'Your Location' && pickupLat == null) {
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to get your location. Please select a pickup location manually.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      final fromDisplay = pickupController.text == 'Your Location' && _resolvedPickupAddress != null 
+          ? _resolvedPickupAddress! 
+          : pickupController.text;
       final toDisplay = dropController.text;
 
       // Dismiss loading dialog
@@ -860,6 +900,19 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   // Get current location and populate search field
   Future<void> _useCurrentLocation({required bool isPickup}) async {
+    if (isPickup) {
+      pickupController.text = 'Your Location';
+      setState(() { _isFindingLocation = true; });
+      _locationFetchFuture = _doUseCurrentLocation(isPickup: true).whenComplete(() {
+        if (mounted) setState(() { _isFindingLocation = false; });
+      });
+      return _locationFetchFuture;
+    } else {
+      return _doUseCurrentLocation(isPickup: false);
+    }
+  }
+
+  Future<void> _doUseCurrentLocation({required bool isPickup}) async {
     try {
       // Check location permission
       LocationPermission permission = await Geolocator.checkPermission();
@@ -933,7 +986,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
           setState(() {
             if (isPickup) {
-              pickupController.text = address;
+              if (pickupController.text != 'Your Location') {
+                pickupController.text = address;
+              }
+              _resolvedPickupAddress = address;
               pickupLat = position.latitude;
               pickupLng = position.longitude;
               showPickupSuggestions = false;
@@ -1082,6 +1138,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         onFocusChange: (hasFocus) {
           setState(() {
             if (isPickup) {
+              if (hasFocus && pickupController.text == 'Your Location') {
+                pickupController.clear();
+              }
               showPickupSuggestions = hasFocus;
             } else {
               showDropSuggestions = hasFocus;
@@ -1090,6 +1149,18 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         },
         child: TextField(
           controller: controller,
+          focusNode: isPickup ? _pickupFocusNode : null,
+          onTap: () {
+            setState(() {
+              if (isPickup) {
+                showPickupSuggestions = true;
+                showDropSuggestions = false;
+              } else {
+                showDropSuggestions = true;
+                showPickupSuggestions = false;
+              }
+            });
+          },
           style: const TextStyle(
             color: Colors.black87,
             fontSize: 16,
