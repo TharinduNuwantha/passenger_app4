@@ -953,21 +953,50 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: const Color(0xFF0D47A1),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Add Lounge',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 238, 239, 239),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+            ),
           ),
+        ),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        title: Column(
+          children: [
+            const Text(
+              'Add Lounge',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 0.3,
+              ),
+            ),
+            Text(
+              'Enhance your journey',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.white.withOpacity(0.75),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
       ),
@@ -1204,28 +1233,36 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 
   Widget _buildBusSummary() {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primarySurface,
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(
-                Icons.directions_bus,
-                color: AppColors.primary,
-                size: 24,
+                Icons.directions_bus_rounded,
+                color: Colors.white,
+                size: 26,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1235,46 +1272,58 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${widget.boardingPoint} → ${widget.alightingPoint}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 12,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      const Icon(Icons.circle, size: 6, color: Color(0xFF90CAF9)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${widget.boardingPoint} → ${widget.alightingPoint}',
+                          style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     '${DateFormat('dd MMM, hh:mm a').format(widget.trip.departureTime)} • ${widget.selectedSeats.length} seat(s)',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 11),
                   ),
                 ],
               ),
             ),
-            Column(
-              children: [
-                Text(
-                  'LKR ${widget.busFare.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: AppColors.primarySurface,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFC300).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFC300).withOpacity(0.4)),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'LKR ${widget.busFare.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFC300),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const Text(
-                  'Bus Fare',
-                  style: TextStyle(color: Colors.white54, fontSize: 10),
-                ),
-              ],
+                  Text(
+                    'Bus Fare',
+                    style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1284,36 +1333,36 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 
   Widget _buildSelectedLoungesSummary() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primarySurface.withOpacity(0.5),
-          width: 1.5,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.18), width: 1.5),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.check_circle, color: AppColors.primary, size: 22),
-              SizedBox(width: 10),
-              Text(
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1976D2).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_rounded, color: Color(0xFF1976D2), size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Text(
                 'Selected Lounges',
                 style: TextStyle(
-                  color: Colors.black87,
+                  color: Color(0xFF0D47A1),
                   fontWeight: FontWeight.w800,
-                  fontSize: 16,
+                  fontSize: 15,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -1704,19 +1753,34 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               children: [
                 // Image
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(14),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  child: Stack(
+                    children: [
+                      lounge.images.isNotEmpty
+                          ? Image.network(
+                              lounge.images.first,
+                              height: 140,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                            )
+                          : _buildImagePlaceholder(),
+                      // Subtle gradient over image
+                      Positioned(
+                        bottom: 0, left: 0, right: 0,
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withOpacity(0.35)],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: lounge.images.isNotEmpty
-                      ? Image.network(
-                          lounge.images.first,
-                          height: 100,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _buildImagePlaceholder(),
-                        )
-                      : _buildImagePlaceholder(),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -1992,17 +2056,28 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 
   Widget _buildImagePlaceholder() {
     return Container(
-      height: 100,
+      height: 140,
       width: double.infinity,
-      color: Colors.grey.shade200,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.grey.shade200, Colors.grey.shade100],
+        ),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.weekend, size: 32, color: Colors.grey.shade400),
-          const SizedBox(height: 4),
+          Icon(Icons.weekend_outlined, size: 40, color: Colors.grey.shade400),
+          const SizedBox(height: 6),
           Text(
-            'Lounge',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            'Lounge Preview',
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
@@ -2014,67 +2089,76 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         _selectedPreTripLounge != null || _selectedPostTripLounge != null;
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+            color: const Color(0xFF0D47A1).withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, -6),
           ),
         ],
       ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Total display
             if (hasSelections)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Total (Bus + Lounge)',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    Row(
+                      children: [
+                        const Icon(Icons.receipt_long_rounded, color: Colors.white70, size: 18),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Total (Bus + Lounge)',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
                     ),
                     Text(
                       'LKR ${_totalWithLounges.toStringAsFixed(0)}',
                       style: const TextStyle(
                         color: Color(0xFFFFC300),
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
               ),
-            // Buttons
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _skipLounges,
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white70),
+                      side: BorderSide(color: Colors.white.withOpacity(0.4)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     child: const Text(
-                      'Skip Lounge',
+                      'Skip',
                       style: TextStyle(
-                        color: Color.fromARGB(179, 255, 255, 255),
-                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
                       ),
                     ),
                   ),
@@ -2082,27 +2166,43 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 const SizedBox(width: 12),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton(
-                    onPressed: _continueWithLounges,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 238, 238, 237),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFC300), Color(0xFFFFAB00)],
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFC300).withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      hasSelections ? 'Continue with Lounge' : 'Continue',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    child: ElevatedButton(
+                      onPressed: _continueWithLounges,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text(
+                        hasSelections ? 'Continue with Lounge' : 'Continue →',
+                        style: const TextStyle(
+                          color: Color(0xFF0D47A1),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                          letterSpacing: 0.3,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 6),
           ],
         ),
       ),
@@ -2431,25 +2531,54 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
               // Handle
               Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
+                margin: const EdgeInsets.only(top: 14),
+                width: 44,
+                height: 5,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              // Header
-              Padding(
+              // Header with gradient accent
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1976D2).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: Row(
                   children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        widget.isPreTrip ? Icons.flight_takeoff_rounded : Icons.flight_land_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2457,30 +2586,47 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                           Text(
                             widget.lounge.loungeName,
                             style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
                             ),
                           ),
-                          Text(
-                            widget.isPreTrip
-                                ? 'Boarding Lounge'
-                                : 'Destination Lounge',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              widget.isPreTrip ? 'Pre-Trip Boarding Lounge' : 'Post-Trip Arrival Lounge',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
+                      ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 4),
               const Divider(height: 1),
               // Content
               Expanded(
@@ -2491,61 +2637,34 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Duration selection
-                      const Text(
-                        'Select Duration',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      _buildSectionHeader('Select Duration', Icons.schedule_rounded),
                       const SizedBox(height: 12),
                       _buildDurationOptions(),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Transport selection
-                      const Text(
-                        'Add Transport (Optional)',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+                      _buildSectionHeader('Transport (Optional)', Icons.directions_car_rounded),
+                      const SizedBox(height: 6),
                       Text(
                         'Get picked up from your location to the lounge',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                       ),
                       const SizedBox(height: 12),
                       _buildTransportSection(),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Guests
-                      const Text(
-                        'Guests',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      _buildSectionHeader('Guests', Icons.people_alt_rounded),
                       const SizedBox(height: 12),
                       _buildGuestsList(),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Pre-orders (optional)
                       if (_products.isNotEmpty) ...[
-                        const Text(
-                          'Pre-Order Food & Drinks (Optional)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        _buildSectionHeader('Pre-Order Food & Drinks', Icons.restaurant_menu_rounded),
                         const SizedBox(height: 12),
                         _buildPreOrderSection(),
                       ],
@@ -2561,6 +2680,31 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1976D2).withOpacity(0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: const Color(0xFF1976D2)),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0D47A1),
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
     );
   }
 
@@ -2605,59 +2749,85 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     bool isHighlighted = false,
   }) {
     final isSelected = _selectedPricingType == type;
+    final iconMap = {
+      'until_bus': Icons.access_time_rounded,
+      '1_hour': Icons.hourglass_empty_rounded,
+      '2_hours': Icons.hourglass_bottom_rounded,
+      '3_hours': Icons.hourglass_full_rounded,
+    };
     return GestureDetector(
       onTap: () => setState(() => _selectedPricingType = type),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withOpacity(0.1)
-              : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? const Color(0xFF0D47A1).withOpacity(0.06) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? AppColors.primary
-                : (isHighlighted
-                      ? const Color(0xFFFFC300)
-                      : Colors.grey.shade300),
-            width: isSelected ? 2 : 1,
+                ? const Color(0xFF1976D2)
+                : (isHighlighted ? const Color(0xFFFFC300) : Colors.grey.shade200),
+            width: isSelected ? 2 : 1.5,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF1976D2).withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : [],
         ),
         child: Row(
           children: [
-            Radio<String>(
-              value: type,
-              groupValue: _selectedPricingType,
-              onChanged: (v) => setState(() => _selectedPricingType = v),
-              activeColor: AppColors.primary,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? const Color(0xFF1976D2).withOpacity(0.12)
+                    : (isHighlighted
+                        ? const Color(0xFFFFC300).withOpacity(0.12)
+                        : Colors.grey.shade100),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                iconMap[type] ?? Icons.access_time,
+                size: 18,
+                color: isSelected
+                    ? const Color(0xFF1976D2)
+                    : (isHighlighted ? const Color(0xFFFFAB00) : Colors.grey.shade500),
+              ),
             ),
+            const SizedBox(width: 14),
             Expanded(
               child: Row(
                 children: [
                   Text(
                     label,
                     style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? AppColors.primary : Colors.black87,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      fontSize: 14,
+                      color: isSelected ? const Color(0xFF0D47A1) : Colors.black87,
                     ),
                   ),
                   if (isHighlighted) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 244, 243, 241),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFC300), Color(0xFFFFAB00)],
+                        ),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Text(
-                        'Recommended',
+                        '★ Best',
                         style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -2665,16 +2835,39 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 ],
               ),
             ),
-            Text(
-              'LKR ${price.toStringAsFixed(0)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSelected ? AppColors.primary : Colors.black87,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'LKR ${price.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                    color: isSelected ? const Color(0xFF0D47A1) : Colors.black87,
+                  ),
+                ),
+                Text(
+                  '/person',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                ),
+              ],
             ),
-            const Text(
-              '/person',
-              style: TextStyle(fontSize: 10, color: Colors.grey),
+            const SizedBox(width: 10),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? const Color(0xFF1976D2) : Colors.transparent,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade300,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, color: Colors.white, size: 13)
+                  : null,
             ),
           ],
         ),
@@ -3062,27 +3255,52 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             const SizedBox(height: 8),
           ],
           // Confirm button
-          SizedBox(
+          Container(
             width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: _selectedPricingType != null
+                  ? const LinearGradient(colors: [Color(0xFFFFC300), Color(0xFFFFAB00)])
+                  : null,
+              color: _selectedPricingType == null ? Colors.grey.shade200 : null,
+              boxShadow: _selectedPricingType != null
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFFFFC300).withOpacity(0.45),
+                        blurRadius: 14,
+                        offset: const Offset(0, 5),
+                      )
+                    ]
+                  : null,
+            ),
             child: ElevatedButton(
               onPressed: _selectedPricingType != null ? _confirm : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFC300),
-                disabledBackgroundColor: Colors.grey.shade300,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: Text(
-                'Add ${widget.isPreTrip ? "Pre-Trip" : "Post-Trip"} Lounge',
-                style: TextStyle(
-                  color: _selectedPricingType != null
-                      ? AppColors.primary
-                      : Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_rounded,
+                    color: _selectedPricingType != null ? const Color(0xFF0D47A1) : Colors.grey,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Add ${widget.isPreTrip ? "Pre-Trip" : "Post-Trip"} Lounge',
+                    style: TextStyle(
+                      color: _selectedPricingType != null ? const Color(0xFF0D47A1) : Colors.grey,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
