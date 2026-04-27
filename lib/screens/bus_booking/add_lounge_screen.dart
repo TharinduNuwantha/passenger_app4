@@ -1043,38 +1043,32 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                             child: TabBar(
                               controller: _tabController,
                               indicator: BoxDecoration(
-                                color: AppColors.primarySurface,
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               indicatorPadding: const EdgeInsets.all(4),
-                              labelColor: AppColors.primary,
-                              unselectedLabelColor: Colors.white70,
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              labelColor: const Color(0xFF0D47A1),
+                              unselectedLabelColor: Colors.white.withOpacity(0.7),
                               labelStyle: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                              ),
+                              unselectedLabelStyle: const TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                               tabs: [
-                                Tab(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Flexible(
-                                        child: Text(
-                                          'Departure',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      if (_selectedPreTripLounge != null)
-                                        const Padding(
-                                          padding: EdgeInsets.only(left: 4),
-                                          child: Icon(
-                                            Icons.check_circle,
-                                            size: 16,
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                const Tab(
+                                  child: Text('Departure'),
                                 ),
                                 if (widget.trip.isTransit)
                                   Tab(
@@ -1082,69 +1076,38 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Flexible(
-                                          child: Text(
-                                            'Transit',
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        if (_selectedTransitLounge != null)
-                                          const Icon(
-                                            Icons.check_circle,
-                                            size: 16,
-                                            color: Colors.green,
-                                          )
-                                        else
+                                        const Text('Transit'),
+                                        if (_selectedTransitLounge == null) ...[
+                                          const SizedBox(width: 6),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                              vertical: 1,
+                                              horizontal: 5,
+                                              vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.orange.withOpacity(
-                                                0.2,
-                                              ),
+                                              color: Colors.orange.withOpacity(0.2),
                                               border: Border.all(
-                                                color: Colors.orange,
+                                                color: Colors.orange.withOpacity(0.5),
                                                 width: 0.5,
                                               ),
                                               borderRadius:
-                                                  BorderRadius.circular(4),
+                                                  BorderRadius.circular(6),
                                             ),
                                             child: const Text(
-                                              'Mandatory',
+                                              'Req',
                                               style: TextStyle(
-                                                fontSize: 8,
-                                                color: Colors.orange,
-                                                fontWeight: FontWeight.bold,
+                                                fontSize: 9,
+                                                color: Colors.orangeAccent,
+                                                fontWeight: FontWeight.w800,
                                               ),
                                             ),
                                           ),
+                                        ],
                                       ],
                                     ),
                                   ),
-                                Tab(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Flexible(
-                                        child: Text(
-                                          'Arrival',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      if (_selectedPostTripLounge != null)
-                                        const Padding(
-                                          padding: EdgeInsets.only(left: 4),
-                                          child: Icon(
-                                            Icons.check_circle,
-                                            size: 16,
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                                const Tab(
+                                  child: Text('Arrival'),
                                 ),
                               ],
                             ),
@@ -1424,9 +1387,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 Text(
                   data.lounge.loungeName,
                   style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D47A1),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1436,7 +1399,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     color: isTransit
                         ? Colors.orange.shade800
                         : Colors.grey.shade600,
-                    fontSize: 12,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1810,29 +1774,24 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color.fromARGB(
-                                  255,
-                                  236,
-                                  235,
-                                  234,
-                                ).withOpacity(0.2),
+                                color: Colors.amber.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Icon(
-                                    Icons.star,
+                                    Icons.star_rounded,
                                     size: 14,
-                                    color: AppColors.primarySurface,
+                                    color: Colors.amber,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     lounge.averageRating!.toStringAsFixed(1),
                                     style: const TextStyle(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color.fromARGB(255, 238, 237, 234),
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.orange,
                                     ),
                                   ),
                                 ],
