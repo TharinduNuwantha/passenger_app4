@@ -259,7 +259,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     _loadDepartureLounges();
 
     // ── Load Transit Lounges ───────────────────────────────────────────────
-    if (widget.trip.isTransit && widget.trip.transitPointId != null) {
+    final transitStopId = widget.trip.transitPointId;
+    if (widget.trip.isTransit && transitStopId != null && transitStopId.isNotEmpty && transitStopId != 'null') {
       _loadTransitLounges();
     } else {
       setState(() => _isLoadingTransit = false);
@@ -301,44 +302,49 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   }
 
   Future<void> _loadDepartureLounges() async {
-    final routeId = widget.masterRouteId;
-    final stopId = widget.boardingStopId;
-    final city = widget.originCity;
+    final routeId = (widget.masterRouteId != null && widget.masterRouteId != 'null' && widget.masterRouteId!.isNotEmpty) ? widget.masterRouteId : null;
+    final stopId = (widget.boardingStopId != null && widget.boardingStopId != 'null' && widget.boardingStopId!.isNotEmpty) ? widget.boardingStopId : null;
+    final city = (widget.originCity != null && widget.originCity != 'null' && widget.originCity!.isNotEmpty) ? widget.originCity : null;
 
     try {
       List<Lounge> allFound = [];
 
-      // Priority 1: Strict 3km from boarding stop (best accuracy)
-      if (routeId != null && stopId != null && stopId != 'null') {
-        _logger.i('Proximity search: boarding stop $stopId on route $routeId (3km)');
-        final nearStop = await _loungeService.getLoungesNearStop(
-          routeId,
-          stopId,
-          maxDistance: 3,
-        );
-        allFound.addAll(nearStop);
+      // Priority 1: Proximity to boarding stop
+      if (stopId != null) {
+        if (routeId != null) {
+          _logger.i('Discovery: boarding stop $stopId on route $routeId (3km)');
+          final nearStop = await _loungeService.getLoungesNearStop(
+            routeId,
+            stopId,
+            maxDistance: 3,
+          );
+          allFound.addAll(nearStop);
+        } else {
+          _logger.i('Discovery: boarding stop $stopId (direct)');
+          final atStop = await _loungeService.getLoungesByStop(stopId);
+          allFound.addAll(atStop);
+        }
       }
 
-      // Priority 2: City-based (fallback when stop search empty or stopId unavailable)
-      if (allFound.isEmpty && city != null && city.isNotEmpty && city != 'null') {
-        _logger.i('City fallback: boarding lounges in $city');
-        final cityLounges = await _loungeService.searchLounges(city: city);
+      // Priority 2: City fallback (using specialized city endpoint)
+      if (allFound.isEmpty && city != null) {
+        _logger.i('Discovery: city fallback for $city');
+        final cityLounges = await _loungeService.getLoungesByOriginCity(city);
         allFound.addAll(cityLounges);
       }
 
-      // Priority 3: Route-wide (last resort)
+      // Priority 3: Route fallback
       if (allFound.isEmpty && routeId != null) {
-        _logger.i('Route fallback: all lounges for route $routeId');
+        _logger.i('Discovery: route fallback for $routeId');
         final routeLounges = await _loungeService.getLoungesByRoute(routeId);
         allFound.addAll(routeLounges);
       }
 
-      // De-duplicate by ID
+      // De-duplicate
       final uniqueMap = <String, Lounge>{
         for (final l in allFound) l.id: l,
       };
 
-      // Sort by real GPS proximity (closest first)
       final sorted = _sortByProximity(
         uniqueMap.values.toList(),
         widget.startLat,
@@ -350,61 +356,68 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         _isLoadingDeparture = false;
       });
 
-      _logger.i('Departure: ${sorted.length} lounges loaded');
+      _logger.i('Departure: ${sorted.length} lounges discovered');
 
-      // Default-select the highest-proximity lounge (first after sort)
       if (sorted.isNotEmpty && _selectedPreTripLounge == null) {
-        _autoSelectLounge(sorted.first, true);
+        _autoSelectLounge(
+          _pickBestLounge(sorted, widget.trip.fromLounge),
+          true,
+        );
         _suggestedDepartureLoungeId = sorted.first.id;
       }
     } catch (e) {
-      _logger.e('Error loading departure lounges: $e');
+      _logger.e('Error discovered departure lounges: $e');
       setState(() {
-        _departureError = 'No lounges available near ${widget.boardingPoint}.';
+        _departureError = 'Search failed. Please try again.';
         _isLoadingDeparture = false;
       });
     }
   }
 
   Future<void> _loadArrivalLounges() async {
-    final routeId = widget.masterRouteId;
-    final stopId = widget.alightingStopId;
-    final city = widget.destinationCity;
+    final routeId = (widget.masterRouteId != null && widget.masterRouteId != 'null' && widget.masterRouteId!.isNotEmpty) ? widget.masterRouteId : null;
+    final stopId = (widget.alightingStopId != null && widget.alightingStopId != 'null' && widget.alightingStopId!.isNotEmpty) ? widget.alightingStopId : null;
+    final city = (widget.destinationCity != null && widget.destinationCity != 'null' && widget.destinationCity!.isNotEmpty) ? widget.destinationCity : null;
 
     try {
       List<Lounge> allFound = [];
 
-      // Priority 1: Strict 3km from alighting stop (best accuracy)
-      if (routeId != null && stopId != null && stopId != 'null') {
-        _logger.i('Proximity search: alighting stop $stopId on route $routeId (3km)');
-        final nearStop = await _loungeService.getLoungesNearStop(
-          routeId,
-          stopId,
-          maxDistance: 3,
-        );
-        allFound.addAll(nearStop);
+      // Priority 1: Proximity to alighting stop
+      if (stopId != null) {
+        if (routeId != null) {
+          _logger.i('Discovery: alighting stop $stopId on route $routeId (3km)');
+          final nearStop = await _loungeService.getLoungesNearStop(
+            routeId,
+            stopId,
+            maxDistance: 3,
+          );
+          allFound.addAll(nearStop);
+        } else {
+          _logger.i('Discovery: alighting stop $stopId (direct)');
+          final atStop = await _loungeService.getLoungesByStop(stopId);
+          allFound.addAll(atStop);
+        }
       }
 
-      // Priority 2: City-based (fallback when stop search empty or stopId unavailable)
-      if (allFound.isEmpty && city != null && city.isNotEmpty && city != 'null') {
-        _logger.i('City fallback: arrival lounges in $city');
-        final cityLounges = await _loungeService.searchLounges(city: city);
+      // Priority 2: City fallback
+      if (allFound.isEmpty && city != null) {
+        _logger.i('Discovery: arrival city fallback for $city');
+        final cityLounges = await _loungeService.getLoungesByDestinationCity(city);
         allFound.addAll(cityLounges);
       }
 
-      // Priority 3: Route-wide (last resort)
+      // Priority 3: Route fallback
       if (allFound.isEmpty && routeId != null) {
-        _logger.i('Route fallback: all lounges for route $routeId');
+        _logger.i('Discovery: arrival route fallback for $routeId');
         final routeLounges = await _loungeService.getLoungesByRoute(routeId);
         allFound.addAll(routeLounges);
       }
 
-      // De-duplicate by ID
+      // De-duplicate
       final uniqueMap = <String, Lounge>{
         for (final l in allFound) l.id: l,
       };
 
-      // Sort by real GPS proximity (closest first)
       final sorted = _sortByProximity(
         uniqueMap.values.toList(),
         widget.dropLat,
@@ -416,17 +429,19 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         _isLoadingArrival = false;
       });
 
-      _logger.i('Arrival: ${sorted.length} lounges loaded');
+      _logger.i('Arrival: ${sorted.length} lounges discovered');
 
-      // Default-select the highest-proximity lounge (first after sort)
       if (sorted.isNotEmpty && _selectedPostTripLounge == null) {
-        _autoSelectLounge(sorted.first, false);
+        _autoSelectLounge(
+          _pickBestLounge(sorted, widget.trip.toLounge),
+          false,
+        );
         _suggestedArrivalLoungeId = sorted.first.id;
       }
     } catch (e) {
-      _logger.e('Error loading arrival lounges: $e');
+      _logger.e('Error discovered arrival lounges: $e');
       setState(() {
-        _arrivalError = 'No lounges available near ${widget.alightingPoint}.';
+        _arrivalError = 'Search failed. Please try again.';
         _isLoadingArrival = false;
       });
     }
@@ -443,92 +458,36 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     return lounges.first;
   }
 
-  Future<void> _loadDepartureLoungesNearStop() async {
-    try {
-      _logger.i(
-        'Loading departure lounges near stop: ${widget.boardingStopId}',
-      );
-      final lounges = await _loungeService.getLoungesNearStop(
-        widget.masterRouteId!,
-        widget.boardingStopId!,
-        maxDistance: 3,
-      );
-      setState(() {
-        _departureLounges = lounges;
-        _isLoadingDeparture = false;
-      });
-      _logger.i('Found ${lounges.length} lounges near boarding stop');
 
-      if (_departureLounges.isNotEmpty && _selectedPreTripLounge == null) {
-        _autoSelectLounge(
-          _pickBestLounge(_departureLounges, widget.trip.fromLounge),
-          true,
-        );
-      }
-    } catch (e) {
-      _logger.e('Failed to load departure lounges: $e');
-      setState(() {
-        _departureError = e.toString().toLowerCase().contains('timeout')
-            ? 'Connection timeout. Please try again.'
-            : 'No lounges available near your boarding stop';
-        _isLoadingDeparture = false;
-      });
-    }
-  }
-
-  Future<void> _loadArrivalLoungesNearStop() async {
-    try {
-      _logger.i('Loading arrival lounges near stop: ${widget.alightingStopId}');
-      final lounges = await _loungeService.getLoungesNearStop(
-        widget.masterRouteId!,
-        widget.alightingStopId!,
-        maxDistance: 3,
-      );
-      setState(() {
-        _arrivalLounges = lounges;
-        _isLoadingArrival = false;
-      });
-      _logger.i('Found ${lounges.length} lounges near alighting stop');
-
-      if (_arrivalLounges.isNotEmpty && _selectedPostTripLounge == null) {
-        _autoSelectLounge(
-          _pickBestLounge(_arrivalLounges, widget.trip.toLounge),
-          false,
-        );
-      }
-    } catch (e) {
-      _logger.e('Failed to load arrival lounges: $e');
-      setState(() {
-        _arrivalError = e.toString().toLowerCase().contains('timeout')
-            ? 'Connection timeout. Please try again.'
-            : 'No lounges available near your alighting stop';
-        _isLoadingArrival = false;
-      });
-    }
-  }
 
   Future<void> _loadTransitLounges() async {
-    if (widget.trip.transitPointId == null ||
-        widget.trip.transitPointId!.isEmpty ||
-        widget.trip.transitPointId == 'null') {
+    final stopId = widget.trip.transitPointId;
+    if (stopId == null || stopId.isEmpty || stopId == 'null') {
       setState(() => _isLoadingTransit = false);
       return;
     }
+    
+    final routeId = (widget.masterRouteId != null && widget.masterRouteId != 'null' && widget.masterRouteId!.isNotEmpty) ? widget.masterRouteId : null;
+
     try {
-      _logger.i(
-        'Loading transit lounges near stop: ${widget.trip.transitPointId}',
-      );
-      final lounges = await _loungeService.getLoungesNearStop(
-        widget.masterRouteId ?? '',
-        widget.trip.transitPointId!,
-        maxDistance: 3,
-      );
+      _logger.i('Discovery: transit lounges near stop: $stopId');
+      
+      List<Lounge> lounges = [];
+      if (routeId != null) {
+        lounges = await _loungeService.getLoungesNearStop(
+          routeId,
+          stopId,
+          maxDistance: 3,
+        );
+      } else {
+        lounges = await _loungeService.getLoungesByStop(stopId);
+      }
 
       setState(() {
         _transitLounges = lounges;
         _isLoadingTransit = false;
       });
-      _logger.i('Found ${lounges.length} transit lounges');
+      _logger.i('Transit: ${lounges.length} lounges discovered');
 
       // Auto-select for transit (Mandatory)
       if (_transitLounges.isNotEmpty && _selectedTransitLounge == null) {
@@ -537,62 +496,13 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     } catch (e) {
       _logger.e('Failed to load transit lounges: $e');
       setState(() {
-        _transitError = 'No transit lounges available';
+        _transitError = 'Search failed';
         _isLoadingTransit = false;
       });
     }
   }
 
-  Future<void> _loadDepartureLoungesByRoute() async {
-    try {
-      final lounges = await _loungeService.getLoungesByRoute(
-        widget.masterRouteId!,
-      );
-      setState(() {
-        _departureLounges = lounges;
-        _isLoadingDeparture = false;
-      });
-      if (_departureLounges.isNotEmpty && _selectedPreTripLounge == null) {
-        _autoSelectLounge(
-          _pickBestLounge(_departureLounges, widget.trip.fromLounge),
-          true,
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _departureError = 'No lounges available';
-        _isLoadingDeparture = false;
-      });
-    }
-  }
 
-  Future<void> _loadArrivalLoungesByRoute() async {
-    if (widget.masterRouteId == null || widget.masterRouteId!.isEmpty) {
-      setState(() => _isLoadingArrival = false);
-      return;
-    }
-    try {
-      final lounges = await _loungeService.getLoungesByRoute(
-        widget.masterRouteId!,
-      );
-      setState(() {
-        _arrivalLounges = lounges;
-        _isLoadingArrival = false;
-      });
-      if (_arrivalLounges.isNotEmpty && _selectedPostTripLounge == null) {
-        _autoSelectLounge(
-          _pickBestLounge(_arrivalLounges, widget.trip.toLounge),
-          false,
-        );
-      }
-    } catch (e) {
-      _logger.e('Failed to load arrival lounges by route: $e');
-      setState(() {
-        _arrivalError = 'No lounges available';
-        _isLoadingArrival = false;
-      });
-    }
-  }
 
   /// Calculate distance between two points in km
   double _calculateDistance(
