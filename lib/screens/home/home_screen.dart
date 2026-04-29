@@ -1042,111 +1042,84 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 8)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
-        border: Border.all(color: Colors.grey.shade200, width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [AppColors.primary, Color(0xFF1565C0)]),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.route_rounded, color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Plan Your Journey', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: -0.4)),
-                  Text('Select your pickup & drop point', style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
-                ],
-              ),
-            ],
+          // Minimalist Header
+          const Text(
+            'Plan your journey',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+              letterSpacing: -0.5,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Input fields block
+          // Input block
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Left: route indicator column
+              // Minimal Timeline
               Column(
                 children: [
+                  const Icon(Icons.radio_button_checked_rounded, size: 16, color: AppColors.primary),
                   Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withOpacity(0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF2E7D32), width: 2),
-                    ),
-                    child: const Icon(Icons.radio_button_checked_rounded, color: Color(0xFF2E7D32), size: 20),
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    width: 1.5,
+                    height: 24,
+                    color: Colors.grey.shade300,
                   ),
-                  Container(
-                    width: 2.5, height: 28,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [const Color(0xFF2E7D32), Colors.red.shade700],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.red.shade700, width: 2),
-                    ),
-                    child: Icon(Icons.location_on_rounded, color: Colors.red.shade700, size: 20),
-                  ),
+                  Icon(Icons.location_on_rounded, size: 16, color: Colors.red.shade400),
                 ],
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
 
-              // Right: two text fields
+              // Fields
               Expanded(
                 child: Column(
                   children: [
-                    _buildPremiumField(controller: pickupController, label: 'From', hint: 'Pick-up location', isPickup: true),
-                    const SizedBox(height: 8),
-                    _buildPremiumField(controller: dropController, label: 'To', hint: 'Where are you going?', isPickup: false),
+                    _buildPremiumField(controller: pickupController, hint: 'Current Location', isPickup: true),
+                    const Divider(height: 24, thickness: 1, color: Color(0xFFF5F5F5)),
+                    _buildPremiumField(controller: dropController, hint: 'Where to?', isPickup: false),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
 
-              // Swap button
+              // Simple Swap Button
               GestureDetector(
                 onTap: _swapLocations,
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: Colors.grey.shade100,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5),
                   ),
-                  child: const Icon(Icons.swap_vert_rounded, color: AppColors.primary, size: 26),
+                  child: const Icon(Icons.swap_vert_rounded, color: Colors.black54, size: 22),
                 ),
               ),
             ],
           ),
 
-          // Suggestions
           if (showPickupSuggestions || showDropSuggestions)
-            Padding(padding: const EdgeInsets.only(top: 12), child: _buildCompactSuggestionsPanel()),
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: _buildCompactSuggestionsPanel(),
+            ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+
           if (!showPickupSuggestions && !showDropSuggestions)
             _buildModernSearchButton(),
         ],
@@ -1156,12 +1129,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   Widget _buildPremiumField({
     required TextEditingController controller,
-    required String label,
     required String hint,
     required bool isPickup,
   }) {
     final bool isYourLocation = isPickup && controller.text == 'Your Location';
-    final bool isFocused = isPickup ? showPickupSuggestions : showDropSuggestions;
 
     return GestureDetector(
       onTap: () {
@@ -1177,122 +1148,103 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         });
         if (isPickup) _pickupFocusNode.requestFocus();
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: isFocused ? AppColors.primary.withOpacity(0.05) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isFocused
-                ? AppColors.primary.withOpacity(0.6)
-                : isYourLocation
-                    ? const Color(0xFF4CAF50).withOpacity(0.5)
-                    : Colors.grey.shade300,
-            width: isFocused ? 1.5 : 1.0,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Label row
-            Row(
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: isPickup ? const Color(0xFF2E7D32) : Colors.red.shade700,
-                  ),
-                ),
-                if (isYourLocation) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _isFindingLocation ? Icons.gps_not_fixed_rounded : Icons.gps_fixed_rounded,
-                          size: 12,
-                          color: const Color(0xFF2E7D32),
+      child: Row(
+        children: [
+          Expanded(
+            child: isYourLocation
+                ? Row(
+                    children: [
+                      const Flexible(
+                        child: Text(
+                          'Your Location',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _isFindingLocation ? 'Finding...' : 'GPS',
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32), fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                // Action icon
-                GestureDetector(
-                  onTap: () {
-                    if (isPickup) _useCurrentLocation(isPickup: true);
-                    else _navigateToMapForLocation(isPickup: false);
-                  },
-                  child: Icon(
-                    isPickup ? Icons.my_location_rounded : Icons.map_rounded,
-                    size: 20,
-                    color: AppColors.primary.withOpacity(0.9),
-                  ),
-                ),
-                if (controller.text.isNotEmpty && controller.text != 'Your Location') ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isFindingLocation ? Icons.gps_not_fixed_rounded : Icons.gps_fixed_rounded,
+                              size: 10,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              _isFindingLocation ? 'Finding...' : 'GPS',
+                              style: const TextStyle(fontSize: 9, color: AppColors.primary, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : Focus(
+                    onFocusChange: (hasFocus) {
                       setState(() {
-                        controller.clear();
-                        if (isPickup) { pickupLat = null; pickupLng = null; }
-                        else { dropLat = null; dropLng = null; }
+                        if (isPickup) showPickupSuggestions = hasFocus;
+                        else showDropSuggestions = hasFocus;
                       });
                     },
-                    child: Icon(Icons.cancel, size: 20, color: Colors.grey.shade500),
+                    child: TextField(
+                      controller: controller,
+                      focusNode: isPickup ? _pickupFocusNode : null,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: hint,
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
                   ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Text field or Your Location display
-            if (isYourLocation)
-              Text(
-                'Your Current Location',
-                style: const TextStyle(color: Color(0xFF1B5E20), fontSize: 16, fontWeight: FontWeight.w700),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              )
-            else
-              Focus(
-                onFocusChange: (hasFocus) {
-                  setState(() {
-                    if (isPickup) showPickupSuggestions = hasFocus;
-                    else showDropSuggestions = hasFocus;
-                  });
-                },
-                child: TextField(
-                  controller: controller,
-                  focusNode: isPickup ? _pickupFocusNode : null,
-                  style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w700, height: 1.2),
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 16, fontWeight: FontWeight.w500),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+          ),
+          const SizedBox(width: 8),
+          if (controller.text.isNotEmpty && controller.text != 'Your Location')
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  controller.clear();
+                  if (isPickup) { pickupLat = null; pickupLng = null; }
+                  else { dropLat = null; dropLng = null; }
+                });
+              },
+              child: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade400),
+            )
+          else if (controller.text.isEmpty || isYourLocation)
+            GestureDetector(
+              onTap: () {
+                if (isPickup) _useCurrentLocation(isPickup: true);
+                else _navigateToMapForLocation(isPickup: false);
+              },
+              child: Icon(
+                isPickup ? Icons.my_location_rounded : Icons.map_outlined,
+                size: 20,
+                color: Colors.grey.shade400,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -1301,27 +1253,26 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     final bool isReady = pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
     return SizedBox(
       width: double.infinity,
-      height: 54,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: isReady ? const LinearGradient(colors: [AppColors.primary, Color(0xFF1565C0)], begin: Alignment.centerLeft, end: Alignment.centerRight) : null,
-          color: isReady ? null : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: isReady ? [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))] : null,
-        ),
-        child: ElevatedButton(
-          onPressed: isReady ? _autoNavigateToBooking : null,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Search Trips', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5, color: isReady ? Colors.white : Colors.grey.shade500)),
-              if (isReady) ...[
-                const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_rounded, size: 20, color: Colors.white),
-              ],
-            ],
+      height: 50,
+      child: ElevatedButton(
+        onPressed: isReady ? _autoNavigateToBooking : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isReady ? Colors.black : Colors.grey.shade200,
+          foregroundColor: isReady ? Colors.white : Colors.grey.shade500,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
           ),
+        ),
+        child: const Text(
+          'Search Trips',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

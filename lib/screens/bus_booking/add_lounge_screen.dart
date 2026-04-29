@@ -1301,6 +1301,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -1750,11 +1752,15 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                 ),
                                 Row(
                                   children: [
-                                    Text(
-                                      'Until bus arrives',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade500,
+                                    Flexible(
+                                      child: Text(
+                                        'Until bus arrives',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     if (distance != null) ...[
@@ -2460,6 +2466,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                               color: Colors.white,
                               letterSpacing: 0.2,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
                           Container(
@@ -2475,6 +2483,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -2673,12 +2683,16 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             Expanded(
               child: Row(
                 children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      fontSize: 14,
-                      color: isSelected ? const Color(0xFF0D47A1) : Colors.black87,
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 14,
+                        color: isSelected ? const Color(0xFF0D47A1) : Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (isHighlighted) ...[
@@ -3040,9 +3054,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Lounge (${_guests.length} guests)',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                Expanded(
+                  child: Text(
+                    'Lounge (${_guests.length} guests)',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Text(
                   'LKR ${_basePrice.toStringAsFixed(0)}',
@@ -3072,9 +3090,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Transport (${_preTripTransportType!.toUpperCase()})',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  Expanded(
+                    child: Text(
+                      'Transport (${_preTripTransportType!.toUpperCase()})',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   Text(
                     _preTripPickupLocation != null
@@ -3379,6 +3401,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                 ? AppColors.primary
                                 : AppColors.textPrimary,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -3594,6 +3618,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 fontWeight: FontWeight.bold,
                 color: isSelected ? Colors.white : AppColors.textPrimary,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(

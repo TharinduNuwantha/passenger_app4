@@ -178,7 +178,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       );
     } else {
       final isRateLimit = authProvider.error?.contains('Too many') ?? false;
-      
+
       ErrorDialog.show(
         context: context,
         title: isRateLimit ? 'Too Many Requests' : 'Error',

@@ -178,7 +178,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                               'Log In',
                               style: TextStyle(
                                 color: AppColors.primary,
-                                fontSize: 32,
+                                fontSize: 26,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -252,7 +252,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                   'Login',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

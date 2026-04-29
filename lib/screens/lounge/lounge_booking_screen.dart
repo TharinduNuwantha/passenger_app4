@@ -337,14 +337,18 @@ class _LoungeBookingScreenState extends State<LoungeBookingScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.black87,
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (isHighlighted) ...[
