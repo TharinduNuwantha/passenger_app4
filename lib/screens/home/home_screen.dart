@@ -127,7 +127,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           pickupController.clear();
         }
       } else {
-        if (pickupController.text.isEmpty && (pickupLat != null || _isFindingLocation)) {
+        if (pickupController.text.isEmpty &&
+            (pickupLat != null || _isFindingLocation)) {
           pickupController.text = 'Your Location';
         }
       }
@@ -792,7 +793,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
       // Using direct coordinate-based search for Lounge-to-Lounge discovery
       // Wait for location if still finding
-      if (pickupController.text == 'Your Location' && _isFindingLocation && _locationFetchFuture != null) {
+      if (pickupController.text == 'Your Location' &&
+          _isFindingLocation &&
+          _locationFetchFuture != null) {
         await _locationFetchFuture;
       }
 
@@ -801,7 +804,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           Navigator.of(context, rootNavigator: true).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to get your location. Please select a pickup location manually.'),
+              content: Text(
+                'Failed to get your location. Please select a pickup location manually.',
+              ),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -809,8 +814,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         return;
       }
 
-      final fromDisplay = pickupController.text == 'Your Location' && _resolvedPickupAddress != null 
-          ? _resolvedPickupAddress! 
+      final fromDisplay =
+          pickupController.text == 'Your Location' &&
+              _resolvedPickupAddress != null
+          ? _resolvedPickupAddress!
           : pickupController.text;
       final toDisplay = dropController.text;
 
@@ -882,10 +889,17 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   Future<void> _useCurrentLocation({required bool isPickup}) async {
     if (isPickup) {
       pickupController.text = 'Your Location';
-      setState(() { _isFindingLocation = true; });
-      _locationFetchFuture = _doUseCurrentLocation(isPickup: true).whenComplete(() {
-        if (mounted) setState(() { _isFindingLocation = false; });
+      setState(() {
+        _isFindingLocation = true;
       });
+      _locationFetchFuture = _doUseCurrentLocation(isPickup: true).whenComplete(
+        () {
+          if (mounted)
+            setState(() {
+              _isFindingLocation = false;
+            });
+        },
+      );
       return _locationFetchFuture;
     } else {
       return _doUseCurrentLocation(isPickup: false);
@@ -963,17 +977,20 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         final data = json.decode(response.body);
         if (data['status'] == 'OK' && data['results'].isNotEmpty) {
           final address = data['results'][0]['formatted_address'];
-          
+
           // Create clean address without numbers
           String cleanAddress = address;
           try {
             final components = data['results'][0]['address_components'] as List;
-            final validParts = components.where((c) {
-              final types = c['types'] as List;
-              return !types.contains('street_number') && 
-                     !types.contains('postal_code') && 
-                     !types.contains('plus_code');
-            }).map((c) => c['long_name']).toList();
+            final validParts = components
+                .where((c) {
+                  final types = c['types'] as List;
+                  return !types.contains('street_number') &&
+                      !types.contains('postal_code') &&
+                      !types.contains('plus_code');
+                })
+                .map((c) => c['long_name'])
+                .toList();
             if (validParts.isNotEmpty) {
               cleanAddress = validParts.join(', ');
             }
@@ -988,9 +1005,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               .replaceAll(RegExp(r'^[\s,]+'), '')
               .replaceAll(RegExp(r'[\s,]+$'), '')
               .trim();
-              
+
           if (cleanAddress.isEmpty) {
-             cleanAddress = 'Unknown Location';
+            cleanAddress = 'Unknown Location';
           }
 
           setState(() {
@@ -1039,77 +1056,174 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   Widget _buildModernLocationSelector() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 24,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.04),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(
+          color: Colors.grey.withOpacity(0.06),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Minimalist Header
-          const Text(
-            'Plan your journey',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Input block
+          // Header with icon badge
           Row(
             children: [
-              // Minimal Timeline
-              Column(
-                children: [
-                  const Icon(Icons.radio_button_checked_rounded, size: 16, color: AppColors.primary),
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    width: 1.5,
-                    height: 24,
-                    color: Colors.grey.shade300,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, Color(0xFF42A5F5)],
                   ),
-                  Icon(Icons.location_on_rounded, size: 16, color: Colors.red.shade400),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.explore_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Where to?',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black87,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  Text(
+                    'Plan your journey',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(width: 16),
+            ],
+          ),
+          const SizedBox(height: 22),
 
-              // Fields
-              Expanded(
-                child: Column(
+          // Input block
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F8FA),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200, width: 1),
+            ),
+            child: Row(
+              children: [
+                // Timeline dots
+                Column(
                   children: [
-                    _buildPremiumField(controller: pickupController, hint: 'Current Location', isPickup: true),
-                    const Divider(height: 24, thickness: 1, color: Color(0xFFF5F5F5)),
-                    _buildPremiumField(controller: dropController, hint: 'Where to?', isPickup: false),
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary, width: 2.5),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      width: 1.5,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.primary.withOpacity(0.4),
+                            Colors.orange.withOpacity(0.5),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 14),
 
-              // Simple Swap Button
-              GestureDetector(
-                onTap: _swapLocations,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    shape: BoxShape.circle,
+                // Fields
+                Expanded(
+                  child: Column(
+                    children: [
+                      _buildPremiumField(
+                        controller: pickupController,
+                        hint: 'Pickup location',
+                        isPickup: true,
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Colors.grey.shade200,
+                      ),
+                      _buildPremiumField(
+                        controller: dropController,
+                        hint: 'Where are you going?',
+                        isPickup: false,
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.swap_vert_rounded, color: Colors.black54, size: 22),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+
+                // Swap Button
+                GestureDetector(
+                  onTap: _swapLocations,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.swap_vert_rounded,
+                      color: Colors.grey.shade700,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           if (showPickupSuggestions || showDropSuggestions)
@@ -1118,7 +1232,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               child: _buildCompactSuggestionsPanel(),
             ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           if (!showPickupSuggestions && !showDropSuggestions)
             _buildModernSearchButton(),
@@ -1148,136 +1262,193 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         });
         if (isPickup) _pickupFocusNode.requestFocus();
       },
-      child: Row(
-        children: [
-          Expanded(
-            child: isYourLocation
-                ? Row(
-                    children: [
-                      const Flexible(
-                        child: Text(
-                          'Your Location',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _isFindingLocation ? Icons.gps_not_fixed_rounded : Icons.gps_fixed_rounded,
-                              size: 10,
+      child: Container(
+        height: 48, // Increased height for better tap target
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+        ), // Added horizontal padding inside the field
+        alignment: Alignment.centerLeft,
+        color: Colors.transparent, // Ensures the whole area is clickable
+        child: Row(
+          children: [
+            Expanded(
+              child: isYourLocation
+                  ? Row(
+                      children: [
+                        const Flexible(
+                          child: Text(
+                            'Your Location',
+                            style: TextStyle(
                               color: AppColors.primary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(width: 3),
-                            Text(
-                              _isFindingLocation ? 'Finding...' : 'GPS',
-                              style: const TextStyle(fontSize: 9, color: AppColors.primary, fontWeight: FontWeight.w700),
-                            ),
-                          ],
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ),
-                      ),
-                    ],
-                  )
-                : Focus(
-                    onFocusChange: (hasFocus) {
-                      setState(() {
-                        if (isPickup) showPickupSuggestions = hasFocus;
-                        else showDropSuggestions = hasFocus;
-                      });
-                    },
-                    child: TextField(
-                      controller: controller,
-                      focusNode: isPickup ? _pickupFocusNode : null,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: hint,
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _isFindingLocation
+                                    ? Icons.gps_not_fixed_rounded
+                                    : Icons.gps_fixed_rounded,
+                                size: 10,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _isFindingLocation ? 'Finding...' : 'GPS',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
+                      ],
+                    )
+                  : Focus(
+                      onFocusChange: (hasFocus) {
+                        setState(() {
+                          if (isPickup)
+                            showPickupSuggestions = hasFocus;
+                          else
+                            showDropSuggestions = hasFocus;
+                        });
+                      },
+                      child: TextField(
+                        controller: controller,
+                        focusNode: isPickup ? _pickupFocusNode : null,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: hint,
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
                       ),
                     ),
-                  ),
-          ),
-          const SizedBox(width: 8),
-          if (controller.text.isNotEmpty && controller.text != 'Your Location')
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  controller.clear();
-                  if (isPickup) { pickupLat = null; pickupLng = null; }
-                  else { dropLat = null; dropLng = null; }
-                });
-              },
-              child: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade400),
-            )
-          else if (controller.text.isEmpty || isYourLocation)
-            GestureDetector(
-              onTap: () {
-                if (isPickup) _useCurrentLocation(isPickup: true);
-                else _navigateToMapForLocation(isPickup: false);
-              },
-              child: Icon(
-                isPickup ? Icons.my_location_rounded : Icons.map_outlined,
-                size: 20,
-                color: Colors.grey.shade400,
-              ),
             ),
-        ],
+            const SizedBox(width: 8),
+            if (controller.text.isNotEmpty &&
+                controller.text != 'Your Location')
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    controller.clear();
+                    if (isPickup) {
+                      pickupLat = null;
+                      pickupLng = null;
+                    } else {
+                      dropLat = null;
+                      dropLng = null;
+                    }
+                  });
+                },
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: Colors.grey.shade400,
+                ),
+              )
+            else if (controller.text.isEmpty || isYourLocation)
+              GestureDetector(
+                onTap: () {
+                  if (isPickup)
+                    _useCurrentLocation(isPickup: true);
+                  else
+                    _navigateToMapForLocation(isPickup: false);
+                },
+                child: Icon(
+                  isPickup ? Icons.my_location_rounded : Icons.map_rounded,
+                  size: 20,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildModernSearchButton() {
-    final bool isReady = pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
-    return SizedBox(
+    final bool isReady =
+        pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
+    return Container(
       width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: isReady ? _autoNavigateToBooking : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isReady ? Colors.black : Colors.grey.shade200,
-          foregroundColor: isReady ? Colors.white : Colors.grey.shade500,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: isReady
+            ? const LinearGradient(
+                colors: [Color(0xFF1565C0), AppColors.primary],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              )
+            : null,
+        color: isReady ? null : Colors.grey.shade200,
+        boxShadow: isReady
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
+                ),
+              ]
+            : [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isReady ? _autoNavigateToBooking : null,
+          borderRadius: BorderRadius.circular(16),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Search Trips',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isReady ? Colors.white : Colors.grey.shade500,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                if (isReady) ...[
+                  const SizedBox(width: 10),
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                ],
+              ],
+            ),
           ),
-        ),
-        child: const Text(
-          'Search Trips',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
-
 
   Widget _buildCompactSuggestionsPanel() {
     final bool isPickup = showPickupSuggestions;
@@ -1290,14 +1461,16 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
+      constraints: const BoxConstraints(maxHeight: 280),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1737,7 +1910,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: EdgeInsets.symmetric(horizontal: isSelected ? 18 : 12, vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSelected ? 18 : 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     gradient: isSelected
                         ? const LinearGradient(
@@ -1849,18 +2025,40 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   Widget _buildQuickDateButton(String label, DateTime date) {
-    final isSelected = selectedDate?.day == date.day && selectedDate?.month == date.month && selectedDate?.year == date.year;
+    final isSelected =
+        selectedDate?.day == date.day &&
+        selectedDate?.month == date.month &&
+        selectedDate?.year == date.year;
     return Expanded(
       child: GestureDetector(
-        onTap: () { setState(() { selectedDate = date; }); _scrollCalendarToDate(date); },
+        onTap: () {
+          setState(() {
+            selectedDate = date;
+          });
+          _scrollCalendarToDate(date);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.primary.withOpacity(0.06),
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.primary.withOpacity(0.06),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isSelected ? AppColors.primary : AppColors.primary.withOpacity(0.2)),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.primary.withOpacity(0.2),
+            ),
           ),
-          child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? Colors.white : AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.white : AppColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
@@ -1868,44 +2066,112 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   Widget _buildActiveTripCard() {
     return GestureDetector(
-      onTap: () { Navigator.push(context, MaterialPageRoute(builder: (context) => BookingQRScreen(bookingData: activeBooking!))); },
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookingQRScreen(bookingData: activeBooking!),
+          ),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [AppColors.infoLight, AppColors.surfaceWhite], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: LinearGradient(
+            colors: [AppColors.infoLight, AppColors.surfaceWhite],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.info, width: 1.5),
-          boxShadow: [BoxShadow(color: AppColors.info.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.info.withOpacity(0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(Icons.qr_code_2, color: AppColors.primary, size: 28),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(10)),
-                    child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'ACTIVE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tap to view QR',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text('Tap to view QR', style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontStyle: FontStyle.italic)),
-                ]),
-                const SizedBox(height: 6),
-                Text(activeBooking!['route'] ?? 'Unknown Route', style: TextStyle(color: Colors.grey[900], fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Text('Ref: ${activeBooking!['referenceNo'] ?? 'N/A'}', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
-              ]),
+                  const SizedBox(height: 6),
+                  Text(
+                    activeBooking!['route'] ?? 'Unknown Route',
+                    style: TextStyle(
+                      color: Colors.grey[900],
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ref: ${activeBooking!['referenceNo'] ?? 'N/A'}',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+              decoration: BoxDecoration(
+                color: AppColors.secondary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.white,
+                size: 14,
+              ),
             ),
           ],
         ),
@@ -1918,99 +2184,261 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 14)),
-          const SizedBox(width: 8),
-          const Text('Select Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.black87)),
-          const Spacer(),
-          if (selectedDate != null)
-            GestureDetector(
-              onTap: () => setState(() => selectedDate = null),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-                child: const Text('Clear', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600)),
-              ),
-            ),
-        ]),
-        const SizedBox(height: 12),
-        Row(children: [
-          _buildQuickDateButton('Today', DateTime.now()),
-          const SizedBox(width: 8),
-          _buildQuickDateButton('Tomorrow', DateTime.now().add(const Duration(days: 1))),
-          const SizedBox(width: 8),
-          _buildQuickDateButton('Next Month', DateTime(DateTime.now().year, DateTime.now().month + 1, 1)),
-        ]),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 78,
-          child: ListView.builder(
-            controller: _calendarScrollController,
-            scrollDirection: Axis.horizontal,
-            itemCount: 30,
-            itemBuilder: (context, index) {
-              final date = DateTime.now().add(Duration(days: index));
-              final isSelected = selectedDate?.day == date.day && selectedDate?.month == date.month && selectedDate?.year == date.year;
-              final isToday = index == 0;
-              return GestureDetector(
-                onTap: () => setState(() => selectedDate = date),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 62, margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    gradient: isSelected ? const LinearGradient(colors: [AppColors.primary, Color(0xFF42A5F5)], begin: Alignment.topLeft, end: Alignment.bottomRight) : null,
-                    color: isSelected ? null : (isToday ? AppColors.primary.withOpacity(0.06) : Colors.grey.shade50),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: isSelected ? Colors.transparent : (isToday ? AppColors.primary.withOpacity(0.3) : Colors.grey.shade200), width: 1.5),
-                    boxShadow: isSelected ? [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] : null,
-                  ),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text(_getDayName(date), style: TextStyle(color: isSelected ? Colors.white.withOpacity(0.85) : Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-                    const SizedBox(height: 3),
-                    Text('${date.day}', style: TextStyle(color: isSelected ? Colors.white : AppColors.primary, fontSize: 20, fontWeight: FontWeight.w800, height: 1)),
-                    const SizedBox(height: 2),
-                    Text(_getMonthName(date).substring(0, 3), style: TextStyle(color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.w500)),
-                  ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              );
-            },
+                child: const Icon(
+                  Icons.calendar_today_rounded,
+                  color: AppColors.primary,
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Select Date',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              if (selectedDate != null)
+                GestureDetector(
+                  onTap: () => setState(() => selectedDate = null),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Clear',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ),
-      ]),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildQuickDateButton('Today', DateTime.now()),
+              const SizedBox(width: 8),
+              _buildQuickDateButton(
+                'Tomorrow',
+                DateTime.now().add(const Duration(days: 1)),
+              ),
+              const SizedBox(width: 8),
+              _buildQuickDateButton(
+                'Next Month',
+                DateTime(DateTime.now().year, DateTime.now().month + 1, 1),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 78,
+            child: ListView.builder(
+              controller: _calendarScrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: 30,
+              itemBuilder: (context, index) {
+                final date = DateTime.now().add(Duration(days: index));
+                final isSelected =
+                    selectedDate?.day == date.day &&
+                    selectedDate?.month == date.month &&
+                    selectedDate?.year == date.year;
+                final isToday = index == 0;
+                return GestureDetector(
+                  onTap: () => setState(() => selectedDate = date),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 62,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      gradient: isSelected
+                          ? const LinearGradient(
+                              colors: [AppColors.primary, Color(0xFF42A5F5)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: isSelected
+                          ? null
+                          : (isToday
+                                ? AppColors.primary.withOpacity(0.06)
+                                : Colors.grey.shade50),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? Colors.transparent
+                            : (isToday
+                                  ? AppColors.primary.withOpacity(0.3)
+                                  : Colors.grey.shade200),
+                        width: 1.5,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _getDayName(date),
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white.withOpacity(0.85)
+                                : Colors.grey.shade500,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${date.day}',
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.primary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _getMonthName(date).substring(0, 3),
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white.withOpacity(0.8)
+                                : Colors.grey.shade500,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildPopularRoutesSection() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(children: [
-          Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.primary, Color(0xFF42A5F5)]), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 14)),
-          const SizedBox(width: 8),
-          const Text('Popular Routes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.black87)),
-        ]),
-      ),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [
-          _buildQuickRouteButton('Colombo → Kandy', Icons.trending_up, 'Colombo Fort', 'Kandy'),
-          const SizedBox(width: 10),
-          _buildQuickRouteButton('Colombo → Galle', Icons.beach_access, 'Colombo Fort', 'Galle'),
-          const SizedBox(width: 10),
-          _buildQuickRouteButton('Kandy → Nuwara Eliya', Icons.landscape, 'Kandy', 'Nuwara Eliya'),
-          const SizedBox(width: 10),
-          _buildQuickRouteButton('Colombo → Jaffna', Icons.directions_bus, 'Colombo Fort', 'Jaffna'),
-          const SizedBox(width: 10),
-          _buildQuickRouteButton('Galle → Matara', Icons.waves, 'Galle', 'Matara'),
-        ]),
-      ),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, Color(0xFF42A5F5)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.bolt_rounded,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Popular Routes',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildQuickRouteButton(
+                'Colombo → Kandy',
+                Icons.trending_up,
+                'Colombo Fort',
+                'Kandy',
+              ),
+              const SizedBox(width: 10),
+              _buildQuickRouteButton(
+                'Colombo → Galle',
+                Icons.beach_access,
+                'Colombo Fort',
+                'Galle',
+              ),
+              const SizedBox(width: 10),
+              _buildQuickRouteButton(
+                'Kandy → Nuwara Eliya',
+                Icons.landscape,
+                'Kandy',
+                'Nuwara Eliya',
+              ),
+              const SizedBox(width: 10),
+              _buildQuickRouteButton(
+                'Colombo → Jaffna',
+                Icons.directions_bus,
+                'Colombo Fort',
+                'Jaffna',
+              ),
+              const SizedBox(width: 10),
+              _buildQuickRouteButton(
+                'Galle → Matara',
+                Icons.waves,
+                'Galle',
+                'Matara',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
-
 
   // Helper method to build quick route buttons
   Widget _buildQuickRouteButton(
@@ -2095,7 +2523,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               Container(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF1565C0), AppColors.primary, Color(0xFF42A5F5)],
+                    colors: [
+                      Color(0xFF1565C0),
+                      AppColors.primary,
+                      Color(0xFF42A5F5),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -2116,9 +2548,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   children: [
                     // Decorative circles
                     Positioned(
-                      top: -20, right: -30,
+                      top: -20,
+                      right: -30,
                       child: Container(
-                        width: 140, height: 140,
+                        width: 140,
+                        height: 140,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white.withOpacity(0.06),
@@ -2126,9 +2560,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       ),
                     ),
                     Positioned(
-                      top: 30, right: 50,
+                      top: 30,
+                      right: 50,
                       child: Container(
-                        width: 70, height: 70,
+                        width: 70,
+                        height: 70,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white.withOpacity(0.08),
@@ -2163,16 +2599,25 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             ),
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.18),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white.withOpacity(0.25)),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.25),
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.directions_bus_rounded, color: Colors.white, size: 13),
+                                  const Icon(
+                                    Icons.directions_bus_rounded,
+                                    color: Colors.white,
+                                    size: 13,
+                                  ),
                                   const SizedBox(width: 5),
                                   Text(
                                     'Book your next journey',
@@ -2192,7 +2637,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             HapticFeedback.heavyImpact();
                             await _notificationService.addLocalNotification(
                               title: 'Special Offer! 🎫',
-                              message: 'Get 25% off on your next trip to Kandy.',
+                              message:
+                                  'Get 25% off on your next trip to Kandy.',
                               type: 'offer',
                             );
                             _loadNotifications();
@@ -2248,8 +2694,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _buildModernLocationSelector(),
           ),
-          const SizedBox(height: 16),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           // Advertisement carousel (auto-rotating every 5s)
           SizedBox(
             height: 200,
@@ -2346,21 +2791,21 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     },
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     advertisements.isNotEmpty ? advertisements.length : 1,
                     (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: _currentAdIndex == i ? 24 : 8,
-                      height: 8,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      duration: const Duration(milliseconds: 300),
+                      width: _currentAdIndex == i ? 28 : 8,
+                      height: 5,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
                       decoration: BoxDecoration(
                         color: _currentAdIndex == i
-                            ? AppColors.white
-                            : AppColors.white.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(8),
+                            ? AppColors.primary
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
