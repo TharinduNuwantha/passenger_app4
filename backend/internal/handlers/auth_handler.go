@@ -968,12 +968,13 @@ type ProfileResponse struct {
 
 // UpdateProfileRequest represents the request to update profile
 type UpdateProfileRequest struct {
-	FirstName  string `json:"first_name" binding:"required"`
-	LastName   string `json:"last_name" binding:"required"`
-	Email      string `json:"email" binding:"required,email"`
-	Address    string `json:"address" binding:"required"`
-	City       string `json:"city"`
-	PostalCode string `json:"postal_code"`
+	FirstName       string `json:"first_name" binding:"required"`
+	LastName        string `json:"last_name" binding:"required"`
+	Email           string `json:"email" binding:"required,email"`
+	ProfilePhotoURL string `json:"profile_photo_url"`
+	Address         string `json:"address" binding:"required"`
+	City            string `json:"city"`
+	PostalCode      string `json:"postal_code"`
 }
 
 // CompleteBasicProfileRequest represents request for completing basic profile (first_name + last_name only)
@@ -1247,6 +1248,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		req.FirstName,
 		req.LastName,
 		req.Email,
+		req.ProfilePhotoURL,
 		req.Address,
 		req.City,
 		req.PostalCode,
@@ -1277,6 +1279,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 			req.FirstName,
 			req.LastName,
 			req.Email,
+			req.ProfilePhotoURL,
 			req.Address,
 			req.City,
 			req.PostalCode,

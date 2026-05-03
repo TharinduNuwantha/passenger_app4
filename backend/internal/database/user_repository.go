@@ -237,20 +237,22 @@ func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 }
 
 // UpdateProfile updates user profile information
-func (r *UserRepository) UpdateProfile(id uuid.UUID, firstName, lastName, email, address, city, postalCode string) error {
+func (r *UserRepository) UpdateProfile(id uuid.UUID, firstName, lastName, email, profilePhotoURL, address, city, postalCode string) error {
 	query := `
 		UPDATE users
 		SET first_name = $1, 
 		    last_name = $2,
 		    email = $3, 
-		    address = $4,
-		    city = $5,
-		    postal_code = $6,
-		    updated_at = $7
-		WHERE id = $8
+		    profile_photo_url = $4,
+		    address = $5,
+		    city = $6,
+		    postal_code = $7,
+		    updated_at = $8
+		WHERE id = $9
 	`
 
-	result, err := r.db.Exec(query, firstName, lastName, email, address, city, postalCode, time.Now(), id)
+	result, err := r.db.Exec(query, firstName, lastName, email, profilePhotoURL, address, city, postalCode, time.Now(), id)
+
 	if err != nil {
 		return fmt.Errorf("failed to update profile: %w", err)
 	}

@@ -4,6 +4,7 @@ class UserModel {
   final String? firstName;
   final String? lastName;
   final String? email;
+  final String? profilePhotoUrl;
   final List<String> roles;
   final bool profileCompleted;
   final bool phoneVerified;
@@ -18,6 +19,7 @@ class UserModel {
     this.firstName,
     this.lastName,
     this.email,
+    this.profilePhotoUrl,
     required this.roles,
     required this.profileCompleted,
     required this.phoneVerified,
@@ -31,29 +33,18 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] as String,
-      phoneNumber:
-          json['phone']
-              as String, // Backend returns 'phone', not 'phone_number'
+      phoneNumber: json['phone'] as String,
       firstName: json['first_name'] as String?,
       lastName: json['last_name'] as String?,
       email: json['email'] as String?,
-      roles:
-          (json['roles'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          ['passenger'],
+      profilePhotoUrl: json['profile_photo_url'] as String?,
+      roles: (json['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? ['passenger'],
       profileCompleted: json['profile_completed'] as bool? ?? false,
       phoneVerified: json['phone_verified'] as bool? ?? false,
       status: json['status'] as String? ?? 'active',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : DateTime.now(),
-      lastLoginAt: json['last_login_at'] != null
-          ? DateTime.parse(json['last_login_at'] as String)
-          : null,
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : DateTime.now(),
+      lastLoginAt: json['last_login_at'] != null ? DateTime.parse(json['last_login_at'] as String) : null,
     );
   }
 
@@ -65,6 +56,7 @@ class UserModel {
       'first_name': firstName,
       'last_name': lastName,
       'email': email,
+      'profile_photo_url': profilePhotoUrl,
       'roles': roles,
       'profile_completed': profileCompleted,
       'phone_verified': phoneVerified,
@@ -92,6 +84,7 @@ class UserModel {
     String? firstName,
     String? lastName,
     String? email,
+    String? profilePhotoUrl,
     List<String>? roles,
     bool? profileCompleted,
     bool? phoneVerified,
@@ -106,6 +99,7 @@ class UserModel {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       roles: roles ?? this.roles,
       profileCompleted: profileCompleted ?? this.profileCompleted,
       phoneVerified: phoneVerified ?? this.phoneVerified,
@@ -118,6 +112,7 @@ class UserModel {
 
   @override
   String toString() {
-    return 'UserModel(id: $id, phoneNumber: $phoneNumber, name: $name, email: $email, roles: $roles, profileCompleted: $profileCompleted)';
+    return 'UserModel(id: $id, phoneNumber: $phoneNumber, name: $name, email: $email, profilePhotoUrl: $profilePhotoUrl, roles: $roles, profileCompleted: $profileCompleted)';
   }
 }
+

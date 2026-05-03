@@ -41,6 +41,7 @@ class UserService {
     required String firstName,
     required String lastName,
     required String email,
+    String? profilePhotoUrl,
     String? address,
     String? city,
     String? postalCode,
@@ -53,10 +54,12 @@ class UserService {
         'first_name': firstName,
         'last_name': lastName,
         'email': email,
+        'profile_photo_url': profilePhotoUrl,
         'address': address != null && address.isNotEmpty ? address : 'N/A',
         'city': city != null && city.isNotEmpty ? city : 'N/A',
         'postal_code': postalCode != null && postalCode.isNotEmpty ? postalCode : '00000',
       };
+
 
       final response = await _apiService.put(
         ApiConfig.updateProfileEndpoint,

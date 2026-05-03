@@ -4,9 +4,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/user_service.dart';
+import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
+import '../../models/user_model.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -21,9 +23,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final UserService _userService = UserService();
+  final SupabaseService _supabaseService = SupabaseService();
   final ImagePicker _picker = ImagePicker();
 
   File? _imageFile;
+  String? _currentPhotoUrl;
   bool isLoading = true;
   bool isSaving = false;
 
@@ -52,6 +56,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _firstNameController.text = user.firstName ?? '';
         _lastNameController.text = user.lastName ?? '';
         _emailController.text = user.email ?? '';
+        _currentPhotoUrl = user.profilePhotoUrl;
         isLoading = false;
       });
     } catch (e) {
@@ -64,21 +69,65 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  bool _checkFileSize(File file) {
+    final int sizeInBytes = file.lengthSync();
+    final double sizeInMb = sizeInBytes / (1024 * 1024);
+    if (sizeInMb > 5) {
+      _showErrorSnackBar("Image size exceeds 5MB limit");
+      return false;
+    }
+    return true;
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _pickImage() async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 75,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
       );
       if (pickedFile != null) {
-        setState(() {
-          _imageFile = File(pickedFile.path);
-        });
+        final File file = File(pickedFile.path);
+        if (_checkFileSize(file)) {
+          setState(() {
+            _imageFile = file;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
+    }
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (pickedFile != null) {
+        final File file = File(pickedFile.path);
+        if (_checkFileSize(file)) {
+          setState(() {
+            _imageFile = file;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking image from camera: $e');
     }
   }
 
@@ -105,6 +154,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const Text(
               "Profile Photo",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Max size 5MB",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 20),
             ListTile(
@@ -144,24 +198,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Future<void> _pickImageFromCamera() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 75,
-      );
-      if (pickedFile != null) {
-        setState(() {
-          _imageFile = File(pickedFile.path);
-        });
-      }
-    } catch (e) {
-      debugPrint('Error picking image from camera: $e');
-    }
-  }
-
   Future<void> _saveUserData() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -170,28 +206,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      // Note: In a real app, you would also upload the _imageFile here
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+      if (user == null) throw "User not found";
+
+      String? photoUrl = _currentPhotoUrl;
+
+      // 1. Upload image if new one selected
+      if (_imageFile != null) {
+        photoUrl = await _supabaseService.uploadProfilePhoto(user.id, _imageFile!);
+      }
+
+      print('DEBUG: Calling updateProfile with URL: $photoUrl');
+
+      // 2. Update profile
       final updatedUser = await _userService.updateProfile(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
+        profilePhotoUrl: photoUrl,
       );
 
+
       if (mounted) {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         authProvider.updateUser(updatedUser);
-        
         _showSuccessDialog();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save profile: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _showErrorSnackBar('Failed to save profile: $e');
       }
     } finally {
       if (mounted) {
@@ -317,12 +360,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       ],
                                     ),
                                     child: CircleAvatar(
-                                      radius: 60,
+                                      radius: 65,
                                       backgroundColor: AppColors.primary.withOpacity(0.05),
                                       backgroundImage: _imageFile != null 
                                           ? FileImage(_imageFile!) 
-                                          : null,
-                                      child: _imageFile == null 
+                                          : (_currentPhotoUrl != null && _currentPhotoUrl!.isNotEmpty)
+                                              ? NetworkImage(_currentPhotoUrl!)
+                                              : null,
+                                      child: (_imageFile == null && (_currentPhotoUrl == null || _currentPhotoUrl!.isEmpty))
                                           ? Icon(Icons.person_rounded, size: 70, color: AppColors.primary.withOpacity(0.4))
                                           : null,
                                     ),
@@ -330,8 +375,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ),
                               ),
                               Positioned(
-                                bottom: 0,
-                                right: 0,
+                                bottom: 2,
+                                right: 2,
                                 child: GestureDetector(
                                   onTap: _showImageSourceDialog,
                                   child: Container(
@@ -489,4 +534,5 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 }
+
 

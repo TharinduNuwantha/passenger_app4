@@ -57,5 +57,14 @@
 	<string>This app may use your location to provide location-based services even when the app is in the background.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>This app uses your location to provide improved location features.</string>
+
+	<!-- Image Picker Permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to take profile photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to pick profile photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access if you record videos for support.</string>
 </dict>
 </plist>
+
