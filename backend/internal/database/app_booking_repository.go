@@ -12,6 +12,24 @@ import (
 	"github.com/smarttransit/sms-auth-backend/internal/models"
 )
 
+// nullableUUID converts a *string UUID pointer to nil if the value is empty.
+// This prevents PostgreSQL from receiving an empty string "" for a UUID column,
+// which would cause: invalid input syntax for type uuid: ""
+func nullableUUID(s *string) *string {
+	if s == nil || *s == "" {
+		return nil
+	}
+	return s
+}
+
+// nullableUUIDStr converts a plain string UUID to nil pointer if the value is empty.
+func nullableUUIDStr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 // AppBookingRepository handles booking database operations
 type AppBookingRepository struct {
 	db *sqlx.DB
@@ -160,6 +178,12 @@ func (r *AppBookingRepository) CreateBooking(
 
 	// 4. Insert bus booking (normalized - no duplicate columns)
 	busBooking.BookingID = booking.ID
+
+	// Validate scheduled_trip_id is not empty (prevents uuid syntax error)
+	if busBooking.ScheduledTripID == "" {
+		return nil, fmt.Errorf("failed to create bus booking: scheduled_trip_id is empty — cannot insert into UUID column")
+	}
+
 	busBookingQuery := `
 		INSERT INTO bus_bookings (
 			booking_id, scheduled_trip_id,
@@ -172,7 +196,7 @@ func (r *AppBookingRepository) CreateBooking(
 
 	err = tx.QueryRowx(busBookingQuery,
 		busBooking.BookingID, busBooking.ScheduledTripID,
-		busBooking.BoardingStopID, busBooking.AlightingStopID,
+		nullableUUID(busBooking.BoardingStopID), nullableUUID(busBooking.AlightingStopID),
 		busBooking.NumberOfSeats, busBooking.FarePerSeat, busBooking.TotalFare,
 		busBooking.Status, busBooking.QRCodeData, busBooking.QRGeneratedAt, busBooking.SpecialRequests,
 	).Scan(&busBooking.ID, &busBooking.CreatedAt, &busBooking.UpdatedAt)
@@ -186,6 +210,11 @@ func (r *AppBookingRepository) CreateBooking(
 		seats[i].BusBookingID = busBooking.ID
 		seats[i].ScheduledTripID = busBooking.ScheduledTripID
 
+		// Validate seat's scheduled_trip_id before insert
+		if seats[i].ScheduledTripID == "" {
+			return nil, fmt.Errorf("failed to create seat booking for seat %s: scheduled_trip_id is empty", seats[i].SeatNumber)
+		}
+
 		seatQuery := `
 			INSERT INTO bus_booking_seats (
 				bus_booking_id, scheduled_trip_id, trip_seat_id,
@@ -197,7 +226,7 @@ func (r *AppBookingRepository) CreateBooking(
 			) RETURNING id, created_at, updated_at`
 
 		err = tx.QueryRowx(seatQuery,
-			seats[i].BusBookingID, seats[i].ScheduledTripID, seats[i].TripSeatID,
+			seats[i].BusBookingID, seats[i].ScheduledTripID, nullableUUID(seats[i].TripSeatID),
 			seats[i].PassengerName, seats[i].PassengerPhone, seats[i].PassengerEmail,
 			seats[i].PassengerGender, seats[i].PassengerNIC,
 			seats[i].IsPrimaryPassenger, seats[i].Status,

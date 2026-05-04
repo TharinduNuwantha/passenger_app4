@@ -749,6 +749,14 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 func (s *BookingOrchestratorService) createBusBookingFromIntent(intent *models.BookingIntent) (*models.BusBooking, string, *uuid.UUID, error) {
 	busIntent := intent.BusIntent
 
+	// Critical: scheduled_trip_id must be a valid non-empty UUID string.
+	// If the JSONB payload was stored/retrieved incorrectly, this prevents
+	// a cryptic PostgreSQL error: invalid input syntax for type uuid: ""
+	if busIntent.ScheduledTripID == "" {
+		s.logger.WithField("intent_id", intent.ID).Error("createBusBookingFromIntent: ScheduledTripID is empty in bus intent payload")
+		return nil, "", nil, fmt.Errorf("failed to create bus booking: scheduled_trip_id is missing from intent payload")
+	}
+
 	// Determine booking type based on lounge intents
 	bookingType := models.BookingTypeBusOnly
 	totalAmount := intent.BusFare
