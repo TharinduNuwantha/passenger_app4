@@ -5,6 +5,8 @@
 // HELPER FUNCTIONS
 // ============================================================================
 
+import 'package:sms_auth_passenger_app/utils/date_utils.dart';
+
 /// Safely parse a value that might be num, String, or null to double
 double _parseDouble(dynamic value) {
   if (value == null) return 0.0;
@@ -524,7 +526,7 @@ class BookingIntentResponse {
       intentId: json['intent_id'] as String? ?? '',
       status: BookingIntentStatus.fromJson(json['status'] as String?),
       expiresAt: json['expires_at'] != null
-          ? DateTime.parse(json['expires_at'] as String)
+          ? parseUtcDate(json['expires_at'] as String)
           : DateTime.now().add(const Duration(minutes: 10)),
       pricing: pricingData != null
           ? IntentPricing.fromJson(pricingData as Map<String, dynamic>)
@@ -642,7 +644,7 @@ class BusIntentSummary {
       scheduledTripId: json['scheduled_trip_id'] as String? ?? '',
       routeName: json['route_name'] as String?,
       departureDatetime: json['departure_datetime'] != null
-          ? DateTime.parse(json['departure_datetime'] as String)
+          ? parseUtcDate(json['departure_datetime'] as String)
           : null,
       boardingStop: json['boarding_stop'] as String?,
       alightingStop: json['alighting_stop'] as String?,
@@ -758,7 +760,7 @@ class InitiatePaymentResponse {
       amount: parsedAmount,
       currency: json['currency'] as String? ?? 'LKR',
       expiresAt: json['expires_at'] != null
-          ? DateTime.parse(json['expires_at'] as String)
+          ? parseUtcDate(json['expires_at'] as String)
           : DateTime.now().add(const Duration(minutes: 10)),
       uid: json['uid'] as String?,
       statusIndicator: json['status_indicator'] as String?,
@@ -803,7 +805,7 @@ class IntentStatusResponse {
       intentId: json['intent_id'] as String? ?? '',
       status: BookingIntentStatus.fromJson(json['status'] as String?),
       expiresAt: json['expires_at'] != null
-          ? DateTime.parse(json['expires_at'] as String)
+          ? parseUtcDate(json['expires_at'] as String)
           : DateTime.now().add(const Duration(minutes: 10)),
       timeRemainingSeconds: ttl,
       pricing: pricingData != null

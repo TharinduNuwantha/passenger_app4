@@ -1,3 +1,5 @@
+import 'package:sms_auth_passenger_app/utils/date_utils.dart';
+
 class UserModel {
   final String id;
   final String phoneNumber;
@@ -42,9 +44,9 @@ class UserModel {
       profileCompleted: json['profile_completed'] as bool? ?? false,
       phoneVerified: json['phone_verified'] as bool? ?? false,
       status: json['status'] as String? ?? 'active',
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : DateTime.now(),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : DateTime.now(),
-      lastLoginAt: json['last_login_at'] != null ? DateTime.parse(json['last_login_at'] as String) : null,
+      createdAt: json['created_at'] != null ? parseUtcDate(json['created_at'] as String) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? parseUtcDate(json['updated_at'] as String) : DateTime.now(),
+      lastLoginAt: json['last_login_at'] != null ? parseUtcDate(json['last_login_at'] as String) : null,
     );
   }
 

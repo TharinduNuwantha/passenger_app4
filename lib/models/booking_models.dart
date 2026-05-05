@@ -5,6 +5,8 @@
 // ENUMS / STATUS TYPES
 // ============================================================================
 
+import 'package:sms_auth_passenger_app/utils/date_utils.dart';
+
 enum BookingType {
   busOnly,
   loungeOnly,
@@ -667,16 +669,16 @@ class BusBooking {
       alightingStopName: json['alighting_stop_name'] as String? ?? '',
       alightingStopOrder: json['alighting_stop_order'] as int?,
       departureDatetime: json['departure_datetime'] != null
-          ? DateTime.parse(json['departure_datetime'] as String)
+          ? parseUtcDate(json['departure_datetime'] as String)
           : DateTime.now(),
       estimatedArrivalDatetime: json['estimated_arrival_datetime'] != null
-          ? DateTime.parse(json['estimated_arrival_datetime'] as String)
+          ? parseUtcDate(json['estimated_arrival_datetime'] as String)
           : null,
       actualDepartureDatetime: json['actual_departure_datetime'] != null
-          ? DateTime.parse(json['actual_departure_datetime'] as String)
+          ? parseUtcDate(json['actual_departure_datetime'] as String)
           : null,
       actualArrivalDatetime: json['actual_arrival_datetime'] != null
-          ? DateTime.parse(json['actual_arrival_datetime'] as String)
+          ? parseUtcDate(json['actual_arrival_datetime'] as String)
           : null,
       numberOfSeats: json['number_of_seats'] as int? ?? 0,
       farePerSeat: (json['fare_per_seat'] as num?)?.toDouble() ?? 0.0,
@@ -1063,7 +1065,7 @@ class BookingListItem {
           : DateTime.now(),
       routeName: json['route_name'] as String?,
       departureDatetime: json['departure_datetime'] != null
-          ? DateTime.parse(json['departure_datetime'] as String)
+          ? parseUtcDate(json['departure_datetime'] as String)
           : null,
       numberOfSeats: json['number_of_seats'] as int?,
       busStatus: json['bus_status'] != null

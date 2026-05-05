@@ -182,14 +182,22 @@ class TripResult {
     this.leg2,
   });
 
+  // Helper to ensure dates are parsed as UTC
+  static DateTime _parseUtcDate(String dateStr) {
+    if (!dateStr.endsWith('Z') && !dateStr.contains('+') && !dateStr.contains('-')) {
+      dateStr += 'Z';
+    }
+    return DateTime.parse(dateStr).toLocal();
+  }
+
   factory TripResult.fromJson(Map<String, dynamic> json) {
     return TripResult(
       tripId: json['trip_id'] as String,
       routeName: json['route_name'] as String? ?? 'Unknown Route',
       routeNumber: json['route_number'] as String?,
       busType: json['bus_type'] as String? ?? 'normal',
-      departureTime: DateTime.parse(json['departure_time'] as String),
-      estimatedArrival: DateTime.parse(json['estimated_arrival'] as String),
+      departureTime: _parseUtcDate(json['departure_time'] as String),
+      estimatedArrival: _parseUtcDate(json['estimated_arrival'] as String),
       durationMinutes: json['duration_minutes'] as int? ?? 0,
       totalSeats: json['total_seats'] as int? ?? 0,
       fare: (json['fare'] as num?)?.toDouble() ?? 0.0,
