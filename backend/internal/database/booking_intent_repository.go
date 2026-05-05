@@ -142,6 +142,12 @@ func (r *BookingIntentRepository) GetIntentByID(intentID uuid.UUID) (*models.Boo
 			return nil, fmt.Errorf("failed to unmarshal bus_intent: %w", err)
 		}
 	}
+	if preLoungeJSON.Valid && preLoungeJSON.String != "" {
+		intent.PreTripLoungeIntent = &models.LoungeIntentPayload{}
+		if err := json.Unmarshal([]byte(preLoungeJSON.String), intent.PreTripLoungeIntent); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal pre_trip_lounge_intent: %w", err)
+		}
+	}
 	if transitLoungeJSON.Valid && transitLoungeJSON.String != "" {
 		intent.TransitLoungeIntent = &models.LoungeIntentPayload{}
 		if err := json.Unmarshal([]byte(transitLoungeJSON.String), intent.TransitLoungeIntent); err != nil {
