@@ -1048,6 +1048,7 @@ start_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $2) / 2)), 2)
           )) <= $5
     ORDER BY dist_m ASC
+    LIMIT 1
 ),
 
 -- ── 2. Candidate lounges near the DESTINATION, ranked by proximity ───────────
@@ -1068,6 +1069,7 @@ drop_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $4) / 2)), 2)
           )) <= $5
     ORDER BY dist_m ASC
+    LIMIT 1
 ),
 
 -- ── 3. Directional lounge pairs sharing a master route ───────────────────────
@@ -1155,7 +1157,6 @@ JOIN LATERAL (
       AND st.status IN ('scheduled', 'confirmed')
       AND st.departure_datetime > $6
     ORDER BY st.departure_datetime ASC
-    LIMIT 3
 ) sched ON true
 ORDER BY mr_data.start_dist_m ASC, mr_data.drop_dist_m ASC, sched.departure_time ASC
 LIMIT $7
@@ -1278,6 +1279,8 @@ start_lounges AS (
               COS(RADIANS($1))*COS(RADIANS(l.latitude))*
               POWER(SIN(RADIANS((l.longitude - $2)/2)),2)
           )) <= $5
+    ORDER BY dist_m ASC
+    LIMIT 1
 ),
 
 drop_lounges AS (
@@ -1294,6 +1297,8 @@ drop_lounges AS (
               COS(RADIANS($3))*COS(RADIANS(l.latitude))*
               POWER(SIN(RADIANS((l.longitude - $4)/2)),2)
           )) <= $5
+    ORDER BY dist_m ASC
+    LIMIT 1
 ),
 
 direct_pairs AS (
@@ -1315,16 +1320,42 @@ direct_pairs AS (
     LIMIT 30
 ),
 
-transit_chains AS (
+transit_chains_base AS (
     SELECT sl.id AS sl_id, sl.lounge_name AS sl_name, sl.dist_m AS sl_dist,
            dl.id AS dl_id, dl.lounge_name AS dl_name, dl.dist_m AS dl_dist,
            tl.id AS tl_id, tl.lounge_name AS tl_name,
+           erm * 2 * ASIN(SQRT(
+               POWER(SIN(RADIANS((tl.latitude - $1)/2)),2) +
+               COS(RADIANS($1))*COS(RADIANS(tl.latitude))*
+               POWER(SIN(RADIANS((tl.longitude - $2)/2)),2)
+           )) +
+           erm * 2 * ASIN(SQRT(
+               POWER(SIN(RADIANS((tl.latitude - $3)/2)),2) +
+               COS(RADIANS($3))*COS(RADIANS(tl.latitude))*
+               POWER(SIN(RADIANS((tl.longitude - $4)/2)),2)
+           )) AS hub_weight,
            lr1.master_route_id AS r1_id, lr2.master_route_id AS r2_id,
            lr1.stop_before_id AS b1_id, lrt1.stop_before_id AS d1_id,
-           lrt2.stop_before_id AS b2_id, lr2.stop_before_id AS d2_id
+           lrt2.stop_before_id AS b2_id, lr2.stop_before_id AS d2_id,
+           ROW_NUMBER() OVER(
+               PARTITION BY sl.id, dl.id, lr1.master_route_id, lr2.master_route_id
+               ORDER BY (
+                   erm * 2 * ASIN(SQRT(
+                       POWER(SIN(RADIANS((tl.latitude - $1)/2)),2) +
+                       COS(RADIANS($1))*COS(RADIANS(tl.latitude))*
+                       POWER(SIN(RADIANS((tl.longitude - $2)/2)),2)
+                   )) +
+                   erm * 2 * ASIN(SQRT(
+                       POWER(SIN(RADIANS((tl.latitude - $3)/2)),2) +
+                       COS(RADIANS($3))*COS(RADIANS(tl.latitude))*
+                       POWER(SIN(RADIANS((tl.longitude - $4)/2)),2)
+                   ))
+               ) ASC
+           ) as hub_rank
     FROM start_lounges sl
     CROSS JOIN drop_lounges dl
     JOIN lounges tl ON tl.id <> sl.id AND tl.id <> dl.id
+    CROSS JOIN haversine
     JOIN lounge_routes lr1  ON lr1.lounge_id  = sl.id
     JOIN lounge_routes lrt1 ON lrt1.lounge_id = tl.id AND lrt1.master_route_id = lr1.master_route_id
     JOIN master_route_stops mrs1_s ON mrs1_s.id = lr1.stop_before_id
@@ -1337,7 +1368,13 @@ transit_chains AS (
     JOIN master_routes mr2 ON mr2.id = lr2.master_route_id AND mr2.is_active = true
     WHERE mrs1_s.stop_order < mrs1_t.stop_order
       AND mrs2_t.stop_order < mrs2_d.stop_order
-    ORDER BY sl.dist_m ASC, dl.dist_m ASC
+),
+
+transit_chains AS (
+    SELECT sl_id, sl_name, sl_dist, dl_id, dl_name, dl_dist, tl_id, tl_name, r1_id, r2_id, b1_id, d1_id, b2_id, d2_id
+    FROM transit_chains_base
+    WHERE hub_rank = 1
+    ORDER BY sl_dist ASC, dl_dist ASC, hub_weight ASC
     LIMIT 20
 ),
 
@@ -1388,7 +1425,7 @@ direct_results AS (
         WHERE COALESCE(bor.master_route_id,rp.master_route_id) = dp.route_id
           AND st.is_bookable = true AND st.status IN ('scheduled','confirmed')
           AND st.departure_datetime > $6
-        ORDER BY st.departure_datetime ASC LIMIT 1
+        ORDER BY st.departure_datetime ASC
     ) s1 ON true
 ),
 
@@ -1440,7 +1477,7 @@ transit_results AS (
         WHERE COALESCE(bor.master_route_id,rp.master_route_id) = tc.r1_id
           AND st.is_bookable = true AND st.status IN ('scheduled','confirmed')
           AND st.departure_datetime > $6
-        ORDER BY st.departure_datetime ASC LIMIT 1
+        ORDER BY st.departure_datetime ASC
     ) l1 ON true
     JOIN LATERAL (
         SELECT st.id::text AS trip_id, st.departure_datetime AS departure_time,
@@ -1454,7 +1491,7 @@ transit_results AS (
         WHERE COALESCE(bor.master_route_id,rp.master_route_id) = tc.r2_id
           AND st.is_bookable = true AND st.status IN ('scheduled','confirmed')
           AND st.departure_datetime >= l1.estimated_arrival + INTERVAL '15 minutes'
-        ORDER BY st.departure_datetime ASC LIMIT 1
+        ORDER BY st.departure_datetime ASC
     ) l2 ON true
 )
 
