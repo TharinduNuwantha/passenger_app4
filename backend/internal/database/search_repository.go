@@ -1048,7 +1048,6 @@ start_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $2) / 2)), 2)
           )) <= $5
     ORDER BY dist_m ASC
-    LIMIT 1
 ),
 
 -- ── 2. Candidate lounges near the DESTINATION, ranked by proximity ───────────
@@ -1069,7 +1068,6 @@ drop_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $4) / 2)), 2)
           )) <= $5
     ORDER BY dist_m ASC
-    LIMIT 1
 ),
 
 -- ── 3. Directional lounge pairs sharing a master route ───────────────────────
@@ -1280,7 +1278,6 @@ start_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $2)/2)),2)
           )) <= $5
     ORDER BY dist_m ASC
-    LIMIT 1
 ),
 
 drop_lounges AS (
@@ -1298,7 +1295,6 @@ drop_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $4)/2)),2)
           )) <= $5
     ORDER BY dist_m ASC
-    LIMIT 1
 ),
 
 direct_pairs AS (
@@ -1381,7 +1377,7 @@ transit_chains AS (
 direct_results AS (
     SELECT 'direct'::text AS route_type,
            dp.sl_name AS start_lounge_name, dp.dl_name AS drop_lounge_name,
-           NULL::text AS transit_lounge_name,
+           NULL::text AS transit_lounge_name, NULL::text AS transit_lounge_id,
            dp.sl_dist AS start_dist_m, dp.dl_dist AS drop_dist_m,
            dp.route_name AS r1_route_name, dp.route_number AS r1_route_number,
            dp.route_id::text AS r1_master_id,
@@ -1432,7 +1428,7 @@ direct_results AS (
 transit_results AS (
     SELECT 'transit'::text AS route_type,
            tc.sl_name AS start_lounge_name, tc.dl_name AS drop_lounge_name,
-           tc.tl_name AS transit_lounge_name,
+           tc.tl_name AS transit_lounge_name, tc.tl_id::text AS transit_lounge_id,
            tc.sl_dist AS start_dist_m, tc.dl_dist AS drop_dist_m,
            mr1.route_name AS r1_route_name, mr1.route_number AS r1_route_number,
            tc.r1_id::text AS r1_master_id,
@@ -1511,6 +1507,7 @@ LIMIT $7;
 		StartLoungeName    string     `db:"start_lounge_name"`
 		DropLoungeName     string     `db:"drop_lounge_name"`
 		TransitLoungeName  *string    `db:"transit_lounge_name"`
+		TransitLoungeID    *string    `db:"transit_lounge_id"`
 		StartDistM         float64    `db:"start_dist_m"`
 		DropDistM          float64    `db:"drop_dist_m"`
 		R1RouteName        string     `db:"r1_route_name"`
@@ -1599,6 +1596,12 @@ LIMIT $7;
 			if row.R2RouteName != nil { r2Name = *row.R2RouteName }
 			transitHub := ""
 			if row.TransitLoungeName != nil { transitHub = *row.TransitLoungeName }
+			var transitHubID *uuid.UUID
+			if row.TransitLoungeID != nil {
+				if id, err := uuid.Parse(*row.TransitLoungeID); err == nil {
+					transitHubID = &id
+				}
+			}
 
 			l2ID := uuid.UUID{}
 			if row.L2TripID != nil { l2ID, _ = uuid.Parse(*row.L2TripID) }
@@ -1643,6 +1646,7 @@ LIMIT $7;
 				IsBookable:       row.L1IsBookable && row.L2IsBookable,
 				IsTransit:        true,
 				TransitPoint:     transitHub,
+				TransitPointID:   transitHubID,
 				Leg1:             &leg1,
 				Leg2:             &leg2,
 				MasterRouteID:    &row.R1MasterID,
