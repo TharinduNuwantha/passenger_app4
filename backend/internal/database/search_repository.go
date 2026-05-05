@@ -1031,6 +1031,7 @@ func (r *SearchRepository) FindLoungeDirectRoutes(
 	const loungeQuery = `
 WITH
 -- ── 1. Candidate lounges near the ORIGIN, ranked by Haversine distance ──────
+-- LIMIT 1: Pin to the single nearest approved lounge to avoid result explosion
 start_lounges AS (
     SELECT
         l.id           AS lounge_id,
@@ -1048,9 +1049,11 @@ start_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $2) / 2)), 2)
           )) <= $5
     ORDER BY dist_m ASC
+    LIMIT 1
 ),
 
 -- ── 2. Candidate lounges near the DESTINATION, ranked by proximity ───────────
+-- LIMIT 1: Pin to the single nearest approved drop lounge
 drop_lounges AS (
     SELECT
         l.id           AS lounge_id,
@@ -1068,6 +1071,7 @@ drop_lounges AS (
               POWER(SIN(RADIANS((l.longitude - $4) / 2)), 2)
           )) <= $5
     ORDER BY dist_m ASC
+    LIMIT 1
 ),
 
 -- ── 3. Directional lounge pairs sharing a master route ───────────────────────
@@ -1895,25 +1899,31 @@ func (r *SearchRepository) FindLoungeTransitRoutes(
 
 	const transitQuery = `
 WITH 
--- 1. Candidate Start Lounges
+-- 1. Nearest Single Start Lounge (approved, locked to 1)
 start_lounges AS (
     SELECT id, lounge_name, latitude, longitude,
            6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) as dist_m
     FROM lounges 
-    WHERE status = 'approved' AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) <= $5
+    WHERE status = 'approved' AND latitude IS NOT NULL AND longitude IS NOT NULL
+      AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) <= $5
+    ORDER BY dist_m ASC
+    LIMIT 1
 ),
--- 2. Candidate Drop Lounges
+-- 2. Nearest Single Drop Lounge (approved, locked to 1)
 drop_lounges AS (
     SELECT id, lounge_name, latitude, longitude,
            6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) as dist_m
     FROM lounges 
-    WHERE status = 'approved' AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) <= $5
+    WHERE status = 'approved' AND latitude IS NOT NULL AND longitude IS NOT NULL
+      AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) <= $5
+    ORDER BY dist_m ASC
+    LIMIT 1
 ),
--- 3. Potential Transit Lounges (exclude start/drop)
+-- 3. Potential Transit Lounges (approved only, exclude start/drop)
 transit_lounges AS (
     SELECT id, lounge_name FROM lounges WHERE status = 'approved'
 ),
--- 4. One-Transit Chain Discovery
+-- 4. One-Transit Chain Discovery: for the fixed start+drop pair, find the nearest transit hub
 matched_chains AS (
     SELECT 
         sl.id as sl_id, sl.lounge_name as sl_name, sl.dist_m as sl_dist,
@@ -1921,7 +1931,9 @@ matched_chains AS (
         dl.id as dl_id, dl.lounge_name as dl_name, dl.dist_m as dl_dist,
         lr1.master_route_id as r1_id, lr2.master_route_id as r2_id,
         lr1.stop_before_id as b1_id, lrt1.stop_before_id as d1_id,
-        lrt2.stop_before_id as b2_id, lr2.stop_before_id as d2_id
+        lrt2.stop_before_id as b2_id, lr2.stop_before_id as d2_id,
+        -- Calculate transit hub deviation from direct path midpoint for nearest hub selection
+        ABS(mrs1_t.stop_order - mrs1_s.stop_order) + ABS(mrs2_d.stop_order - mrs2_t.stop_order) AS total_stop_hops
     FROM start_lounges sl
     CROSS JOIN drop_lounges dl
     JOIN transit_lounges tl ON tl.id NOT IN (sl.id, dl.id)
@@ -1937,8 +1949,9 @@ matched_chains AS (
     JOIN master_route_stops mrs2_d ON mrs2_d.id = lr2.stop_before_id
     WHERE mrs1_s.stop_order < mrs1_t.stop_order
       AND mrs2_t.stop_order < mrs2_d.stop_order
-    ORDER BY sl.dist_m ASC, dl.dist_m ASC
-    LIMIT 20
+    -- Select the single best (nearest) transit hub by minimizing total stop hops
+    ORDER BY total_stop_hops ASC, sl.dist_m ASC, dl.dist_m ASC
+    LIMIT 1
 )
 SELECT 
     mc.sl_name as start_lounge_name, mc.sl_dist as start_dist_m,
