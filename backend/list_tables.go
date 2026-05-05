@@ -10,17 +10,38 @@ import (
 
 func main() {
 	connUrl := "postgresql://postgres.pttatcukzpceljcrwehk:KQ95tJUYdFX251VR@aws-1-us-east-1.pooler.supabase.com:6543/postgres"
-	conn, err := pgx.Connect(context.Background(), connUrl)
+	
+	config, err := pgx.ParseConfig(connUrl)
+	if err != nil {
+		log.Fatalf("Parse config failed: %v", err)
+	}
+	
+	// Enable simple protocol for Supabase pooler
+	config.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	
+	conn, err := pgx.ConnectConfig(context.Background(), config)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}
 	defer conn.Close(context.Background())
 
-	fmt.Println("Listing all tables in public schema...")
-	rows, _ := conn.Query(context.Background(), "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+	fmt.Println("Listing columns for booking_intents...")
+	rows, err := conn.Query(context.Background(), `
+		SELECT column_name, data_type 
+		FROM information_schema.columns 
+		WHERE table_name = 'booking_intents'
+		ORDER BY ordinal_position
+	`)
+	if err != nil {
+		log.Fatalf("Query failed: %v", err)
+	}
+	defer rows.Close()
+
 	for rows.Next() {
-		var name string
-		rows.Scan(&name)
-		fmt.Println("Table:", name)
+		var name, dtype string
+		if err := rows.Scan(&name, &dtype); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("- %s (%s)\n", name, dtype)
 	}
 }

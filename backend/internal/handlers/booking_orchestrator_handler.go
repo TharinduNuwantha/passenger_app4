@@ -332,6 +332,7 @@ func (h *BookingOrchestratorHandler) CancelIntent(c *gin.Context) {
 // AddLoungeToIntentRequest represents the request to add lounges to an existing intent
 type AddLoungeToIntentRequest struct {
 	PreTripLounge  *models.LoungeIntentPayload `json:"pre_trip_lounge,omitempty"`
+	TransitLounge  *models.LoungeIntentPayload `json:"transit_lounge,omitempty"`
 	PostTripLounge *models.LoungeIntentPayload `json:"post_trip_lounge,omitempty"`
 }
 
@@ -376,13 +377,13 @@ func (h *BookingOrchestratorHandler) AddLoungeToIntent(c *gin.Context) {
 	}
 
 	// Validate at least one lounge is provided
-	if req.PreTripLounge == nil && req.PostTripLounge == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "at least one lounge (pre_trip_lounge or post_trip_lounge) must be provided"})
+	if req.PreTripLounge == nil && req.TransitLounge == nil && req.PostTripLounge == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "at least one lounge (pre_trip_lounge, transit_lounge, or post_trip_lounge) must be provided"})
 		return
 	}
 
 	// Add lounges to intent
-	response, err := h.orchestratorService.AddLoungeToIntent(intentID, userID, req.PreTripLounge, req.PostTripLounge)
+	response, err := h.orchestratorService.AddLoungeToIntent(intentID, userID, req.PreTripLounge, req.TransitLounge, req.PostTripLounge)
 	if err != nil {
 		errMsg := err.Error()
 		if errMsg == "intent not found" {

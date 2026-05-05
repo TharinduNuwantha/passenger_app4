@@ -100,28 +100,24 @@ type TripResult struct {
 	BusOwnerRouteID *string `json:"-" db:"bus_owner_route_id"`
 }
 
-// MarshalJSON implements custom JSON marshaling to handle timestamps without timezone
-func (tr TripResult) MarshalJSON() ([]byte, error) {
+var colomboLoc *time.Location
+
+func init() {
+	var err error
 	// Load Asia/Colombo timezone (Sri Lanka)
-	loc, err := time.LoadLocation("Asia/Colombo")
+	colomboLoc, err = time.LoadLocation("Asia/Colombo")
 	if err != nil {
 		// Fallback to UTC if timezone loading fails
-		loc = time.UTC
+		colomboLoc = time.UTC
 	}
+}
 
-	// Always convert database timestamps to Asia/Colombo timezone
-	// Database stores times without timezone, so we interpret them as Sri Lankan local time
-	departureTime := time.Date(
-		tr.DepartureTime.Year(), tr.DepartureTime.Month(), tr.DepartureTime.Day(),
-		tr.DepartureTime.Hour(), tr.DepartureTime.Minute(), tr.DepartureTime.Second(),
-		tr.DepartureTime.Nanosecond(), loc,
-	)
-
-	estimatedArrival := time.Date(
-		tr.EstimatedArrival.Year(), tr.EstimatedArrival.Month(), tr.EstimatedArrival.Day(),
-		tr.EstimatedArrival.Hour(), tr.EstimatedArrival.Minute(), tr.EstimatedArrival.Second(),
-		tr.EstimatedArrival.Nanosecond(), loc,
-	)
+// MarshalJSON implements custom JSON marshaling to handle timestamps
+func (tr TripResult) MarshalJSON() ([]byte, error) {
+	// Convert database timestamps to Asia/Colombo timezone
+	// .In(loc) correctly handles the conversion from UTC or any other zone
+	departureTime := tr.DepartureTime.In(colomboLoc)
+	estimatedArrival := tr.EstimatedArrival.In(colomboLoc)
 
 	type Alias TripResult
 	return json.Marshal(&struct {

@@ -32,7 +32,7 @@ func (r *BookingIntentRepository) CreateIntent(intent *models.BookingIntent) err
 	intent.UpdatedAt = time.Now()
 
 	// Marshal JSONB fields - use *string to properly handle NULL and JSON
-	var busIntentJSON, preLoungeJSON, postLoungeJSON *string
+	var busIntentJSON, preLoungeJSON, transitLoungeJSON, postLoungeJSON *string
 	var pricingSnapshotJSON string
 	var err error
 
@@ -52,6 +52,14 @@ func (r *BookingIntentRepository) CreateIntent(intent *models.BookingIntent) err
 		s := string(jsonBytes)
 		preLoungeJSON = &s
 	}
+	if intent.TransitLoungeIntent != nil {
+		jsonBytes, err := json.Marshal(intent.TransitLoungeIntent)
+		if err != nil {
+			return fmt.Errorf("failed to marshal transit_lounge_intent: %w", err)
+		}
+		s := string(jsonBytes)
+		transitLoungeJSON = &s
+	}
 	if intent.PostTripLoungeIntent != nil {
 		jsonBytes, err := json.Marshal(intent.PostTripLoungeIntent)
 		if err != nil {
@@ -69,18 +77,18 @@ func (r *BookingIntentRepository) CreateIntent(intent *models.BookingIntent) err
 	query := `
 		INSERT INTO booking_intents (
 			id, user_id, intent_type, status,
-			bus_intent, pre_trip_lounge_intent, post_trip_lounge_intent,
-			bus_fare, pre_lounge_fare, post_lounge_fare, total_amount, currency,
+			bus_intent, pre_trip_lounge_intent, transit_lounge_intent, post_trip_lounge_intent,
+			bus_fare, pre_lounge_fare, transit_lounge_fare, post_lounge_fare, total_amount, currency,
 			pricing_snapshot, payment_gateway, expires_at,
 			idempotency_key, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		)`
 
 	_, err = r.db.Exec(query,
 		intent.ID, intent.UserID, intent.IntentType, intent.Status,
-		busIntentJSON, preLoungeJSON, postLoungeJSON,
-		intent.BusFare, intent.PreLoungeFare, intent.PostLoungeFare, intent.TotalAmount, intent.Currency,
+		busIntentJSON, preLoungeJSON, transitLoungeJSON, postLoungeJSON,
+		intent.BusFare, intent.PreLoungeFare, intent.TransitLoungeFare, intent.PostLoungeFare, intent.TotalAmount, intent.Currency,
 		pricingSnapshotJSON, intent.PaymentGateway, intent.ExpiresAt,
 		intent.IdempotencyKey, intent.CreatedAt, intent.UpdatedAt,
 	)
@@ -90,16 +98,16 @@ func (r *BookingIntentRepository) CreateIntent(intent *models.BookingIntent) err
 // GetIntentByID retrieves an intent by ID
 func (r *BookingIntentRepository) GetIntentByID(intentID uuid.UUID) (*models.BookingIntent, error) {
 	var intent models.BookingIntent
-	var busIntentJSON, preLoungeJSON, postLoungeJSON, pricingSnapshotJSON sql.NullString
+	var busIntentJSON, preLoungeJSON, transitLoungeJSON, postLoungeJSON, pricingSnapshotJSON sql.NullString
 	var paymentStatus sql.NullString
 
 	query := `
 		SELECT 
 			id, user_id, intent_type, status,
-			bus_intent, pre_trip_lounge_intent, post_trip_lounge_intent,
-			bus_fare, pre_lounge_fare, post_lounge_fare, total_amount, currency,
+			bus_intent, pre_trip_lounge_intent, transit_lounge_intent, post_trip_lounge_intent,
+			bus_fare, pre_lounge_fare, transit_lounge_fare, post_lounge_fare, total_amount, currency,
 			pricing_snapshot, payment_reference, payment_status, payment_gateway,
-			bus_booking_id, pre_lounge_booking_id, post_lounge_booking_id,
+			bus_booking_id, pre_lounge_booking_id, transit_lounge_booking_id, post_lounge_booking_id,
 			expires_at, payment_initiated_at, confirmed_at, expired_at,
 			created_at, updated_at, idempotency_key
 		FROM booking_intents
@@ -107,10 +115,10 @@ func (r *BookingIntentRepository) GetIntentByID(intentID uuid.UUID) (*models.Boo
 
 	err := r.db.QueryRow(query, intentID).Scan(
 		&intent.ID, &intent.UserID, &intent.IntentType, &intent.Status,
-		&busIntentJSON, &preLoungeJSON, &postLoungeJSON,
-		&intent.BusFare, &intent.PreLoungeFare, &intent.PostLoungeFare, &intent.TotalAmount, &intent.Currency,
+		&busIntentJSON, &preLoungeJSON, &transitLoungeJSON, &postLoungeJSON,
+		&intent.BusFare, &intent.PreLoungeFare, &intent.TransitLoungeFare, &intent.PostLoungeFare, &intent.TotalAmount, &intent.Currency,
 		&pricingSnapshotJSON, &intent.PaymentReference, &paymentStatus, &intent.PaymentGateway,
-		&intent.BusBookingID, &intent.PreLoungeBookingID, &intent.PostLoungeBookingID,
+		&intent.BusBookingID, &intent.PreLoungeBookingID, &intent.TransitLoungeBookingID, &intent.PostLoungeBookingID,
 		&intent.ExpiresAt, &intent.PaymentInitiatedAt, &intent.ConfirmedAt, &intent.ExpiredAt,
 		&intent.CreatedAt, &intent.UpdatedAt, &intent.IdempotencyKey,
 	)
@@ -134,10 +142,10 @@ func (r *BookingIntentRepository) GetIntentByID(intentID uuid.UUID) (*models.Boo
 			return nil, fmt.Errorf("failed to unmarshal bus_intent: %w", err)
 		}
 	}
-	if preLoungeJSON.Valid && preLoungeJSON.String != "" {
-		intent.PreTripLoungeIntent = &models.LoungeIntentPayload{}
-		if err := json.Unmarshal([]byte(preLoungeJSON.String), intent.PreTripLoungeIntent); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal pre_trip_lounge_intent: %w", err)
+	if transitLoungeJSON.Valid && transitLoungeJSON.String != "" {
+		intent.TransitLoungeIntent = &models.LoungeIntentPayload{}
+		if err := json.Unmarshal([]byte(transitLoungeJSON.String), intent.TransitLoungeIntent); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal transit_lounge_intent: %w", err)
 		}
 	}
 	if postLoungeJSON.Valid && postLoungeJSON.String != "" {
@@ -269,11 +277,11 @@ func (r *BookingIntentRepository) UpdateIntentPaymentUID(intentID uuid.UUID, uid
 func (r *BookingIntentRepository) GetIntentByPaymentUID(uid string) (*models.BookingIntent, error) {
 	query := `
 		SELECT id, user_id, intent_type, status, 
-		       bus_intent, pre_trip_lounge_intent, post_trip_lounge_intent,
-		       bus_fare, pre_lounge_fare, post_lounge_fare, total_amount, currency,
+		       bus_intent, pre_trip_lounge_intent, transit_lounge_intent, post_trip_lounge_intent,
+		       bus_fare, pre_lounge_fare, transit_lounge_fare, post_lounge_fare, total_amount, currency,
 		       pricing_snapshot, payment_reference, payment_status, payment_gateway,
 		       payment_uid, payment_status_indicator,
-		       bus_booking_id, pre_lounge_booking_id, post_lounge_booking_id,
+		       bus_booking_id, pre_lounge_booking_id, transit_lounge_booking_id, post_lounge_booking_id,
 		       expires_at, payment_initiated_at, confirmed_at, expired_at, created_at, updated_at,
 		       idempotency_key, passenger_name, passenger_phone
 		FROM booking_intents 
@@ -293,18 +301,19 @@ func (r *BookingIntentRepository) GetIntentByPaymentUID(uid string) (*models.Boo
 // UpdateIntentConfirmed marks intent as confirmed with booking IDs
 func (r *BookingIntentRepository) UpdateIntentConfirmed(
 	intentID uuid.UUID,
-	busBookingID, preLoungeBookingID, postLoungeBookingID *uuid.UUID,
+	busBookingID, preLoungeBookingID, transitLoungeBookingID, postLoungeBookingID *uuid.UUID,
 ) error {
 	query := `
 		UPDATE booking_intents 
 		SET status = 'confirmed',
 		    bus_booking_id = $2,
 		    pre_lounge_booking_id = $3,
-		    post_lounge_booking_id = $4,
+		    transit_lounge_booking_id = $4,
+		    post_lounge_booking_id = $5,
 		    confirmed_at = NOW(),
 		    updated_at = NOW()
 		WHERE id = $1 AND status IN ('held', 'payment_pending', 'confirming')`
-	result, err := r.db.Exec(query, intentID, busBookingID, preLoungeBookingID, postLoungeBookingID)
+	result, err := r.db.Exec(query, intentID, busBookingID, preLoungeBookingID, transitLoungeBookingID, postLoungeBookingID)
 	if err != nil {
 		return err
 	}
@@ -353,14 +362,16 @@ func (r *BookingIntentRepository) UpdateIntentConfirmationFailed(intentID uuid.U
 func (r *BookingIntentRepository) AddLoungeToIntent(
 	intentID uuid.UUID,
 	preTripLounge *models.LoungeIntentPayload,
+	transitLounge *models.LoungeIntentPayload,
 	postTripLounge *models.LoungeIntentPayload,
 	preLoungeFare float64,
+	transitLoungeFare float64,
 	postLoungeFare float64,
 	newTotal float64,
 	newExpiresAt time.Time,
 ) error {
 	// Convert lounge payloads to JSON - use *string to properly handle JSONB
-	var preLoungeJSON, postLoungeJSON *string
+	var preLoungeJSON, transitLoungeJSON, postLoungeJSON *string
 	var err error
 
 	if preTripLounge != nil {
@@ -370,6 +381,15 @@ func (r *BookingIntentRepository) AddLoungeToIntent(
 		}
 		s := string(jsonBytes)
 		preLoungeJSON = &s
+	}
+
+	if transitLounge != nil {
+		jsonBytes, err := json.Marshal(transitLounge)
+		if err != nil {
+			return fmt.Errorf("failed to marshal transit lounge: %w", err)
+		}
+		s := string(jsonBytes)
+		transitLoungeJSON = &s
 	}
 
 	if postTripLounge != nil {
@@ -389,11 +409,13 @@ func (r *BookingIntentRepository) AddLoungeToIntent(
 		UPDATE booking_intents 
 		SET intent_type = $2,
 		    pre_trip_lounge_intent = COALESCE($3, pre_trip_lounge_intent),
-		    post_trip_lounge_intent = COALESCE($4, post_trip_lounge_intent),
-		    pre_lounge_fare = CASE WHEN $5 > 0 THEN $5 ELSE pre_lounge_fare END,
-		    post_lounge_fare = CASE WHEN $6 > 0 THEN $6 ELSE post_lounge_fare END,
-		    total_amount = $7,
-		    expires_at = $8,
+		    transit_lounge_intent = COALESCE($4, transit_lounge_intent),
+		    post_trip_lounge_intent = COALESCE($5, post_trip_lounge_intent),
+		    pre_lounge_fare = CASE WHEN $6 > 0 THEN $6 ELSE pre_lounge_fare END,
+		    transit_lounge_fare = CASE WHEN $7 > 0 THEN $7 ELSE transit_lounge_fare END,
+		    post_lounge_fare = CASE WHEN $8 > 0 THEN $8 ELSE post_lounge_fare END,
+		    total_amount = $9,
+		    expires_at = $10,
 		    updated_at = NOW()
 		WHERE id = $1 AND status = 'held'`
 
@@ -401,8 +423,10 @@ func (r *BookingIntentRepository) AddLoungeToIntent(
 		intentID,
 		newIntentType,
 		preLoungeJSON,
+		transitLoungeJSON,
 		postLoungeJSON,
 		preLoungeFare,
+		transitLoungeFare,
 		postLoungeFare,
 		newTotal,
 		newExpiresAt,

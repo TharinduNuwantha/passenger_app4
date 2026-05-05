@@ -129,6 +129,7 @@ type LoungeIntentPreOrder struct {
 type PricingSnapshot struct {
 	BusFare         float64             `json:"bus_fare"`
 	PreLoungeFare   float64             `json:"pre_lounge_fare"`
+	TransitLoungeFare float64           `json:"transit_lounge_fare"`
 	PostLoungeFare  float64             `json:"post_lounge_fare"`
 	Total           float64             `json:"total"`
 	Currency        string              `json:"currency"`
@@ -211,11 +212,13 @@ type BookingIntent struct {
 	// JSONB payloads (nullable in DB)
 	BusIntent            *BusIntentPayload    `json:"bus_intent,omitempty" db:"bus_intent"`
 	PreTripLoungeIntent  *LoungeIntentPayload `json:"pre_trip_lounge_intent,omitempty" db:"pre_trip_lounge_intent"`
+	TransitLoungeIntent  *LoungeIntentPayload `json:"transit_lounge_intent,omitempty" db:"transit_lounge_intent"`
 	PostTripLoungeIntent *LoungeIntentPayload `json:"post_trip_lounge_intent,omitempty" db:"post_trip_lounge_intent"`
 
 	// Pricing (server-calculated, stored at intent time)
 	BusFare         float64         `json:"bus_fare" db:"bus_fare"`
 	PreLoungeFare   float64         `json:"pre_lounge_fare" db:"pre_lounge_fare"`
+	TransitLoungeFare float64       `json:"transit_lounge_fare" db:"transit_lounge_fare"`
 	PostLoungeFare  float64         `json:"post_lounge_fare" db:"post_lounge_fare"`
 	TotalAmount     float64         `json:"total_amount" db:"total_amount"`
 	Currency        string          `json:"currency" db:"currency"`
@@ -233,9 +236,10 @@ type BookingIntent struct {
 	PassengerPhone string `json:"passenger_phone,omitempty" db:"passenger_phone"`
 
 	// Result references (filled AFTER confirmation)
-	BusBookingID        *uuid.UUID `json:"bus_booking_id,omitempty" db:"bus_booking_id"`
-	PreLoungeBookingID  *uuid.UUID `json:"pre_lounge_booking_id,omitempty" db:"pre_lounge_booking_id"`
-	PostLoungeBookingID *uuid.UUID `json:"post_lounge_booking_id,omitempty" db:"post_lounge_booking_id"`
+	BusBookingID           *uuid.UUID `json:"bus_booking_id,omitempty" db:"bus_booking_id"`
+	PreLoungeBookingID     *uuid.UUID `json:"pre_lounge_booking_id,omitempty" db:"pre_lounge_booking_id"`
+	TransitLoungeBookingID *uuid.UUID `json:"transit_lounge_booking_id,omitempty" db:"transit_lounge_booking_id"`
+	PostLoungeBookingID    *uuid.UUID `json:"post_lounge_booking_id,omitempty" db:"post_lounge_booking_id"`
 
 	// TTL Management
 	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
@@ -298,6 +302,7 @@ type CreateBookingIntentRequest struct {
 
 	// Lounge booking data (optional)
 	PreTripLounge  *LoungeIntentRequest `json:"pre_trip_lounge,omitempty"`
+	TransitLounge  *LoungeIntentRequest `json:"transit_lounge,omitempty"`
 	PostTripLounge *LoungeIntentRequest `json:"post_trip_lounge,omitempty"`
 
 	// Idempotency key (optional)
@@ -425,6 +430,7 @@ type BookingIntentResponse struct {
 type PriceBreakdown struct {
 	BusFare        float64 `json:"bus_fare"`
 	PreLoungeFare  float64 `json:"pre_lounge_fare"`
+	TransitLoungeFare float64 `json:"transit_lounge_fare"`
 	PostLoungeFare float64 `json:"post_lounge_fare"`
 	Total          float64 `json:"total"`
 	Currency       string  `json:"currency"`
@@ -502,6 +508,7 @@ type PartialAvailabilityError struct {
 type AvailabilityStatus struct {
 	Bus        *ItemAvailability `json:"bus,omitempty"`
 	PreLounge  *ItemAvailability `json:"pre_lounge,omitempty"`
+	TransitLounge *ItemAvailability `json:"transit_lounge,omitempty"`
 	PostLounge *ItemAvailability `json:"post_lounge,omitempty"`
 }
 
@@ -515,6 +522,7 @@ type ItemAvailability struct {
 type UnavailableItems struct {
 	Bus        *UnavailableReason `json:"bus,omitempty"`
 	PreLounge  *UnavailableReason `json:"pre_lounge,omitempty"`
+	TransitLounge *UnavailableReason `json:"transit_lounge,omitempty"`
 	PostLounge *UnavailableReason `json:"post_lounge,omitempty"`
 }
 
