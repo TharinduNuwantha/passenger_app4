@@ -1041,7 +1041,7 @@ start_lounges AS (
             POWER(SIN(RADIANS((l.longitude - $2) / 2)), 2)
         )) AS dist_m
     FROM lounges l
-    WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+    WHERE l.status = 'approved' AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
       AND 6371000 * 2 * ASIN(SQRT(
               POWER(SIN(RADIANS((l.latitude  - $1) / 2)), 2) +
               COS(RADIANS($1)) * COS(RADIANS(l.latitude)) *
@@ -1061,7 +1061,7 @@ drop_lounges AS (
             POWER(SIN(RADIANS((l.longitude - $4) / 2)), 2)
         )) AS dist_m
     FROM lounges l
-    WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+    WHERE l.status = 'approved' AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL
       AND 6371000 * 2 * ASIN(SQRT(
               POWER(SIN(RADIANS((l.latitude  - $3) / 2)), 2) +
               COS(RADIANS($3)) * COS(RADIANS(l.latitude)) *
@@ -1866,7 +1866,7 @@ func (r *SearchRepository) HasLoungesWithinRadius(lat, lng, radiusMeters float64
 	query := `
 		SELECT EXISTS (
 			SELECT 1 FROM lounges
-			WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+			WHERE status = 'approved' AND latitude IS NOT NULL AND longitude IS NOT NULL
 			  AND 6371000 * 2 * ASIN(SQRT(
 				  POWER(SIN(RADIANS((latitude  - $1) / 2)), 2) +
 				  COS(RADIANS($1)) * COS(RADIANS(latitude)) *
@@ -1900,18 +1900,18 @@ start_lounges AS (
     SELECT id, lounge_name, latitude, longitude,
            6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) as dist_m
     FROM lounges 
-    WHERE 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) <= $5
+    WHERE status = 'approved' AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $1)/2)),2) + COS(RADIANS($1))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $2)/2)),2))) <= $5
 ),
 -- 2. Candidate Drop Lounges
 drop_lounges AS (
     SELECT id, lounge_name, latitude, longitude,
            6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) as dist_m
     FROM lounges 
-    WHERE 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) <= $5
+    WHERE status = 'approved' AND 6371000 * 2 * ASIN(SQRT(POWER(SIN(RADIANS((latitude - $3)/2)),2) + COS(RADIANS($3))*COS(RADIANS(latitude))*POWER(SIN(RADIANS((longitude - $4)/2)),2))) <= $5
 ),
 -- 3. Potential Transit Lounges (exclude start/drop)
 transit_lounges AS (
-    SELECT id, lounge_name FROM lounges
+    SELECT id, lounge_name FROM lounges WHERE status = 'approved'
 ),
 -- 4. One-Transit Chain Discovery
 matched_chains AS (

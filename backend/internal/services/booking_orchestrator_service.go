@@ -353,7 +353,15 @@ func (s *BookingOrchestratorService) processLoungeIntent(
 		return nil, 0, fmt.Errorf("lounge not found")
 	}
 
-	// 2. Get lounge price based on pricing type
+	// 2. Check if lounge is approved and operational
+	if lounge.Status != "approved" {
+		return nil, 0, fmt.Errorf("lounge is not available for booking (status: %s)", lounge.Status)
+	}
+	if !lounge.IsOperational {
+		return nil, 0, fmt.Errorf("lounge is temporarily closed")
+	}
+
+	// 3. Get lounge price based on pricing type
 	priceStr, err := s.loungeBookingRepo.GetLoungePrice(loungeID, req.PricingType)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get lounge price: %w", err)
@@ -1101,10 +1109,23 @@ func (s *BookingOrchestratorService) AddLoungeToIntent(
 	var preLoungeFare, transitLoungeFare, postLoungeFare float64
 
 	if preTripLounge != nil {
+		loungeID, _ := uuid.Parse(preTripLounge.LoungeID)
+
+		// 2.1 Validate lounge status
+		lounge, err := s.loungeRepo.GetLoungeByID(loungeID)
+		if err != nil || lounge == nil {
+			return nil, fmt.Errorf("pre-trip lounge not found")
+		}
+		if lounge.Status != "approved" {
+			return nil, fmt.Errorf("pre-trip lounge is not available (status: %s)", lounge.Status)
+		}
+		if !lounge.IsOperational {
+			return nil, fmt.Errorf("pre-trip lounge is temporarily closed")
+		}
+
 		preLoungeFare = preTripLounge.TotalPrice
 		// Create lounge capacity hold using actual lounge date/time
 		expiresAt := time.Now().Add(s.config.IntentTTL)
-		loungeID, _ := uuid.Parse(preTripLounge.LoungeID)
 
 		loungeDate := parseLoungeDate(preTripLounge.Date)
 		checkInTime := preTripLounge.CheckInTime
@@ -1131,10 +1152,23 @@ func (s *BookingOrchestratorService) AddLoungeToIntent(
 	}
 
 	if transitLounge != nil {
+		loungeID, _ := uuid.Parse(transitLounge.LoungeID)
+
+		// 2.2 Validate lounge status
+		lounge, err := s.loungeRepo.GetLoungeByID(loungeID)
+		if err != nil || lounge == nil {
+			return nil, fmt.Errorf("transit lounge not found")
+		}
+		if lounge.Status != "approved" {
+			return nil, fmt.Errorf("transit lounge is not available (status: %s)", lounge.Status)
+		}
+		if !lounge.IsOperational {
+			return nil, fmt.Errorf("transit lounge is temporarily closed")
+		}
+
 		transitLoungeFare = transitLounge.TotalPrice
 		// Create lounge capacity hold using actual lounge date/time
 		expiresAt := time.Now().Add(s.config.IntentTTL)
-		loungeID, _ := uuid.Parse(transitLounge.LoungeID)
 
 		loungeDate := parseLoungeDate(transitLounge.Date)
 		checkInTime := transitLounge.CheckInTime
@@ -1161,10 +1195,23 @@ func (s *BookingOrchestratorService) AddLoungeToIntent(
 	}
 
 	if postTripLounge != nil {
+		loungeID, _ := uuid.Parse(postTripLounge.LoungeID)
+
+		// 2.3 Validate lounge status
+		lounge, err := s.loungeRepo.GetLoungeByID(loungeID)
+		if err != nil || lounge == nil {
+			return nil, fmt.Errorf("post-trip lounge not found")
+		}
+		if lounge.Status != "approved" {
+			return nil, fmt.Errorf("post-trip lounge is not available (status: %s)", lounge.Status)
+		}
+		if !lounge.IsOperational {
+			return nil, fmt.Errorf("post-trip lounge is temporarily closed")
+		}
+
 		postLoungeFare = postTripLounge.TotalPrice
 		// Create lounge capacity hold using actual lounge date/time
 		expiresAt := time.Now().Add(s.config.IntentTTL)
-		loungeID, _ := uuid.Parse(postTripLounge.LoungeID)
 
 		loungeDate := parseLoungeDate(postTripLounge.Date)
 		checkInTime := postTripLounge.CheckInTime
