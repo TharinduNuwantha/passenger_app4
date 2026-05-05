@@ -1333,8 +1333,8 @@ transit_chains_base AS (
            lr1.master_route_id AS r1_id, lr2.master_route_id AS r2_id,
            lr1.stop_before_id AS b1_id, lrt1.stop_before_id AS d1_id,
            lrt2.stop_before_id AS b2_id, lr2.stop_before_id AS d2_id,
-           ROW_NUMBER() OVER(
-               PARTITION BY sl.id, dl.id, lr1.master_route_id, lr2.master_route_id
+           DENSE_RANK() OVER(
+               PARTITION BY sl.id, dl.id, lr1.master_route_id
                ORDER BY (
                    erm * 2 * ASIN(SQRT(
                        POWER(SIN(RADIANS((tl.latitude - $1)/2)),2) +
