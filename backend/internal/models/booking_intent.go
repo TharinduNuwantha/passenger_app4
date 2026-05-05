@@ -457,9 +457,10 @@ type ConfirmBookingRequest struct {
 type ConfirmBookingResponse struct {
 	MasterReference string `json:"master_reference"` // Overall booking reference
 
-	BusBooking        *ConfirmedBusBooking    `json:"bus_booking,omitempty"`
-	PreLoungeBooking  *ConfirmedLoungeBooking `json:"pre_lounge_booking,omitempty"`
-	PostLoungeBooking *ConfirmedLoungeBooking `json:"post_lounge_booking,omitempty"`
+	BusBooking           *ConfirmedBusBooking    `json:"bus_booking,omitempty"`
+	PreLoungeBooking     *ConfirmedLoungeBooking `json:"pre_lounge_booking,omitempty"`
+	TransitLoungeBooking *ConfirmedLoungeBooking `json:"transit_lounge_booking,omitempty"`
+	PostLoungeBooking    *ConfirmedLoungeBooking `json:"post_lounge_booking,omitempty"`
 
 	TotalPaid float64 `json:"total_paid"`
 	Currency  string  `json:"currency"`
