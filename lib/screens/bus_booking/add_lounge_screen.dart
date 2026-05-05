@@ -340,9 +340,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         allFound.addAll(routeLounges);
       }
 
-      // De-duplicate
+      // De-duplicate and filter by status
       final uniqueMap = <String, Lounge>{
-        for (final l in allFound) l.id: l,
+        for (final l in allFound.where((l) => l.status == 'approved')) l.id: l,
       };
 
       final sorted = _sortByProximity(
@@ -413,9 +413,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         allFound.addAll(routeLounges);
       }
 
-      // De-duplicate
+      // De-duplicate and filter by status
       final uniqueMap = <String, Lounge>{
-        for (final l in allFound) l.id: l,
+        for (final l in allFound.where((l) => l.status == 'approved')) l.id: l,
       };
 
       final sorted = _sortByProximity(
@@ -482,6 +482,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       } else {
         lounges = await _loungeService.getLoungesByStop(stopId);
       }
+
+      // Filter by verification status
+      lounges = lounges.where((l) => l.status == 'approved').toList();
 
       setState(() {
         _transitLounges = lounges;

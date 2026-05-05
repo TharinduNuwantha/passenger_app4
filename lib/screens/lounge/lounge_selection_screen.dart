@@ -152,7 +152,7 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
         widget.boardingStopId!,
       );
       setState(() {
-        _departureLounges = lounges;
+        _departureLounges = lounges.where((l) => l.status == 'approved').toList();
         _isLoadingDeparture = false;
       });
       _logger.i('Found ${lounges.length} lounges near boarding stop');
@@ -176,7 +176,7 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
         widget.alightingStopId!,
       );
       setState(() {
-        _arrivalLounges = lounges;
+        _arrivalLounges = lounges.where((l) => l.status == 'approved').toList();
         _isLoadingArrival = false;
       });
       _logger.i('Found ${lounges.length} lounges near alighting stop');
@@ -195,7 +195,7 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
         widget.boardingStopId!,
       );
       setState(() {
-        _departureLounges = lounges;
+        _departureLounges = lounges.where((l) => l.status == 'approved').toList();
         _isLoadingDeparture = false;
       });
       _logger.i('Found ${lounges.length} lounges at departure');
@@ -214,7 +214,7 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
         widget.alightingStopId!,
       );
       setState(() {
-        _arrivalLounges = lounges;
+        _arrivalLounges = lounges.where((l) => l.status == 'approved').toList();
         _isLoadingArrival = false;
       });
       _logger.i('Found ${lounges.length} lounges at arrival');
@@ -235,7 +235,7 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
         widget.masterRouteId!,
       );
       setState(() {
-        _departureLounges = lounges;
+        _departureLounges = lounges.where((l) => l.status == 'approved').toList();
         _isLoadingDeparture = false;
       });
       _logger.i('Found ${lounges.length} lounges on route (for departure)');
@@ -256,7 +256,7 @@ class _LoungeSelectionScreenState extends State<LoungeSelectionScreen>
         widget.masterRouteId!,
       );
       setState(() {
-        _arrivalLounges = lounges;
+        _arrivalLounges = lounges.where((l) => l.status == 'approved').toList();
         _isLoadingArrival = false;
       });
       _logger.i('Found ${lounges.length} lounges on route (for arrival)');
