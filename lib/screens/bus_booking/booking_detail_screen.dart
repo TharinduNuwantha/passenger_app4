@@ -249,15 +249,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 booking.bookingStatus != MasterBookingStatus.cancelled)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 32,
+                  horizontal: 24,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary.withOpacity(0.08),
-                      Colors.white,
-                    ],
+                    colors: [AppColors.primary.withOpacity(0.08), Colors.white],
                   ),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: AppColors.primary.withOpacity(0.1)),
@@ -272,7 +272,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -325,9 +328,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         color: AppColors.primary.withOpacity(0.5),
                       ),
                     ),
-                    if (busBooking != null && 
-                        booking.bookingStatus == MasterBookingStatus.confirmed &&
-                        busBooking.departureDatetime.isAfter(DateTime.now())) ...[
+                    if (busBooking != null &&
+                        booking.bookingStatus ==
+                            MasterBookingStatus.confirmed &&
+                        busBooking.departureDatetime.isAfter(
+                          DateTime.now(),
+                        )) ...[
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Divider(),
