@@ -36,7 +36,7 @@ class BusListScreen extends StatefulWidget {
 class _BusListScreenState extends State<BusListScreen> {
   String _selectedBusType = 'All';
   String _selectedViewOption =
-      'All'; // Smart view option: All, Direct, Transit, Quickest, Cheapest
+      'Direct'; // Smart view option: Direct, Transit, Quickest, Cheapest
   final Set<String> _expandedCards =
       {}; // Track which cards are expanded for route info
 
@@ -76,14 +76,57 @@ class _BusListScreenState extends State<BusListScreen> {
       body: Consumer<SearchProvider>(
         builder: (context, searchProvider, child) {
           List<TripResult> trips = searchProvider.tripResults;
+
+          // Find nearest lounges among all direct trips
+          String? nearestFromLounge;
+          double minFromDist = double.infinity;
+          String? nearestToLounge;
+          double minToDist = double.infinity;
+
+          for (final t in trips) {
+            if (!t.isTransit) {
+              if (t.fromLounge != null && t.fromLoungeDistKm < minFromDist) {
+                minFromDist = t.fromLoungeDistKm;
+                nearestFromLounge = t.fromLounge;
+              }
+              if (t.toLounge != null && t.toLoungeDistKm < minToDist) {
+                minToDist = t.toLoungeDistKm;
+                nearestToLounge = t.toLounge;
+              }
+            }
+          }
+
+          if (_selectedViewOption == 'Direct') {
+            trips = trips.where((t) => !t.isTransit).toList();
+            // Filter to show only trips associated with the nearest lounge
+            trips = trips.where((t) {
+              bool keep = true;
+              if (nearestFromLounge != null && t.fromLounge != null && t.fromLounge != nearestFromLounge) {
+                keep = false;
+              }
+              if (nearestToLounge != null && t.toLounge != null && t.toLounge != nearestToLounge) {
+                keep = false;
+              }
+              return keep;
+            }).toList();
+          } else if (_selectedViewOption == 'Transit') {
+            trips = trips.where((t) => t.isTransit).toList();
+          }
+
           if (_selectedBusType != 'All') {
             trips = trips
                 .where((trip) => trip.busType == _selectedBusType)
                 .toList();
           }
 
-          // Sort by departure time
-          trips.sort((a, b) => a.departureTime.compareTo(b.departureTime));
+          // Sort by departure time or specific criteria
+          if (_selectedViewOption == 'Quickest') {
+            trips.sort((a, b) => a.durationMinutes.compareTo(b.durationMinutes));
+          } else if (_selectedViewOption == 'Cheapest') {
+            trips.sort((a, b) => a.fare.compareTo(b.fare));
+          } else {
+            trips.sort((a, b) => a.departureTime.compareTo(b.departureTime));
+          }
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -408,11 +451,10 @@ class _BusListScreenState extends State<BusListScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          _buildModernFilterChip('All', Icons.grid_view_rounded),
           _buildModernFilterChip('Direct', Icons.bolt_rounded),
+          _buildModernFilterChip('Transit', Icons.alt_route_rounded),
           _buildModernFilterChip('Quickest', Icons.timer_rounded),
           _buildModernFilterChip('Cheapest', Icons.payments_rounded),
-          _buildModernFilterChip('Luxury', Icons.star_rounded),
         ],
       ),
     );
