@@ -386,13 +386,13 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         LoungeIntentRequest? transitLounge;
         LoungeIntentRequest? postTripLounge;
 
-        if (_preTripLounge != null) {
+        if (_preTripLounge != null && _preTripLounge!.isExplicitlyBooked) {
           preTripLounge = _preTripLounge!.toIntentRequest();
         }
-        if (_transitLounge != null) {
+        if (_transitLounge != null && _transitLounge!.isExplicitlyBooked) {
           transitLounge = _transitLounge!.toIntentRequest();
         }
-        if (_postTripLounge != null) {
+        if (_postTripLounge != null && _postTripLounge!.isExplicitlyBooked) {
           postTripLounge = _postTripLounge!.toIntentRequest();
         }
 
@@ -1123,12 +1123,12 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          if (_preTripLounge != null)
-            _buildLoungeSummaryItem(_preTripLounge!, 'Pre-Trip'),
-          if (_transitLounge != null)
+          if (_preTripLounge != null && _preTripLounge!.isExplicitlyBooked)
+            _buildLoungeSummaryItem(_preTripLounge!, 'Departure'),
+          if (_transitLounge != null && _transitLounge!.isExplicitlyBooked)
             _buildLoungeSummaryItem(_transitLounge!, 'Transit'),
-          if (_postTripLounge != null)
-            _buildLoungeSummaryItem(_postTripLounge!, 'Post-Trip'),
+          if (_postTripLounge != null && _postTripLounge!.isExplicitlyBooked)
+            _buildLoungeSummaryItem(_postTripLounge!, 'Arrival'),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () {
@@ -1194,13 +1194,13 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
   Widget _buildPriceSummary() {
     // Calculate total including lounges
     double loungeTotal = 0;
-    if (_preTripLounge != null) {
+    if (_preTripLounge != null && _preTripLounge!.isExplicitlyBooked) {
       loungeTotal += _preTripLounge!.totalPrice;
     }
-    if (_transitLounge != null) {
+    if (_transitLounge != null && _transitLounge!.isExplicitlyBooked) {
       loungeTotal += _transitLounge!.totalPrice;
     }
-    if (_postTripLounge != null) {
+    if (_postTripLounge != null && _postTripLounge!.isExplicitlyBooked) {
       loungeTotal += _postTripLounge!.totalPrice;
     }
     final grandTotal = widget.totalPrice + loungeTotal;
@@ -1238,15 +1238,15 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
                 ],
               ),
-              // Boarding lounge
-              if (_preTripLounge != null) ...[
+              // Departure lounge
+              if (_preTripLounge != null && _preTripLounge!.isExplicitlyBooked) ...[
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
-                        'Boarding: ${_preTripLounge!.lounge.loungeName}',
+                        'Departure: ${_preTripLounge!.lounge.loungeName}',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.primary.withOpacity(0.7),
@@ -1288,7 +1288,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
               ],
               // Transit lounge
-              if (_transitLounge != null) ...[
+              if (_transitLounge != null && _transitLounge!.isExplicitlyBooked) ...[
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1336,15 +1336,15 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                     ),
                   ),
               ],
-              // Destination lounge
-              if (_postTripLounge != null) ...[
+              // Arrival lounge
+              if (_postTripLounge != null && _postTripLounge!.isExplicitlyBooked) ...[
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
-                        'Destination: ${_postTripLounge!.lounge.loungeName}',
+                        'Arrival: ${_postTripLounge!.lounge.loungeName}',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.primary.withOpacity(0.7),

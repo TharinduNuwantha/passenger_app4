@@ -1018,7 +1018,12 @@ class UnavailableItems {
   final UnavailableReason? transitLounge;
   final UnavailableReason? postLounge;
 
-  UnavailableItems({this.bus, this.preLounge, this.transitLounge, this.postLounge});
+  UnavailableItems({
+    this.bus,
+    this.preLounge,
+    this.transitLounge,
+    this.postLounge,
+  });
 
   factory UnavailableItems.fromJson(Map<String, dynamic>? json) {
     if (json == null) return UnavailableItems();

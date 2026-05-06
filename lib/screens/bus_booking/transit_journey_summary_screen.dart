@@ -63,7 +63,8 @@ class TransitJourneySummaryScreen extends StatelessWidget {
     return total;
   }
 
-  double get _grandTotal => leg1Fare + leg2Fare + _totalLoungeCost + _totalTransportCost;
+  double get _grandTotal =>
+      leg1Fare + leg2Fare + _totalLoungeCost + _totalTransportCost;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +94,10 @@ class TransitJourneySummaryScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
@@ -101,7 +105,11 @@ class TransitJourneySummaryScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.compare_arrows, color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.compare_arrows,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -115,7 +123,10 @@ class TransitJourneySummaryScreen extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFF8F00),
                         borderRadius: BorderRadius.circular(20),
@@ -149,28 +160,55 @@ class TransitJourneySummaryScreen extends StatelessWidget {
                     children: [
                       // ── 1. Boarding Lounge (optional) ──────────────────
                       if (boardingLounge != null) ...[
-                        _buildSectionTitle('Boarding Lounge', Icons.weekend, Colors.teal),
-                        _buildLoungeCard(boardingLounge!, isTransit: false, isMandatory: false),
+                        _buildSectionTitle(
+                          'Boarding Lounge',
+                          Icons.weekend,
+                          Colors.teal,
+                        ),
+                        _buildLoungeCard(
+                          boardingLounge!,
+                          isTransit: false,
+                          isMandatory: false,
+                        ),
                         _buildConnector(color: Colors.teal),
                       ],
 
                       // ── 2. Leg 1 Bus ───────────────────────────────────
-                      _buildSectionTitle('Leg 1 — ${_leg1.boardingPoint} → ${_leg1.droppingPoint}', Icons.directions_bus, AppColors.primary),
+                      _buildSectionTitle(
+                        'Leg 1 — ${_leg1.boardingPoint} → ${_leg1.droppingPoint}',
+                        Icons.directions_bus,
+                        AppColors.primary,
+                      ),
                       _buildLegCard(
                         leg: _leg1,
                         seats: seatsLeg1,
                         fare: leg1Fare,
                         color: AppColors.primary,
                       ),
-                      _buildConnector(color: const Color(0xFFFF8F00), label: transitTrip.formattedTransitWaitTime),
+                      _buildConnector(
+                        color: const Color(0xFFFF8F00),
+                        label: transitTrip.formattedTransitWaitTime,
+                      ),
 
                       // ── 3. Transit Lounge (mandatory) ──────────────────
-                      _buildSectionTitle('Transit Lounge (Required)', Icons.lock, const Color(0xFFE53935)),
-                      _buildLoungeCard(transitLounge, isTransit: true, isMandatory: true),
+                      _buildSectionTitle(
+                        'Transit Lounge (Required)',
+                        Icons.lock,
+                        const Color(0xFFE53935),
+                      ),
+                      _buildLoungeCard(
+                        transitLounge,
+                        isTransit: true,
+                        isMandatory: true,
+                      ),
                       _buildConnector(color: const Color(0xFF7B1FA2)),
 
                       // ── 4. Leg 2 Bus ───────────────────────────────────
-                      _buildSectionTitle('Leg 2 — ${_leg2.boardingPoint} → ${_leg2.droppingPoint}', Icons.directions_bus, const Color(0xFF7B1FA2)),
+                      _buildSectionTitle(
+                        'Leg 2 — ${_leg2.boardingPoint} → ${_leg2.droppingPoint}',
+                        Icons.directions_bus,
+                        const Color(0xFF7B1FA2),
+                      ),
                       _buildLegCard(
                         leg: _leg2,
                         seats: seatsLeg2,
@@ -181,8 +219,16 @@ class TransitJourneySummaryScreen extends StatelessWidget {
                       // ── 5. Destination Lounge (optional) ──────────────
                       if (destinationLounge != null) ...[
                         _buildConnector(color: Colors.deepOrange),
-                        _buildSectionTitle('Destination Lounge', Icons.local_hotel, Colors.deepOrange),
-                        _buildLoungeCard(destinationLounge!, isTransit: false, isMandatory: false),
+                        _buildSectionTitle(
+                          'Destination Lounge',
+                          Icons.local_hotel,
+                          Colors.deepOrange,
+                        ),
+                        _buildLoungeCard(
+                          destinationLounge!,
+                          isTransit: false,
+                          isMandatory: false,
+                        ),
                       ],
 
                       const SizedBox(height: 24),
@@ -307,17 +353,43 @@ class TransitJourneySummaryScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                      Container(width: 40, height: 2, color: color.withOpacity(0.4)),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Container(
+                        width: 40,
+                        height: 2,
+                        color: color.withOpacity(0.4),
+                      ),
                       Icon(Icons.directions_bus, size: 16, color: color),
-                      Container(width: 40, height: 2, color: color.withOpacity(0.4)),
-                      Container(width: 6, height: 6, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: color, width: 2))),
+                      Container(
+                        width: 40,
+                        height: 2,
+                        color: color.withOpacity(0.4),
+                      ),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: color, width: 2),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     leg.formattedDuration,
-                    style: TextStyle(color: color.withOpacity(0.7), fontSize: 11),
+                    style: TextStyle(
+                      color: color.withOpacity(0.7),
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
@@ -376,9 +448,7 @@ class TransitJourneySummaryScreen extends StatelessWidget {
     required bool isTransit,
     required bool isMandatory,
   }) {
-    final borderColor = isTransit
-        ? const Color(0xFFE53935)
-        : Colors.teal;
+    final borderColor = isTransit ? const Color(0xFFE53935) : Colors.teal;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -417,7 +487,10 @@ class TransitJourneySummaryScreen extends StatelessWidget {
               ),
               if (isMandatory)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFEBEE),
                     borderRadius: BorderRadius.circular(20),
@@ -478,7 +551,11 @@ class TransitJourneySummaryScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.directions_car, size: 14, color: Colors.grey),
+                    const Icon(
+                      Icons.directions_car,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Transport (${lounge.transportType ?? 'van'})',
@@ -638,7 +715,12 @@ class TransitJourneySummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCostRow(String label, String amount, {required IconData icon, required Color color}) {
+  Widget _buildCostRow(
+    String label,
+    String amount, {
+    required IconData icon,
+    required Color color,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(

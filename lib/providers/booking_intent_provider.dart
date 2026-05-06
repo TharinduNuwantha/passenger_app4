@@ -276,7 +276,9 @@ class BookingIntentProvider with ChangeNotifier {
       return false;
     }
 
-    if (preTripLounge == null && transitLounge == null && postTripLounge == null) {
+    if (preTripLounge == null &&
+        transitLounge == null &&
+        postTripLounge == null) {
       _logger.i('No lounges to add, skipping');
       return true; // Nothing to add, just continue
     }

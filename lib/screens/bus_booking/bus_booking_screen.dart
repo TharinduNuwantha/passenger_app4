@@ -874,13 +874,34 @@ class _BusListScreenState extends State<BusListScreen> {
                             color: Colors.grey[500],
                           ),
                         ),
-                        Text(
-                          trip.formattedFare,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.primary,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              trip.formattedFare,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            if (trip.isTransit &&
+                                trip.leg1 != null &&
+                                trip.leg2 != null) ...[
+                              const SizedBox(width: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text(
+                                  '(LKR ${trip.leg1!.fare.toStringAsFixed(0)} + ${trip.leg2!.fare.toStringAsFixed(0)})',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.secondary.withOpacity(0.8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
