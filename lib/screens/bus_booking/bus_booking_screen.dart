@@ -854,85 +854,117 @@ class _BusListScreenState extends State<BusListScreen> {
 
             // --- 5. FOOTER: PRICE & BOOK ---
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.03),
+                color: AppColors.primary.withOpacity(0.04),
                 border: const Border(top: BorderSide(color: AppColors.divider)),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'TOTAL FARE',
-                          style: TextStyle(
-                            fontSize: 10,
-                            letterSpacing: 1,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              trip.formattedFare,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.primary,
-                              ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'TOTAL FARE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              letterSpacing: 1,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[500],
                             ),
-                            if (trip.isTransit &&
-                                trip.leg1 != null &&
-                                trip.leg2 != null) ...[
-                              const SizedBox(width: 8),
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Text(
-                                  '(LKR ${trip.leg1!.fare.toStringAsFixed(0)} + ${trip.leg2!.fare.toStringAsFixed(0)})',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.secondary.withOpacity(0.8),
-                                  ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                trip.formattedFare,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primary,
                                 ),
                               ),
+                              if (trip.isTransit &&
+                                  trip.leg1 != null &&
+                                  trip.leg2 != null) ...[
+                                const SizedBox(width: 8),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    '(LKR ${trip.leg1!.fare.toStringAsFixed(0)} + ${trip.leg2!.fare.toStringAsFixed(0)})',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          AppColors.secondary.withOpacity(0.8),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
+                          ),
+                        ],
+                      ),
+                      // Availability Tag
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.event_seat_rounded,
+                                size: 14, color: Colors.green),
+                            SizedBox(width: 6),
+                            Text(
+                              'Available',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  ElevatedButton(
-                    onPressed: () => _handleBookingPress(context, trip),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 8,
-                      shadowColor: AppColors.primary.withOpacity(0.4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Text(
-                          'Book Now',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _handleBookingPress(context, trip),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 4,
+                        shadowColor: AppColors.primary.withOpacity(0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_rounded, size: 18),
-                      ],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Book Now',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Icon(Icons.arrow_forward_rounded, size: 20),
+                        ],
+                      ),
                     ),
                   ),
                 ],
