@@ -492,10 +492,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       });
       _logger.i('Transit: ${lounges.length} lounges discovered');
 
-      // Auto-select for transit (Mandatory)
-      if (_transitLounges.isNotEmpty && _selectedTransitLounge == null) {
-        _autoSelectLounge(_transitLounges.first, false, isTransit: true);
-      }
+      // No longer auto-selecting transit lounge (Optional)
     } catch (e) {
       _logger.e('Failed to load transit lounges: $e');
       setState(() {
@@ -695,7 +692,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   }
 
   /// Open lounge configuration bottom sheet
-  Future<void> _configureLoungeBooking(Lounge lounge, bool isPreTrip) async {
+  Future<void> _configureLoungeBooking(Lounge lounge, bool isPreTrip, {bool isTransit = false}) async {
     final result = await showModalBottomSheet<SelectedLoungeData>(
       context: context,
       isScrollControlled: true,
@@ -714,7 +711,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
       setState(() {
         if (isPreTrip) {
           _selectedPreTripLounge = result;
-        } else if (_tabController.index == 1 && widget.trip.isTransit) {
+        } else if (isTransit) {
           _selectedTransitLounge = result;
         } else {
           _selectedPostTripLounge = result;
@@ -825,15 +822,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     return LoungePricingType.fromJson(type).displayName;
   }
 
-  /// Skip lounges and proceed
+  /// Skip lounges and proceed (transit lounge is optional)
   void _skipLounges() {
-    if (widget.trip.isTransit && _selectedTransitLounge == null) {
-      _showErrorSnackBar(
-        'A transit lounge selection is mandatory for this journey.',
-      );
-      _tabController.animateTo(1); // Switch to transit tab
-      return;
-    }
     Navigator.pop(
       context,
       AddLoungeResult(
@@ -846,13 +836,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
 
   /// Continue with selected lounges
   void _continueWithLounges() {
-    if (widget.trip.isTransit && _selectedTransitLounge == null) {
-      _showErrorSnackBar(
-        'Transit lounge selection is mandatory for this journey.',
-      );
-      _tabController.animateTo(1);
-      return;
-    }
+    // Transit lounge is now optional, removed mandatory check
     Navigator.pop(
       context,
       AddLoungeResult(
@@ -990,32 +974,6 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                           MainAxisAlignment.center,
                                       children: [
                                         const Text('Transit'),
-                                        if (_selectedTransitLounge == null) ...[
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 5,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange.withOpacity(0.2),
-                                              border: Border.all(
-                                                color: Colors.orange.withOpacity(0.5),
-                                                width: 0.5,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                            ),
-                                            child: const Text(
-                                              'Req',
-                                              style: TextStyle(
-                                                fontSize: 9,
-                                                color: Colors.orangeAccent,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
                                       ],
                                     ),
                                   ),
@@ -1071,6 +1029,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                 lounges: _transitLounges,
                                 selectedLounge: _selectedTransitLounge,
                                 isPreTrip: false,
+                                isTransit: true,
                                 stopName: widget.trip.transitPoint ?? 'Station B',
                               ),
                             ],
@@ -1309,7 +1268,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${data.guests.length} guest(s) • ${(!isPreTrip && !isTransit && data.pricingType == 'until_bus') ? '1hr' : _formatPricingType(data.pricingType)}${isTransit ? " • READ-ONLY" : ""}',
+                  '${data.guests.length} guest(s) • ${(!isPreTrip && !isTransit && data.pricingType == 'until_bus') ? '1hr' : _formatPricingType(data.pricingType)}',
                   style: TextStyle(
                     color: isTransit
                         ? Colors.orange.shade800
@@ -1332,19 +1291,18 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               ],
             ),
           ),
-          if (!isTransit) ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    if (data.isExplicitlyBooked) {
-                      _removeLounge(isPreTrip);
-                    } else {
-                      _configureLoungeBooking(data.lounge, isPreTrip);
-                    }
-                  },
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () {
+                  if (data.isExplicitlyBooked) {
+                    _removeLounge(isPreTrip, isTransit: isTransit);
+                  } else {
+                    _configureLoungeBooking(data.lounge, isPreTrip, isTransit: isTransit);
+                  }
+                },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -1366,13 +1324,12 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
-              ],
-            ),
           ],
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   List<Widget> _buildLoungeListSlivers({
     required bool isLoading,
@@ -1380,6 +1337,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     required List<Lounge> lounges,
     required SelectedLoungeData? selectedLounge,
     required bool isPreTrip,
+    bool isTransit = false,
     required String stopName,
   }) {
     if (isLoading) {
@@ -1558,15 +1516,13 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               isExplicitlyBooked: selectedLounge?.isExplicitlyBooked ?? false,
               distance: distance,
               isPreTrip: isPreTrip,
-              isReadOnly: isTransitTab, // Make transit lounges read-only
-              onTap: isTransitTab
-                  ? () {} // Disable tap for transit
-                  : () {
+              isReadOnly: false, // Transit lounges are no longer read-only
+              onTap: () {
                       if (isSelected &&
                           selectedLounge?.isExplicitlyBooked == true) {
-                        _removeLounge(isPreTrip);
+                        _removeLounge(isPreTrip, isTransit: isTransit);
                       } else {
-                        _configureLoungeBooking(lounge, isPreTrip);
+                        _configureLoungeBooking(lounge, isPreTrip, isTransit: isTransit);
                       }
                     },
             );
