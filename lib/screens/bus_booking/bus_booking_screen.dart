@@ -908,32 +908,6 @@ class _BusListScreenState extends State<BusListScreen> {
                           ),
                         ],
                       ),
-                      // Availability Tag
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.event_seat_rounded,
-                                size: 14, color: Colors.green),
-                            SizedBox(width: 6),
-                            Text(
-                              'Available',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
