@@ -185,12 +185,10 @@ class AddLoungeScreen extends StatefulWidget {
   State<AddLoungeScreen> createState() => _AddLoungeScreenState();
 }
 
-class _AddLoungeScreenState extends State<AddLoungeScreen>
-    with SingleTickerProviderStateMixin {
+class _AddLoungeScreenState extends State<AddLoungeScreen> {
   final LoungeBookingService _loungeService = LoungeBookingService();
   final Logger _logger = Logger();
 
-  late TabController _tabController;
 
   bool _isLoadingDeparture = true;
   bool _isLoadingArrival = true;
@@ -215,18 +213,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-    );
     _loadLounges();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 
   Future<void> _loadLounges() async {
     _logger.i('=== STARTING LOUNGE DISCOVERY (3KM RADIUS) ===');
@@ -710,13 +699,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     return total;
   }
 
-  void _autoSelectLounge(
-    Lounge lounge,
-    bool isPreTrip,
-  ) {
-    _logger.i(
-      'Auto-selecting lounge: ${lounge.loungeName} (Pre: $isPreTrip)',
-    );
+  void _autoSelectLounge(Lounge lounge, bool isPreTrip) {
+    _logger.i('Auto-selecting lounge: ${lounge.loungeName} (Pre: $isPreTrip)');
 
     // Default guest list (primary passenger)
     final guests = [
@@ -773,10 +757,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
   void _skipLounges() {
     Navigator.pop(
       context,
-      AddLoungeResult(
-        preTripLounge: null,
-        postTripLounge: null,
-      ),
+      AddLoungeResult(preTripLounge: null, postTripLounge: null),
     );
   }
 
@@ -849,140 +830,42 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
         child: Column(
           children: [
             Expanded(
-              child: NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return [
-                    SliverOverlapAbsorber(
-                      handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                        context,
-                      ),
-                      sliver: SliverList(
-                        delegate: SliverChildListDelegate([
-                          // Bus booking summary
-                          _buildBusSummary(),
+              child: CustomScrollView(
+                slivers: [
+                  // 1. Bus Summary
+                  SliverToBoxAdapter(child: _buildBusSummary()),
 
-                          // Selected lounges summary (if any)
-                          if (_selectedPreTripLounge != null ||
-                              _selectedPostTripLounge != null)
-                            _buildSelectedLoungesSummary(),
-                        ]),
-                      ),
-                    ),
+                  // 2. Selected Lounges Summary
+                  if (_selectedPreTripLounge != null ||
+                      _selectedPostTripLounge != null)
+                    SliverToBoxAdapter(child: _buildSelectedLoungesSummary()),
 
-                    // Pinned Tab Bar
-                    SliverAppBar(
-                      pinned: true,
-                      automaticallyImplyLeading: false,
-                      backgroundColor: AppColors.primary,
-                      toolbarHeight: 0,
-                      elevation: 0,
-                      bottom: PreferredSize(
-                        preferredSize: const Size.fromHeight(58),
-                        child: Container(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: TabBar(
-                              controller: _tabController,
-                              indicator: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              indicatorPadding: const EdgeInsets.all(4),
-                              indicatorSize: TabBarIndicatorSize.tab,
-                              labelColor: const Color(0xFF0D47A1),
-                              unselectedLabelColor: Colors.white.withOpacity(
-                                0.7,
-                              ),
-                              labelStyle: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.3,
-                              ),
-                              unselectedLabelStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              tabs: [
-                                const Tab(child: Text('Departure')),
-                                const Tab(child: Text('Arrival')),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ];
-                },
-                body: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
+                  // 3. Departure Lounges Section
+                  ..._buildLoungeListSlivers(
+                    isLoading: _isLoadingDeparture,
+                    error: _departureError,
+                    lounges: _departureLounges,
+                    selectedLounge: _selectedPreTripLounge,
+                    isPreTrip: true,
+                    stopName: widget.boardingPoint,
                   ),
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      Builder(
-                        builder: (context) {
-                          return CustomScrollView(
-                            slivers: [
-                              SliverOverlapInjector(
-                                handle:
-                                    NestedScrollView.sliverOverlapAbsorberHandleFor(
-                                      context,
-                                    ),
-                              ),
-                              ..._buildLoungeListSlivers(
-                                isLoading: _isLoadingDeparture,
-                                error: _departureError,
-                                lounges: _departureLounges,
-                                selectedLounge: _selectedPreTripLounge,
-                                isPreTrip: true,
-                                stopName: widget.boardingPoint,
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      Builder(
-                        builder: (context) {
-                          return CustomScrollView(
-                            slivers: [
-                              SliverOverlapInjector(
-                                handle:
-                                    NestedScrollView.sliverOverlapAbsorberHandleFor(
-                                      context,
-                                    ),
-                              ),
-                              ..._buildLoungeListSlivers(
-                                isLoading: _isLoadingArrival,
-                                error: _arrivalError,
-                                lounges: _arrivalLounges,
-                                selectedLounge: _selectedPostTripLounge,
-                                isPreTrip: false,
-                                stopName: widget.alightingPoint,
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
+
+                  // 4. Spacer between sections
+                  const SliverToBoxAdapter(child: SizedBox(height: 30)),
+
+                  // 5. Arrival Lounges Section
+                  ..._buildLoungeListSlivers(
+                    isLoading: _isLoadingArrival,
+                    error: _arrivalError,
+                    lounges: _arrivalLounges,
+                    selectedLounge: _selectedPostTripLounge,
+                    isPreTrip: false,
+                    stopName: widget.alightingPoint,
                   ),
-                ),
+
+                  // 6. Bottom Spacer
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
               ),
             ),
 
@@ -1167,10 +1050,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
     );
   }
 
-  Widget _buildSelectedLoungeChip(
-    SelectedLoungeData data,
-    bool isPreTrip,
-  ) {
+  Widget _buildSelectedLoungeChip(SelectedLoungeData data, bool isPreTrip) {
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1381,7 +1261,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isPreTrip ? 'Lounges at Departure' : 'Lounges at Arrival',
+                      isPreTrip
+                          ? 'Lounges at Departure'
+                          : 'Lounges at Arrival',
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontSize: 16,
@@ -1443,8 +1325,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
               distance: distance,
               isPreTrip: isPreTrip,
               onTap: () {
-                if (isSelected &&
-                    selectedLounge?.isExplicitlyBooked == true) {
+                if (isSelected && selectedLounge?.isExplicitlyBooked == true) {
                   _removeLounge(isPreTrip);
                 } else {
                   _configureLoungeBooking(lounge, isPreTrip);
@@ -1709,9 +1590,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen>
                                   isReadOnly
                                       ? 'Fixed Stop'
                                       : isSelected
-                                      ? (isExplicitlyBooked
-                                            ? 'Cancel'
-                                            : 'Book')
+                                      ? (isExplicitlyBooked ? 'Cancel' : 'Book')
                                       : 'Book',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
