@@ -31,18 +31,30 @@ class AuthProvider extends ChangeNotifier {
 
       _logger.i('Checking authentication status');
 
-      // Check if valid tokens exist
-      final authenticated = await _authService.isAuthenticated();
+      // Attempt to restore a saved session if the user already logged in
+      final authenticated = await _authService.restoreSession();
 
       if (authenticated) {
-        // Get current user
+        // Get current user from storage if available
         _user = await _authService.getCurrentUser();
-        _isAuthenticated = true;
 
-        // Start auto token refresh
-        _tokenRefreshService.startAutoRefresh();
+        // If user data is missing locally, fetch it from the backend
+        if (_user == null) {
+          _logger.w('No stored user data found; fetching profile from backend');
+          _user = await _authService.fetchProfile();
+        }
 
-        _logger.i('User is authenticated');
+        if (_user != null) {
+          _isAuthenticated = true;
+
+          // Start auto token refresh
+          _tokenRefreshService.startAutoRefresh();
+
+          _logger.i('User is authenticated');
+        } else {
+          _isAuthenticated = false;
+          _logger.w('Session restored but no user profile available');
+        }
       } else {
         _isAuthenticated = false;
         _user = null;

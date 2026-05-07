@@ -277,12 +277,60 @@ class AuthService {
     }
   }
 
+  // Restore session using refresh token when access token is expired
+  Future<bool> restoreSession() async {
+    try {
+      if (await _storage.hasValidTokens()) {
+        _logger.i('Session already valid with stored access token');
+        return true;
+      }
+
+      final storedRefreshToken = await _storage.getRefreshToken();
+      if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
+        _logger.w('No refresh token available to restore session');
+        return false;
+      }
+
+      _logger.i('Attempting to restore session with refresh token');
+      final refreshed = await refreshToken();
+      if (refreshed) {
+        _logger.i('Session restored successfully');
+        return true;
+      }
+
+      _logger.w('Session restore failed');
+      return false;
+    } catch (e) {
+      _logger.e('Error restoring session: $e');
+      return false;
+    }
+  }
+
   // Get current user from storage
   Future<UserModel?> getCurrentUser() async {
     try {
       return await _storage.getUserData();
     } catch (e) {
       _logger.e('Error getting current user: $e');
+      return null;
+    }
+  }
+
+  // Fetch the latest user profile from the backend
+  Future<UserModel?> fetchProfile() async {
+    try {
+      final response = await _apiService.get(ApiConfig.profileEndpoint);
+      if (response.statusCode == 200) {
+        final userData = response.data as Map<String, dynamic>;
+        final user = UserModel.fromJson(userData);
+        await _storage.saveUserData(user);
+        _logger.i('Fetched and saved remote user profile');
+        return user;
+      }
+      _logger.w('Failed to fetch remote profile: ${response.statusCode}');
+      return null;
+    } catch (e) {
+      _logger.e('Error fetching profile: $e');
       return null;
     }
   }
