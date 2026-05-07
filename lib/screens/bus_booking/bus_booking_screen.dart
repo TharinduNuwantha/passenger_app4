@@ -101,10 +101,14 @@ class _BusListScreenState extends State<BusListScreen> {
             // Filter to show only trips associated with the nearest lounge
             trips = trips.where((t) {
               bool keep = true;
-              if (nearestFromLounge != null && t.fromLounge != null && t.fromLounge != nearestFromLounge) {
+              if (nearestFromLounge != null &&
+                  t.fromLounge != null &&
+                  t.fromLounge != nearestFromLounge) {
                 keep = false;
               }
-              if (nearestToLounge != null && t.toLounge != null && t.toLounge != nearestToLounge) {
+              if (nearestToLounge != null &&
+                  t.toLounge != null &&
+                  t.toLounge != nearestToLounge) {
                 keep = false;
               }
               return keep;
@@ -121,7 +125,9 @@ class _BusListScreenState extends State<BusListScreen> {
 
           // Sort by departure time or specific criteria
           if (_selectedViewOption == 'Quickest') {
-            trips.sort((a, b) => a.durationMinutes.compareTo(b.durationMinutes));
+            trips.sort(
+              (a, b) => a.durationMinutes.compareTo(b.durationMinutes),
+            );
           } else if (_selectedViewOption == 'Cheapest') {
             trips.sort((a, b) => a.fare.compareTo(b.fare));
           } else {
@@ -719,10 +725,12 @@ class _BusListScreenState extends State<BusListScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        trip.busOwnerName ?? trip.displayRouteName,
+                                        trip.busOwnerName ??
+                                            trip.displayRouteName,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
@@ -731,9 +739,13 @@ class _BusListScreenState extends State<BusListScreen> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      if (trip.busOwnerName != null && trip.routeName.isNotEmpty)
+                                      if (trip.busOwnerName != null &&
+                                          trip.routeName.isNotEmpty)
                                         Padding(
-                                          padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
+                                          padding: const EdgeInsets.only(
+                                            top: 4.0,
+                                            bottom: 4.0,
+                                          ),
                                           child: Text(
                                             trip.routeName,
                                             style: TextStyle(
@@ -911,8 +923,9 @@ class _BusListScreenState extends State<BusListScreen> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color:
-                                          AppColors.secondary.withOpacity(0.8),
+                                      color: AppColors.secondary.withOpacity(
+                                        0.8,
+                                      ),
                                     ),
                                   ),
                                 ),

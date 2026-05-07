@@ -101,8 +101,6 @@ class SearchDetails {
   }
 }
 
-
-
 class StopInfo {
   final String? id;
   final String? name;
@@ -149,6 +147,7 @@ class TripResult {
   final BusFeatures busFeatures;
   final bool isBookable;
   final List<RouteStop> routeStops;
+
   /// Master route ID for lounge lookup
   final String? masterRouteId;
   final bool isTransit;
@@ -188,14 +187,17 @@ class TripResult {
 
   // Helper to ensure dates are parsed as UTC
   static DateTime _parseUtcDate(String dateStr) {
-    if (!dateStr.endsWith('Z') && !dateStr.contains('+') && !dateStr.contains('-')) {
+    if (!dateStr.endsWith('Z') &&
+        !dateStr.contains('+') &&
+        !dateStr.contains('-')) {
       dateStr += 'Z';
     }
     return DateTime.parse(dateStr).toLocal();
   }
 
   static String? _parseBusOwnerName(Map<String, dynamic> json) {
-    if (json['bus_owner_name'] is String && (json['bus_owner_name'] as String).isNotEmpty) {
+    if (json['bus_owner_name'] is String &&
+        (json['bus_owner_name'] as String).isNotEmpty) {
       return json['bus_owner_name'] as String;
     }
 
@@ -227,7 +229,8 @@ class TripResult {
       droppingPoint: json['dropping_point'] as String? ?? '',
       fromLounge: json['from_lounge'] as String?,
       toLounge: json['to_lounge'] as String?,
-      fromLoungeDistKm: (json['from_lounge_dist_km'] as num?)?.toDouble() ?? 0.0,
+      fromLoungeDistKm:
+          (json['from_lounge_dist_km'] as num?)?.toDouble() ?? 0.0,
       toLoungeDistKm: (json['to_lounge_dist_km'] as num?)?.toDouble() ?? 0.0,
       busFeatures: BusFeatures.fromJson(json['bus_features'] ?? {}),
       isBookable: json['is_bookable'] as bool? ?? false,
