@@ -20,7 +20,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   LatLng _selectedLocation = const LatLng(7.2905, 80.6337); // Sri Lanka center
   String _selectedAddress = 'Retrieving address...';
   bool _isLoading = false;
-  final Set<Marker> _markers = {};
+  bool _isMoving = false;
   
   final TextEditingController _searchController = TextEditingController();
   List<dynamic> _suggestions = [];
@@ -65,13 +65,6 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     );
     setState(() {
       _selectedLocation = position;
-      _markers.clear();
-      _markers.add(
-        Marker(
-          markerId: const MarkerId('selected'),
-          position: position,
-        ),
-      );
     });
   }
 
@@ -172,16 +165,64 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               initialCameraPosition:
                   CameraPosition(target: _selectedLocation, zoom: 15),
               onMapCreated: (controller) => _mapController = controller,
+              onCameraMove: (position) {
+                _selectedLocation = position.target;
+                if (!_isMoving) {
+                  setState(() => _isMoving = true);
+                }
+              },
+              onCameraIdle: () {
+                setState(() => _isMoving = false);
+                _getAddressFromLatLng(_selectedLocation);
+              },
               onTap: (position) {
                 _moveMapToLocation(position);
-                _getAddressFromLatLng(position);
               },
-              markers: _markers,
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               mapToolbarEnabled: false,
               padding: const EdgeInsets.only(bottom: 150),
+            ),
+          ),
+
+          // Center Pin Overlay
+          IgnorePointer(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: EdgeInsets.only(bottom: _isMoving ? 20 : 0),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Pin Shadow
+                        if (_isMoving)
+                          Container(
+                            width: 12,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.2),
+                              borderRadius: const BorderRadius.all(Radius.elliptical(12, 6)),
+                            ),
+                          ),
+                        // The Red Pin
+                        Transform.translate(
+                          offset: const Offset(0, -22.5), // Tip of pin at center
+                          child: const Icon(
+                            Icons.location_on_rounded,
+                            size: 45,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 44), // Adjust for pin offset
+                ],
+              ),
             ),
           ),
 

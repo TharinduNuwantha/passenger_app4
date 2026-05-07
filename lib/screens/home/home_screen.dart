@@ -1375,18 +1375,29 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ),
               )
             else if (controller.text.isEmpty || isYourLocation)
-              GestureDetector(
-                onTap: () {
-                  if (isPickup)
-                    _useCurrentLocation(isPickup: true);
-                  else
-                    _navigateToMapForLocation(isPickup: false);
-                },
-                child: Icon(
-                  isPickup ? Icons.my_location_rounded : Icons.map_rounded,
-                  size: 20,
-                  color: Colors.grey.shade400,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isPickup) ...[
+                    GestureDetector(
+                      onTap: () => _useCurrentLocation(isPickup: true),
+                      child: Icon(
+                        Icons.my_location_rounded,
+                        size: 20,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  GestureDetector(
+                    onTap: () => _navigateToMapForLocation(isPickup: isPickup),
+                    child: Icon(
+                      Icons.map_rounded,
+                      size: 20,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ],
               ),
           ],
         ),
@@ -1543,7 +1554,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   ),
                 ),
 
-            if (suggestions.isEmpty && !isLoading)
+            if (!isLoading)
               ListTile(
                 leading: const Icon(
                   Icons.map_outlined,
