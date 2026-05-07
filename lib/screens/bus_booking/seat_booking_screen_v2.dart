@@ -93,8 +93,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
 
       // Filter for bookings on this specific trip
       final tripBookings = bookings.where((b) {
-        // Match by scheduled_trip_id if available in the response
-        // Otherwise match by route name and departure date
         if (b.departureDatetime != null) {
           final sameDay =
               b.departureDatetime!.year == widget.trip.departureTime.year &&
@@ -118,7 +116,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       }
     } catch (e) {
       _logger.e('Failed to check existing bookings: $e');
-      // Non-critical, don't block the UI
     }
   }
 
@@ -139,7 +136,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
           ),
           child: Column(
             children: [
-              // Handle bar
               Container(
                 margin: const EdgeInsets.only(top: 12),
                 width: 40,
@@ -318,7 +314,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       if (_selectedSeatIds.contains(seat.id)) {
         _selectedSeatIds.remove(seat.id);
       } else {
-        // Limit number of seats
         if (_selectedSeatIds.length >= 10) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -335,18 +330,13 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
 
   Color _getSeatColor(TripSeat seat) {
     if (_selectedSeatIds.contains(seat.id)) {
-      return AppColors.secondary; // Selected - Secondary Yellow
+      return AppColors.secondary;
     }
     if (seat.isBooked || seat.isBlocked) {
-      return const Color.fromARGB(
-        255,
-        215,
-        8,
-        8,
-      ).withOpacity(0.5); // Booked - Faded Blue
+      return const Color.fromARGB(255, 215, 8, 8).withOpacity(0.5);
     }
     if (seat.canBeSelected) {
-      return const Color(0xFF4CAF50); // Available - Green
+      return const Color(0xFF4CAF50);
     }
     return Colors.grey.shade300;
   }
@@ -372,7 +362,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   void _proceedToConfirm() async {
     if (_selectedSeats.isEmpty) return;
 
-    // Check if user is authenticated
     final isAuthenticated = await _authService.isAuthenticated();
     if (!isAuthenticated) {
       if (!mounted) return;
@@ -382,17 +371,14 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
           backgroundColor: Colors.red,
         ),
       );
-      // Navigate to login screen
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       return;
     }
 
-    // Get current user info
     final user = await _authService.getCurrentUser();
 
     if (!mounted) return;
 
-    // Use intent flow (new) or direct booking (old)
     if (widget.useIntentFlow) {
       Navigator.push(
         context,
@@ -419,7 +405,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         ),
       );
     } else {
-      // Legacy flow - direct booking without seat holding
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -489,7 +474,9 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.all(20.0),
-                              child: _buildSeatLayout(),
+                              child: _seats.length == 56
+                                  ? _buildSriLankanBusLayout()
+                                  : _buildSeatLayout(),
                             ),
                           ),
                           _buildConfirmButton(),
@@ -687,7 +674,11 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     );
   }
 
-  /// Build dynamic seat layout based on seat row/column data
+  // ---------------------------------------------------------------------------
+  // Fallback: original dynamic layout (used when total seats != 56)
+  // ---------------------------------------------------------------------------
+
+  /// Original layout — groups seats by API row/column values dynamically.
   Widget _buildSeatLayout() {
     if (_seats.isEmpty) {
       return const Center(
@@ -705,19 +696,11 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     for (final seat in _seats) {
       seatsByRow.putIfAbsent(seat.seatRow, () => []);
       seatsByRow[seat.seatRow]!.add(seat);
-      if (seat.seatColumn > maxColumn) {
-        maxColumn = seat.seatColumn;
-      }
+      if (seat.seatColumn > maxColumn) maxColumn = seat.seatColumn;
     }
 
-    // Sort rows
     final sortedRows = seatsByRow.keys.toList()..sort();
-
-    // Determine bus layout type based on columns
-    // Typical layouts: 4 columns (2+2), 5 columns (2+3 or 3+2)
-    final int aislePosition = maxColumn <= 4
-        ? 2
-        : 3; // After which column is aisle
+    final int aislePosition = maxColumn <= 4 ? 2 : 3;
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -727,7 +710,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       ),
       child: Column(
         children: [
-          // Header with seat count and driver icon
           Padding(
             padding: const EdgeInsets.only(bottom: 10.0),
             child: Row(
@@ -759,13 +741,11 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               ],
             ),
           ),
-
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: sortedRows.map((rowNum) {
                   final rowSeats = seatsByRow[rowNum]!;
-                  // Sort by column
                   rowSeats.sort((a, b) => a.seatColumn.compareTo(b.seatColumn));
                   return _buildDynamicSeatRow(
                     rowNum,
@@ -788,7 +768,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     int maxColumn,
     int aislePosition,
   ) {
-    // Create a map for quick seat lookup by column
     final Map<int, TripSeat> seatMap = {
       for (var seat in rowSeats) seat.seatColumn: seat,
     };
@@ -797,7 +776,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          // Row label
           SizedBox(
             width: 30,
             child: Text(
@@ -810,26 +788,18 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               ),
             ),
           ),
-          // Seats
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(maxColumn, (index) {
                 final colNum = index + 1;
-
-                // Add aisle spacer after aislePosition
                 if (index == aislePosition) {
-                  return const SizedBox(width: 20); // Aisle gap
+                  return const SizedBox(width: 20);
                 }
-
-                final adjustedCol = index < aislePosition ? colNum : colNum;
-                final seat = seatMap[adjustedCol];
-
+                final seat = seatMap[colNum];
                 if (seat == null) {
-                  // Empty seat placeholder
                   return const SizedBox(width: 40, height: 40);
                 }
-
                 return _buildSeatWidget(seat);
               }),
             ),
@@ -837,6 +807,328 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         ],
       ),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sri Lankan Bus Layout — only used when _seats.length == 56
+  // 10 standard rows × 5 seats (2 left | aisle | 3 right) + 1 back row of 6
+  // ---------------------------------------------------------------------------
+
+  /// Assigns the 56 API seats into the fixed Sri Lankan layout.
+  ///
+  /// Mapping rule:
+  ///   • Sort all seats by (seatRow ASC, seatColumn ASC).
+  ///   • The last seatRow becomes the back row (6 seats).
+  ///   • Each of the 10 standard rows: first 2 seats → left side,
+  ///     next 3 seats → right side.  The actual [TripSeat] objects (with their
+  ///     original IDs, prices, statuses) are used unchanged — only the visual
+  ///     position changes.
+  Widget _buildSriLankanBusLayout() {
+    // ── Canonical grid assignment ────────────────────────────────────────────
+    //
+    // The API's seatRow / seatColumn values are arbitrary and cannot be trusted
+    // for layout purposes (they may be 11/12/13, use W-suffixes, etc.).
+    //
+    // Strategy: sort the entire 56-seat list by (seatRow ASC, seatColumn ASC)
+    // to get the natural booking order, then map them onto the fixed grid:
+    //
+    //   Flat index 0–49  → Grid rows 1–10, columns [L1,L2 | aisle | R1,R2,R3]
+    //   Flat index 50–55 → Grid row 11 (back row), columns [B1–B6]
+    //
+    // The TripSeat objects (id, price, status) are used AS-IS — only their
+    // visual position is determined by this mapping.
+
+    // 1. Sort all seats by API row then column (preserves the operator's
+    //    intended natural ordering).
+    final sorted = List<TripSeat>.from(_seats)
+      ..sort((a, b) {
+        final rowCmp = a.seatRow.compareTo(b.seatRow);
+        return rowCmp != 0 ? rowCmp : a.seatColumn.compareTo(b.seatColumn);
+      });
+
+    // 2. Split into the two sections.
+    //    - Standard: first 50 seats  → 10 rows × 5 seats
+    //    - Back row: last  6 seats   → 1 row  × 6 seats
+    final standardSeats = sorted.sublist(0, 50); // indices 0-49
+    final backRowSeats  = sorted.sublist(50);     // indices 50-55
+
+    // 3. Slice standard seats into 10 rows of 5.
+    final List<List<TripSeat>> standardRows = List.generate(
+      10,
+      (rowIdx) => standardSeats.sublist(rowIdx * 5, rowIdx * 5 + 5),
+    );
+
+    // ── Build UI ─────────────────────────────────────────────────────────────
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F7FA),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        children: [
+          // ── Stats + bus icon ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_selectedSeats.length} selected • ${_seats.length} total',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.directions_bus,
+                  size: 40,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
+          ),
+
+          // ── Front landmark bar: [Door] ──── FRONT ──── [Driver] ──────────
+          _buildFrontSection(),
+
+          const SizedBox(height: 8),
+
+          // ── Column header: L1  L2  _  R1  R2  R3 ────────────────────────
+          _buildColumnHeaders(),
+
+          const SizedBox(height: 4),
+
+          // ── Scrollable seat grid ──────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Rows 1–10: display number is always 1-based index + 1
+                  ...List.generate(10, (i) {
+                    return _buildStandardRow(i + 1, standardRows[i]);
+                  }),
+
+                  const SizedBox(height: 6),
+
+                  // Divider between row 10 and back row
+                  Divider(
+                    color: AppColors.primary.withOpacity(0.3),
+                    thickness: 1.5,
+                    indent: 10,
+                    endIndent: 10,
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  // Row 11 — back row, 6 seats, no aisle
+                  _buildBackRow(backRowSeats),
+
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Front of bus: entrance door on the left, steering wheel on the right.
+  Widget _buildFrontSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          // Left: entrance door (front-left of Sri Lankan bus)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFC300).withOpacity(0.25),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFFC300), width: 1.2),
+            ),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.door_front_door,
+                  size: 20,
+                  color: Color(0xFFFFC300),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Entry',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Color(0xFFFFC300),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Centre label
+          const Expanded(
+            child: Text(
+              '— FRONT —',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+
+          // Right: driver / steering wheel
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.settings_backup_restore,
+              size: 22,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Column header row: L1 L2 | aisle | R1 R2 R3
+  Widget _buildColumnHeaders() {
+    const style = TextStyle(
+      fontSize: 10,
+      color: AppColors.primary,
+      fontWeight: FontWeight.w600,
+    );
+    return Row(
+      children: [
+        const SizedBox(width: 30), // aligns with row-number label
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _headerCell('L1', style),
+              _headerCell('L2', style),
+              const SizedBox(width: 24), // aisle gap
+              _headerCell('R1', style),
+              _headerCell('R2', style),
+              _headerCell('R3', style),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _headerCell(String text, TextStyle style) {
+    return SizedBox(
+      width: 40,
+      child: Center(child: Text(text, style: style)),
+    );
+  }
+
+  /// Renders one standard row (grid rows 1–10).
+  ///
+  /// [displayRowNum] is the 1-based label shown to the user (always 1–10).
+  /// [rowSeats] is exactly 5 seats already in column order:
+  ///   index 0,1 → L1, L2 (left side)
+  ///   index 2,3,4 → R1, R2, R3 (right side)
+  ///
+  /// No column-value logic here — positions are purely by list index.
+  Widget _buildStandardRow(int displayRowNum, List<TripSeat> rowSeats) {
+    final l1 = rowSeats[0];
+    final l2 = rowSeats[1];
+    final r1 = rowSeats[2];
+    final r2 = rowSeats[3];
+    final r3 = rowSeats[4];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          // Row label (1–10)
+          SizedBox(
+            width: 28,
+            child: Text(
+              '$displayRowNum',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // L1, L2
+                _buildSeatWidget(l1),
+                _buildSeatWidget(l2),
+                // Centre aisle
+                const SizedBox(width: 24),
+                // R1, R2, R3
+                _buildSeatWidget(r1),
+                _buildSeatWidget(r2),
+                _buildSeatWidget(r3),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Back row: all 6 seats in a single horizontal line (no aisle split).
+  Widget _buildBackRow(List<TripSeat> seats) {
+    return Column(
+      children: [
+        const Text(
+          'BACK ROW',
+          style: TextStyle(
+            fontSize: 10,
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: seats.map(_buildSeatWidget).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptySeatPlaceholder() {
+    return const SizedBox(width: 40, height: 40);
   }
 
   Widget _buildSeatWidget(TripSeat seat) {
