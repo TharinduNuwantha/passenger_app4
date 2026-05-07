@@ -28,6 +28,7 @@ class SelectedLoungeData {
   checkInTime; // Check-in time (e.g., trip departure time for pre-trip)
   final String? transportType; // van, car, or tuktuk
   final String? pickupLocation; // Selected pickup location
+  final String? pickupLocationId; // Selected pickup location id
   final double transportCost; // Cost for transport
 
   final bool isExplicitlyBooked; // New field
@@ -45,6 +46,7 @@ class SelectedLoungeData {
     required this.checkInTime,
     this.transportType,
     this.pickupLocation,
+    this.pickupLocationId,
     this.transportCost = 0.0,
     this.isExplicitlyBooked = true, // Default to true for manual bookings
   });
@@ -62,6 +64,7 @@ class SelectedLoungeData {
     String? checkInTime,
     String? transportType,
     String? pickupLocation,
+    String? pickupLocationId,
     double? transportCost,
     bool? isExplicitlyBooked,
   }) {
@@ -78,6 +81,7 @@ class SelectedLoungeData {
       checkInTime: checkInTime ?? this.checkInTime,
       transportType: transportType ?? this.transportType,
       pickupLocation: pickupLocation ?? this.pickupLocation,
+      pickupLocationId: pickupLocationId ?? this.pickupLocationId,
       transportCost: transportCost ?? this.transportCost,
       isExplicitlyBooked: isExplicitlyBooked ?? this.isExplicitlyBooked,
     );
@@ -213,6 +217,11 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
   void initState() {
     super.initState();
     _loadLounges();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _loadLounges() async {
@@ -639,6 +648,9 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
 
   /// Open lounge configuration bottom sheet
   Future<void> _configureLoungeBooking(Lounge lounge, bool isPreTrip) async {
+    final existingSelection = (isPreTrip
+        ? _selectedPreTripLounge
+        : _selectedPostTripLounge);
     final result = await showModalBottomSheet<SelectedLoungeData>(
       context: context,
       isScrollControlled: true,
@@ -650,6 +662,18 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         busArrivalTime: widget.trip.estimatedArrival,
         passengerName: widget.passengerName,
         passengerPhone: widget.passengerPhone,
+        initialData: existingSelection?.lounge.id == lounge.id
+            ? existingSelection
+            : null,
+        onDraftChanged: (draft) {
+          setState(() {
+            if (isPreTrip) {
+              _selectedPreTripLounge = draft;
+            } else {
+              _selectedPostTripLounge = draft;
+            }
+          });
+        },
       ),
     );
 
@@ -828,21 +852,15 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         child: Column(
           children: [
             Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  // 1. Bus Summary
-                  SliverToBoxAdapter(child: _buildBusSummary()),
-
-                  // 2. Selected Lounges Summary
-                  if (_selectedPreTripLounge != null ||
-                      _selectedPostTripLounge != null)
-                    SliverToBoxAdapter(child: _buildSelectedLoungesSummary()),
-
-                  // 3. No extra lounge list UI
-
-                  // 4. Bottom Spacer
-                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  children: [
+                    _buildBusSummary(),
+                    _buildLoungeCard(true), // Pre-trip
+                    _buildLoungeCard(false), // Post-trip
+                  ],
+                ),
               ),
             ),
 
@@ -969,16 +987,27 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
     );
   }
 
-  Widget _buildSelectedLoungesSummary() {
+  Widget _buildLoungeCard(bool isPreTrip) {
+    final selectedLounge = isPreTrip
+        ? _selectedPreTripLounge
+        : _selectedPostTripLounge;
+    final lounges = isPreTrip ? _departureLounges : _arrivalLounges;
+    final isLoading = isPreTrip ? _isLoadingDeparture : _isLoadingArrival;
+    final error = isPreTrip ? _departureError : _arrivalError;
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF1976D2).withOpacity(0.18),
-          width: 1.5,
+          color: selectedLounge != null
+              ? (selectedLounge.isExplicitlyBooked
+                    ? AppColors.primary
+                    : Colors.orange)
+              : Colors.grey.shade200,
+          width: selectedLounge != null ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -994,37 +1023,106 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1976D2).withOpacity(0.1),
+                  color: (isPreTrip ? AppColors.primary : AppColors.secondary)
+                      .withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFF1976D2),
-                  size: 18,
+                child: Icon(
+                  isPreTrip ? Icons.flight_takeoff : Icons.flight_land,
+                  color: isPreTrip ? AppColors.primary : AppColors.secondary,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Text(
-                'Selected Lounges',
-                style: TextStyle(
-                  color: Color(0xFF0D47A1),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  letterSpacing: 0.3,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isPreTrip ? 'Pre-Trip Lounge' : 'Post-Trip Lounge',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0D47A1),
+                  ),
                 ),
               ),
+              if (selectedLounge != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selectedLounge.isExplicitlyBooked
+                        ? AppColors.primary.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    selectedLounge.isExplicitlyBooked ? 'Booked' : 'Draft',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: selectedLounge.isExplicitlyBooked
+                          ? AppColors.primary
+                          : Colors.orange,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
-          if (_selectedPreTripLounge != null)
-            _buildSelectedLoungeChip(_selectedPreTripLounge!, true),
-          if (_selectedPostTripLounge != null)
-            _buildSelectedLoungeChip(_selectedPostTripLounge!, false),
+          if (selectedLounge != null)
+            _buildSelectedLoungeChip(selectedLounge, isPreTrip)
+          else
+            _buildAddLoungeButton(isPreTrip, lounges, isLoading, error),
         ],
       ),
     );
+  }
+
+  Widget _buildAddLoungeButton(
+    bool isPreTrip,
+    List<Lounge> lounges,
+    bool isLoading,
+    String? error,
+  ) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: isLoading ? null : () => _addLounge(isPreTrip),
+        icon: const Icon(Icons.add),
+        label: Text('Add ${isPreTrip ? "Pre-Trip" : "Post-Trip"} Lounge'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addLounge(bool isPreTrip) async {
+    final lounges = isPreTrip ? _departureLounges : _arrivalLounges;
+    if (lounges.isEmpty) {
+      // Try to load if not loaded
+      if (isPreTrip && _isLoadingDeparture) return;
+      if (!isPreTrip && _isLoadingArrival) return;
+      await _loadLounges();
+      final reloadedLounges = isPreTrip ? _departureLounges : _arrivalLounges;
+      if (reloadedLounges.isEmpty) {
+        _showErrorSnackBar(
+          'No lounges available for ${isPreTrip ? "departure" : "arrival"}.',
+        );
+        return;
+      }
+    }
+    // Auto-select the best lounge
+    final bestLounge = lounges.first; // Or use sorting logic
+    _autoSelectLounge(bestLounge, isPreTrip);
+    // Then open configuration
+    await _configureLoungeBooking(bestLounge, isPreTrip);
   }
 
   Widget _buildSelectedLoungeChip(SelectedLoungeData data, bool isPreTrip) {
@@ -1131,6 +1229,36 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      height: 140,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.grey.shade200, Colors.grey.shade100],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.weekend_outlined, size: 40, color: Colors.grey.shade400),
+          const SizedBox(height: 6),
+          Text(
+            'Lounge Preview',
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
@@ -1301,6 +1429,8 @@ class _LoungeConfigurationSheet extends StatefulWidget {
   final DateTime? busArrivalTime;
   final String passengerName;
   final String passengerPhone;
+  final SelectedLoungeData? initialData;
+  final ValueChanged<SelectedLoungeData>? onDraftChanged;
 
   const _LoungeConfigurationSheet({
     required this.lounge,
@@ -1309,6 +1439,8 @@ class _LoungeConfigurationSheet extends StatefulWidget {
     this.busArrivalTime,
     required this.passengerName,
     required this.passengerPhone,
+    this.initialData,
+    this.onDraftChanged,
   });
 
   @override
@@ -1351,14 +1483,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   @override
   void initState() {
     super.initState();
-    // Add primary guest automatically (from bus booking)
-    _guests.add(
-      LoungeGuestRequest(
-        guestName: widget.passengerName,
-        guestPhone: widget.passengerPhone,
-        isPrimary: true,
-      ),
-    );
+    if (widget.initialData != null) {
+      _initializeFromExistingData(widget.initialData!);
+    } else {
+      // Add primary guest automatically (from bus booking)
+      _guests.add(
+        LoungeGuestRequest(
+          guestName: widget.passengerName,
+          guestPhone: widget.passengerPhone,
+          isPrimary: true,
+        ),
+      );
+    }
     _loadProducts();
     _loadTransportOptions();
   }
@@ -1404,6 +1540,74 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         _transportLoadError = e.toString();
       });
     }
+  }
+
+  void _initializeFromExistingData(SelectedLoungeData data) {
+    _selectedPricingType = data.pricingType.isNotEmpty
+        ? data.pricingType
+        : null;
+    _guests.clear();
+    _guests.addAll(data.guests);
+    _cart.clear();
+    for (final item in data.preOrders) {
+      _cart[item.productId] = item;
+    }
+    if (widget.isPreTrip) {
+      _preTripTransportType = data.transportType;
+      _preTripPickupLocation = data.pickupLocationId;
+    } else {
+      _postTripTransportType = data.transportType;
+      _postTripPickupLocation = data.pickupLocationId;
+    }
+  }
+
+  void _updateState(VoidCallback changes) {
+    setState(() {
+      changes();
+    });
+    _notifyDraftChanged();
+  }
+
+  void _notifyDraftChanged() {
+    if (widget.onDraftChanged == null) return;
+
+    final draft = _buildDraftData(
+      isExplicitlyBooked: widget.initialData?.isExplicitlyBooked ?? false,
+    );
+    widget.onDraftChanged!(draft);
+  }
+
+  SelectedLoungeData _buildDraftData({required bool isExplicitlyBooked}) {
+    final tripDate = widget.isPreTrip
+        ? widget.busDepartureTime
+        : (widget.busArrivalTime ?? widget.busDepartureTime);
+    final checkInTime = DateFormat('HH:mm').format(
+      widget.isPreTrip ? tripDate.subtract(const Duration(hours: 1)) : tripDate,
+    );
+
+    return SelectedLoungeData(
+      lounge: widget.lounge,
+      pricingType: _selectedPricingType ?? '',
+      pricePerGuest: _getPriceForType(_selectedPricingType),
+      guests: List<LoungeGuestRequest>.from(_guests),
+      preOrders: _cart.values.toList(),
+      basePrice: _basePrice,
+      preOrderTotal: _preOrderTotal,
+      totalPrice: _totalPrice,
+      tripDate: tripDate,
+      checkInTime: checkInTime,
+      transportType: widget.isPreTrip
+          ? _preTripTransportType
+          : _postTripTransportType,
+      pickupLocation: widget.isPreTrip
+          ? _optionById(_preTripPickupLocation)?.location
+          : _optionById(_postTripPickupLocation)?.location,
+      pickupLocationId: widget.isPreTrip
+          ? _preTripPickupLocation
+          : _postTripPickupLocation,
+      transportCost: _transportCost,
+      isExplicitlyBooked: isExplicitlyBooked,
+    );
   }
 
   LoungeTransportLocationOption? _optionById(String? id) {
@@ -1491,7 +1695,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     final name = _guestNameController.text.trim();
     if (name.isEmpty) return;
 
-    setState(() {
+    _updateState(() {
       _guests.add(
         LoungeGuestRequest(
           guestName: name,
@@ -1508,11 +1712,11 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
   void _removeGuest(int index) {
     if (index == 0) return; // Can't remove primary guest
-    setState(() => _guests.removeAt(index));
+    _updateState(() => _guests.removeAt(index));
   }
 
   void _updateCartItem(LoungeProduct product, int quantity) {
-    setState(() {
+    _updateState(() {
       if (quantity <= 0) {
         _cart.remove(product.id);
       } else {
@@ -1533,6 +1737,20 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Please select a duration')));
       return;
+    }
+
+    // Validate phone numbers
+    for (final guest in _guests) {
+      if (guest.guestPhone != null && !_isValidPhone(guest.guestPhone!)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please enter a valid phone number (e.g., +94712345678 or 0712345678)',
+            ),
+          ),
+        );
+        return;
+      }
     }
 
     final t = widget.isPreTrip ? _preTripTransportType : _postTripTransportType;
@@ -1578,11 +1796,19 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       pickupLocation: widget.isPreTrip
           ? _optionById(_preTripPickupLocation)?.location
           : _optionById(_postTripPickupLocation)?.location,
+      pickupLocationId: widget.isPreTrip
+          ? _preTripPickupLocation
+          : _postTripPickupLocation,
       transportCost: _transportCost,
       isExplicitlyBooked: true, // Manually booked via sheet
     );
 
     Navigator.pop(context, result);
+  }
+
+  bool _isValidPhone(String phone) {
+    // Sri Lankan phone number validation: +94xxxxxxxxx or 0xxxxxxxxx
+    return RegExp(r'^(?:\+94|0)[0-9]{9}$').hasMatch(phone);
   }
 
   @override
@@ -1847,7 +2073,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       '3_hours': Icons.hourglass_full_rounded,
     };
     return GestureDetector(
-      onTap: () => setState(() => _selectedPricingType = type),
+      onTap: () => _updateState(() => _selectedPricingType = type),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 10),
@@ -2569,7 +2795,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
           return GestureDetector(
             onTap: () {
-              setState(() {
+              _updateState(() {
                 if (widget.isPreTrip) {
                   _preTripPickupLocation = isSelected ? null : location.id;
                   // Reset transport type if location changes
@@ -2817,7 +3043,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
     return GestureDetector(
       onTap: () {
-        setState(() {
+        _updateState(() {
           if (widget.isPreTrip) {
             _preTripTransportType = (_preTripTransportType == type)
                 ? null
