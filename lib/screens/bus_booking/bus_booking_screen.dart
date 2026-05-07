@@ -739,6 +739,31 @@ class _BusListScreenState extends State<BusListScreen> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
+                                      if (trip.mainRouteOrigin != null &&
+                                          trip.mainRouteDestination != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 4.0),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.route_outlined,
+                                                size: 14,
+                                                color: AppColors.primary
+                                                    .withOpacity(0.7),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${trip.mainRouteOrigin} ↔ ${trip.mainRouteDestination}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.primary
+                                                      .withOpacity(0.8),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       if (trip.busOwnerName != null &&
                                           trip.routeName.isNotEmpty)
                                         Padding(
@@ -757,27 +782,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.star,
-                                            size: 14,
-                                            color: Color(0xFFFFB300),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Flexible(
-                                            child: Text(
-                                              "4.8 (124 reviews)",
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey[500],
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+
                                     ],
                                   ),
                                 ),

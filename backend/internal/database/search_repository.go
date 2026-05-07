@@ -454,7 +454,10 @@ func (r *SearchRepository) FindDirectTrips(
 			-- Route info for fetching stops
 			bor.id as bus_owner_route_id,
 			-- Use bor.master_route_id first, fall back to permit's master_route_id
-			COALESCE(bor.master_route_id, rp.master_route_id)::text as master_route_id
+			COALESCE(bor.master_route_id, rp.master_route_id)::text as master_route_id,
+			-- Fetch main route cities from master_routes
+			COALESCE(mr_bor.origin_city, mr_permit.origin_city) as main_route_origin,
+			COALESCE(mr_bor.destination_city, mr_permit.destination_city) as main_route_destination
 		FROM scheduled_trips st
 		-- Join bus owner route
 		LEFT JOIN bus_owner_routes bor ON st.bus_owner_route_id = bor.id
@@ -524,6 +527,8 @@ func (r *SearchRepository) FindDirectTrips(
 		// Route info for fetching stops
 		BusOwnerRouteID *string `db:"bus_owner_route_id"`
 		MasterRouteID   *string `db:"master_route_id"`
+		MainRouteOrigin *string `db:"main_route_origin"`
+		MainRouteDestination *string `db:"main_route_destination"`
 	}
 
 	var tempTrips []tripWithFeatures
@@ -663,6 +668,8 @@ func (r *SearchRepository) FindDirectTrips(
 			IsBookable:      temp.IsBookable,
 			BusOwnerRouteID: temp.BusOwnerRouteID,
 			MasterRouteID:   temp.MasterRouteID,
+			MainRouteOrigin: temp.MainRouteOrigin,
+			MainRouteDestination: temp.MainRouteDestination,
 		}
 	}
 
@@ -1087,6 +1094,8 @@ matched_routes AS (
         lr_s.master_route_id,
         mr.route_name,
         mr.route_number,
+        mr.origin_city        AS main_route_origin,
+        mr.destination_city   AS main_route_destination,
         lr_s.stop_before_id   AS boarding_stop_id,
         lr_d.stop_before_id   AS dropping_stop_id
     FROM start_lounges sl
@@ -1111,6 +1120,8 @@ SELECT
     mr_data.start_dist_m,
     mr_data.drop_dist_m,
     mr_data.master_route_id::text,
+    mr_data.main_route_origin,
+    mr_data.main_route_destination,
     boarding_stop.stop_name   AS boarding_point,
     dropping_stop.stop_name   AS dropping_point,
     sched.trip_id,
@@ -1305,6 +1316,7 @@ direct_pairs AS (
     SELECT sl.id AS sl_id, sl.lounge_name AS sl_name, sl.dist_m AS sl_dist,
            dl.id AS dl_id, dl.lounge_name AS dl_name, dl.dist_m AS dl_dist,
            mr.id AS route_id, mr.route_name, mr.route_number,
+           mr.origin_city AS main_route_origin, mr.destination_city AS main_route_destination,
            lr_s.stop_before_id AS boarding_stop_id,
            lr_d.stop_before_id AS dropping_stop_id
     FROM start_lounges sl
@@ -1385,6 +1397,7 @@ direct_results AS (
            dp.sl_dist AS start_dist_m, dp.dl_dist AS drop_dist_m,
            dp.route_name AS r1_route_name, dp.route_number AS r1_route_number,
            dp.route_id::text AS r1_master_id,
+           dp.main_route_origin AS r1_main_origin, dp.main_route_destination AS r1_main_destination,
            bs.stop_name AS l1_boarding, ds.stop_name AS l1_dropping,
            s1.trip_id, s1.departure_time AS l1_dep, s1.estimated_arrival AS l1_arr,
            s1.duration_minutes AS l1_duration, s1.total_seats AS l1_total_seats,
@@ -1397,6 +1410,7 @@ direct_results AS (
            s1.bus_owner_route_id AS l1_bus_owner_route_id,
            s1.trip_master_route_id AS l1_trip_master_id,
            NULL::text AS r2_route_name, NULL::text AS r2_route_number,
+           NULL::text AS r2_main_origin, NULL::text AS r2_main_destination,
            NULL::text AS l2_boarding, NULL::text AS l2_dropping,
            NULL::text AS l2_trip_id, NULL::timestamptz AS l2_dep,
            NULL::timestamptz AS l2_arr, 0::float AS l2_fare,
@@ -1436,6 +1450,7 @@ transit_results AS (
            tc.sl_dist AS start_dist_m, tc.dl_dist AS drop_dist_m,
            mr1.route_name AS r1_route_name, mr1.route_number AS r1_route_number,
            tc.r1_id::text AS r1_master_id,
+           mr1.origin_city AS r1_main_origin, mr1.destination_city AS r1_main_destination,
            b1s.stop_name AS l1_boarding, d1s.stop_name AS l1_dropping,
            l1.trip_id, l1.departure_time AS l1_dep, l1.estimated_arrival AS l1_arr,
            l1.duration_minutes AS l1_duration, l1.total_seats AS l1_total_seats,
@@ -1447,6 +1462,7 @@ transit_results AS (
            l1.has_refreshments AS l1_has_refreshments,
            NULL::text AS l1_bus_owner_route_id, tc.r1_id::text AS l1_trip_master_id,
            mr2.route_name AS r2_route_name, mr2.route_number AS r2_route_number,
+           mr2.origin_city AS r2_main_origin, mr2.destination_city AS r2_main_destination,
            b2s.stop_name AS l2_boarding, d2s.stop_name AS l2_dropping,
            l2.trip_id AS l2_trip_id, l2.departure_time AS l2_dep,
            l2.estimated_arrival AS l2_arr, l2.fare AS l2_fare,
@@ -1534,8 +1550,12 @@ LIMIT $7;
 		L1HasRefreshments  bool       `db:"l1_has_refreshments"`
 		L1BusOwnerRouteID  *string    `db:"l1_bus_owner_route_id"`
 		L1TripMasterID     string     `db:"l1_trip_master_id"`
+		R1MainOrigin       *string    `db:"r1_main_origin"`
+		R1MainDestination  *string    `db:"r1_main_destination"`
 		R2RouteName        *string    `db:"r2_route_name"`
 		R2RouteNumber      *string    `db:"r2_route_number"`
+		R2MainOrigin       *string    `db:"r2_main_origin"`
+		R2MainDestination  *string    `db:"r2_main_destination"`
 		L2Boarding         *string    `db:"l2_boarding"`
 		L2Dropping         *string    `db:"l2_dropping"`
 		L2TripID           *string    `db:"l2_trip_id"`
@@ -1586,6 +1606,8 @@ LIMIT $7;
 				IsBookable:      row.L1IsBookable,
 				BusOwnerRouteID: row.L1BusOwnerRouteID,
 				MasterRouteID:   &row.L1TripMasterID,
+				MainRouteOrigin: row.R1MainOrigin,
+				MainRouteDestination: row.R1MainDestination,
 				IsTransit:       false,
 			})
 		} else {
@@ -1622,6 +1644,8 @@ LIMIT $7;
 					HasEntertainment: row.L1HasEntertainment,
 					HasRefreshments:  row.L1HasRefreshments,
 				},
+				MainRouteOrigin: row.R1MainOrigin,
+				MainRouteDestination: row.R1MainDestination,
 			}
 			leg2BusType := "Normal"
 			if row.L2BusType != nil { leg2BusType = *row.L2BusType }
@@ -1630,6 +1654,8 @@ LIMIT $7;
 				BusType: leg2BusType, DepartureTime: l2Dep, EstimatedArrival: l2Arr,
 				Fare: row.L2Fare, BoardingPoint: l2Boarding, DroppingPoint: l2Dropping,
 				IsBookable: row.L2IsBookable,
+				MainRouteOrigin: row.R2MainOrigin,
+				MainRouteDestination: row.R2MainDestination,
 			}
 
 			results = append(results, models.TripResult{
@@ -1654,6 +1680,8 @@ LIMIT $7;
 				Leg1:             &leg1,
 				Leg2:             &leg2,
 				MasterRouteID:    &row.R1MasterID,
+				MainRouteOrigin:  row.R1MainOrigin,
+				MainRouteDestination: row.R2MainDestination,
 			})
 		}
 	}

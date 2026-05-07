@@ -150,6 +150,8 @@ class TripResult {
 
   /// Master route ID for lounge lookup
   final String? masterRouteId;
+  final String? mainRouteOrigin;
+  final String? mainRouteDestination;
   final bool isTransit;
   final String? transitPointId;
   final String? transitPoint;
@@ -178,6 +180,8 @@ class TripResult {
     required this.isBookable,
     this.routeStops = const [],
     this.masterRouteId,
+    this.mainRouteOrigin,
+    this.mainRouteDestination,
     this.isTransit = false,
     this.transitPointId,
     this.transitPoint,
@@ -212,6 +216,43 @@ class TripResult {
     return null;
   }
 
+  static String? _parseMainRouteOrigin(Map<String, dynamic> json) {
+    if (json['main_route_origin'] is String) {
+      return json['main_route_origin'] as String;
+    }
+
+    if (json['bus_owner_route'] != null &&
+        json['bus_owner_route']['master_route'] != null) {
+      return json['bus_owner_route']['master_route']['origin_city'] as String?;
+    }
+    
+    // Support flat structure if returned by backend join
+    if (json['master_route_origin'] is String) {
+      return json['master_route_origin'] as String;
+    }
+
+    return null;
+  }
+
+  static String? _parseMainRouteDestination(Map<String, dynamic> json) {
+    if (json['main_route_destination'] is String) {
+      return json['main_route_destination'] as String;
+    }
+
+    if (json['bus_owner_route'] != null &&
+        json['bus_owner_route']['master_route'] != null) {
+      return json['bus_owner_route']['master_route']['destination_city']
+          as String?;
+    }
+    
+    // Support flat structure if returned by backend join
+    if (json['master_route_destination'] is String) {
+      return json['master_route_destination'] as String;
+    }
+
+    return null;
+  }
+
   factory TripResult.fromJson(Map<String, dynamic> json) {
     return TripResult(
       tripId: json['trip_id'] as String,
@@ -240,6 +281,8 @@ class TripResult {
               .toList() ??
           [],
       masterRouteId: json['master_route_id'] as String?,
+      mainRouteOrigin: _parseMainRouteOrigin(json),
+      mainRouteDestination: _parseMainRouteDestination(json),
       isTransit: json['is_transit'] as bool? ?? false,
       transitPointId: json['transit_point_id'] as String?,
       transitPoint: json['transit_point'] as String?,

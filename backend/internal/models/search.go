@@ -90,6 +90,9 @@ type TripResult struct {
 	RouteStops []RouteStop `json:"route_stops,omitempty"`
 	// Route IDs for lounge lookup
 	MasterRouteID *string `json:"master_route_id,omitempty" db:"master_route_id"`
+	// Main route info from master_routes table
+	MainRouteOrigin      *string `json:"main_route_origin,omitempty" db:"main_route_origin"`
+	MainRouteDestination *string `json:"main_route_destination,omitempty" db:"main_route_destination"`
 	// Transit fields for connecting journeys
 	IsTransit      bool        `json:"is_transit"`
 	TransitPointID *uuid.UUID  `json:"transit_point_id,omitempty"`
