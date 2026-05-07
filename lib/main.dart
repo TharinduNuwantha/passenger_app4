@@ -20,6 +20,7 @@ import 'screens/profile/privacy_policy.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_colors.dart';
+import 'widgets/location_gatekeeper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,7 +94,11 @@ class MyApp extends StatelessWidget {
                   );
 
                 case AppConstants.homeRoute:
-                  return MaterialPageRoute(builder: (_) => const DashBoard());
+                  return MaterialPageRoute(
+                    builder: (_) => const LocationGatekeeper(
+                      child: DashBoard(),
+                    ),
+                  );
 
                 case AppConstants.profileRoute:
                   return MaterialPageRoute(

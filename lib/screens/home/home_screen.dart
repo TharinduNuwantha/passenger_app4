@@ -908,37 +908,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
   Future<void> _doUseCurrentLocation({required bool isPickup}) async {
     try {
-      // Check location permission
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Location permission denied'),
-                backgroundColor: Colors.redAccent,
-              ),
-            );
-          }
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Location permission permanently denied. Please enable in settings.',
-              ),
-              backgroundColor: Colors.redAccent,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-        return;
-      }
+      // Permission and Service status is already enforced by LocationGatekeeper
+      
+      // Get current position
 
       // Show loading indicator
       if (mounted) {
