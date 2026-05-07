@@ -722,8 +722,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        trip.routeName.split(" ").first +
-                                            " Express",
+                                        trip.busOwnerName ?? trip.displayRouteName,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
@@ -732,6 +731,20 @@ class _BusListScreenState extends State<BusListScreen> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
+                                      if (trip.busOwnerName != null && trip.routeName.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
+                                          child: Text(
+                                            trip.routeName,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[600],
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
                                       Row(
                                         children: [
                                           const Icon(

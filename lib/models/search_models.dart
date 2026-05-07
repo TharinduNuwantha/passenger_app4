@@ -132,6 +132,8 @@ class TripResult {
   final String tripId;
   final String routeName;
   final String? routeNumber;
+  final String? busOwnerId;
+  final String? busOwnerName;
   final String busType;
   final DateTime departureTime;
   final DateTime estimatedArrival;
@@ -159,6 +161,8 @@ class TripResult {
     required this.tripId,
     required this.routeName,
     this.routeNumber,
+    this.busOwnerId,
+    this.busOwnerName,
     required this.busType,
     required this.departureTime,
     required this.estimatedArrival,
@@ -190,11 +194,29 @@ class TripResult {
     return DateTime.parse(dateStr).toLocal();
   }
 
+  static String? _parseBusOwnerName(Map<String, dynamic> json) {
+    if (json['bus_owner_name'] is String && (json['bus_owner_name'] as String).isNotEmpty) {
+      return json['bus_owner_name'] as String;
+    }
+
+    if (json['bus_owner'] is Map<String, dynamic>) {
+      return json['bus_owner']['company_name'] as String?;
+    }
+
+    if (json['bus_owner'] is Map) {
+      return (json['bus_owner'] as Map)['company_name'] as String?;
+    }
+
+    return null;
+  }
+
   factory TripResult.fromJson(Map<String, dynamic> json) {
     return TripResult(
       tripId: json['trip_id'] as String,
       routeName: json['route_name'] as String? ?? 'Unknown Route',
       routeNumber: json['route_number'] as String?,
+      busOwnerId: json['bus_owner_id'] as String?,
+      busOwnerName: _parseBusOwnerName(json),
       busType: json['bus_type'] as String? ?? 'normal',
       departureTime: _parseUtcDate(json['departure_time'] as String),
       estimatedArrival: _parseUtcDate(json['estimated_arrival'] as String),
@@ -235,6 +257,18 @@ class TripResult {
 
   String get formattedFare {
     return 'LKR ${fare.toStringAsFixed(2)}';
+  }
+
+  String get displayRouteName {
+    if (routeName.isNotEmpty && routeName != 'Unknown Route') {
+      return routeName;
+    }
+
+    if (isTransit && leg1 != null && leg2 != null) {
+      return '${leg1!.routeName} / ${leg2!.routeName}';
+    }
+
+    return 'Route information unavailable';
   }
 
   // Seats display - booking feature not implemented yet
