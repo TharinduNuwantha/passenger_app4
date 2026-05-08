@@ -89,7 +89,8 @@ class SearchResponse {
   bool get isSuccess => status == 'success';
   bool get hasResults => results.isNotEmpty;
   bool get hasRouteOnlyDiscovery => !hasResults && routeExists;
-  bool get hasPartialCoverage => discoveryStatus == 'partial_coverage' || remainingGapKm > 0.0;
+  bool get hasPartialCoverage =>
+      discoveryStatus == 'partial_coverage' || remainingGapKm > 0.0;
 }
 
 class SearchDetails {
@@ -208,9 +209,11 @@ class TripResult {
     this.routeExists = false,
   });
 
-  bool get isRouteOnly => !isBookable && (routeExists || discoveryStatus == 'route_available');
+  bool get isRouteOnly =>
+      !isBookable && (routeExists || discoveryStatus == 'route_available');
 
-  bool get isPartialCoverage => discoveryStatus == 'partial_coverage' || remainingGapKm > 0.0;
+  bool get isPartialCoverage =>
+      discoveryStatus == 'partial_coverage' || remainingGapKm > 0.0;
 
   String get discoveryReason {
     if (discoveryStatus == 'partial_coverage') {
@@ -260,7 +263,7 @@ class TripResult {
         json['bus_owner_route']['master_route'] != null) {
       return json['bus_owner_route']['master_route']['origin_city'] as String?;
     }
-    
+
     // Support flat structure if returned by backend join
     if (json['master_route_origin'] is String) {
       return json['master_route_origin'] as String;
@@ -279,7 +282,7 @@ class TripResult {
       return json['bus_owner_route']['master_route']['destination_city']
           as String?;
     }
-    
+
     // Support flat structure if returned by backend join
     if (json['master_route_destination'] is String) {
       return json['master_route_destination'] as String;

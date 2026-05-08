@@ -608,8 +608,8 @@ class _BusListScreenState extends State<BusListScreen> {
     final String message = hasPartialCoverage
         ? 'A route exists, but only partial coverage is available. A remaining gap of ${response?.remainingGapKm.toStringAsFixed(1) ?? '0.0'} km remains.'
         : hasRouteOnlyDiscovery
-            ? 'A route is available, but no buses are scheduled for this date. Try a different date or check back soon.'
-            : 'We couldn\'t find any buses for your search criteria on this date.';
+        ? 'A route is available, but no buses are scheduled for this date. Try a different date or check back soon.'
+        : 'We couldn\'t find any buses for your search criteria on this date.';
 
     return Container(
       padding: const EdgeInsets.all(40),
@@ -756,7 +756,9 @@ class _BusListScreenState extends State<BusListScreen> {
                                       if (trip.mainRouteOrigin != null &&
                                           trip.mainRouteDestination != null)
                                         Padding(
-                                          padding: const EdgeInsets.only(top: 4.0),
+                                          padding: const EdgeInsets.only(
+                                            top: 4.0,
+                                          ),
                                           child: Row(
                                             children: [
                                               Icon(
@@ -796,7 +798,6 @@ class _BusListScreenState extends State<BusListScreen> {
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-
                                     ],
                                   ),
                                 ),
@@ -808,22 +809,22 @@ class _BusListScreenState extends State<BusListScreen> {
                             trip.isTransit
                                 ? 'TRANSIT'
                                 : isRouteOnly
-                                    ? 'ROUTE ONLY'
-                                    : isPartialCoverage
-                                        ? 'PARTIAL'
-                                        : trip.busType.toUpperCase(),
+                                ? 'ROUTE ONLY'
+                                : isPartialCoverage
+                                ? 'PARTIAL'
+                                : trip.busType.toUpperCase(),
                             trip.isTransit
                                 ? AppColors.secondary
                                 : isRouteOnly
-                                    ? AppColors.primary.withOpacity(0.9)
-                                    : isPartialCoverage
-                                        ? AppColors.secondary
-                                        : AppColors.primary,
+                                ? AppColors.primary.withOpacity(0.9)
+                                : isPartialCoverage
+                                ? AppColors.secondary
+                                : AppColors.primary,
                             trip.isTransit
                                 ? Icons.alt_route_rounded
                                 : isRouteOnly
-                                    ? Icons.map_outlined
-                                    : Icons.directions_bus_filled,
+                                ? Icons.map_outlined
+                                : Icons.directions_bus_filled,
                           ),
                         ],
                       ),

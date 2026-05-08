@@ -410,8 +410,13 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           return;
         }
 
-        _logger.i('Lounges added successfully, proceeding to payment');
+        _logger.i('Lounges added successfully, returning to review screen');
+      } else {
+        _logger.i('No lounges selected, returning to review screen');
       }
+
+      // Stop here and let the user review the final price before paying
+      return;
     }
 
     // Initiate payment
