@@ -453,7 +453,13 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         );
       }
     } else if (provider.hasError) {
-      _showErrorSnackBar(provider.errorMessage ?? 'Failed to initiate payment');
+      final errorMessage = provider.errorMessage ?? 'Failed to initiate payment';
+      // Check if the intent is no longer in 'held' status (e.g., expired or cancelled)
+      if (errorMessage.contains("intent not in 'held' status")) {
+        _showExpiredDialog();
+      } else {
+        _showErrorSnackBar(errorMessage);
+      }
     }
   }
 
