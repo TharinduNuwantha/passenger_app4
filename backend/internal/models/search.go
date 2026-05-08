@@ -26,6 +26,10 @@ type SearchResponse struct {
 	SearchDetails SearchDetails `json:"search_details"` // Details about the search
 	Results       []TripResult  `json:"results"`        // List of matching trips
 	SearchTimeMs  int64         `json:"search_time_ms"` // Search execution time
+	// Route discovery fields
+	DiscoveryStatus string  `json:"discovery_status"` // "full_coverage", "partial_coverage", "route_available", "no_route"
+	RemainingGapKm  float64 `json:"remaining_gap_km"` // Distance remaining if partial coverage
+	RouteExists     bool    `json:"route_exists"`     // Whether any route exists between locations
 }
 
 // SearchDetails provides information about how the search was performed
@@ -99,6 +103,11 @@ type TripResult struct {
 	TransitPoint   string      `json:"transit_point,omitempty"`
 	Leg1           *TripResult `json:"leg1,omitempty"`
 	Leg2           *TripResult `json:"leg2,omitempty"`
+	// Route discovery fields
+	DiscoveryStatus string  `json:"discovery_status"` // "full_coverage", "partial_coverage", "route_available", "no_route"
+	RemainingGapKm  float64 `json:"remaining_gap_km"` // Distance remaining if partial coverage
+	RouteExists     bool    `json:"route_exists"`     // Whether any route exists between locations
+	HasActiveSchedules bool `json:"has_active_schedules"` // Whether this trip has actual bus schedules
 	// Internal field for building route stops (not in JSON)
 	BusOwnerRouteID *string `json:"-" db:"bus_owner_route_id"`
 }

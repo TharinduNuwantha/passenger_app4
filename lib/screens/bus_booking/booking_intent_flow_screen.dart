@@ -453,7 +453,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         );
       }
     } else if (provider.hasError) {
-      final errorMessage = provider.errorMessage ?? 'Failed to initiate payment';
+      final errorMessage =
+          provider.errorMessage ?? 'Failed to initiate payment';
       // Check if the intent is no longer in 'held' status (e.g., expired or cancelled)
       if (errorMessage.contains("intent not in 'held' status")) {
         _showExpiredDialog();
@@ -1250,7 +1251,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                 ],
               ),
               // Departure lounge
-              if (_preTripLounge != null && _preTripLounge!.isExplicitlyBooked) ...[
+              if (_preTripLounge != null &&
+                  _preTripLounge!.isExplicitlyBooked) ...[
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1299,7 +1301,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
               ],
               // Transit lounge
-              if (_transitLounge != null && _transitLounge!.isExplicitlyBooked) ...[
+              if (_transitLounge != null &&
+                  _transitLounge!.isExplicitlyBooked) ...[
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1348,7 +1351,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                   ),
               ],
               // Arrival lounge
-              if (_postTripLounge != null && _postTripLounge!.isExplicitlyBooked) ...[
+              if (_postTripLounge != null &&
+                  _postTripLounge!.isExplicitlyBooked) ...[
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -143,6 +143,29 @@ func (s *SearchService) SearchTrips(
 		searchType = "lounge_transit"
 	}
 
+	// --- FALLBACK TO STATIC ROUTE SEARCH IF NO SCHEDULED TRIPS FOUND ---
+	staticRouteMessage := ""
+	if len(results) == 0 && fromLat != nil && fromLng != nil && toLat != nil && toLng != nil {
+		s.logger.Info("No scheduled trips found, attempting static route discovery")
+		staticResults, err := s.repo.FindStaticLoungeRoutes(
+			*fromLat, *fromLng,
+			*toLat, *toLng,
+			usedRadius, // Use the same radius that was used for scheduled search
+		)
+		if err == nil && len(staticResults) > 0 {
+			results = staticResults
+			searchType = "static_route"
+			staticRouteMessage = fmt.Sprintf(
+				"A physical route exists via %s, but no buses are scheduled for this date.",
+				staticResults[0].RouteName,
+			)
+			s.logger.WithFields(logrus.Fields{
+				"static_routes": len(staticResults),
+				"route_name":    staticResults[0].RouteName,
+			}).Info("Found static routes — returning ghost trips")
+		}
+	}
+
 	// --- FALLBACK TO REGULAR SEARCH IF NO LOUNGES FOUND ---
 	fallbackMessage := ""
 	if len(results) == 0 {
@@ -180,13 +203,23 @@ func (s *SearchService) SearchTrips(
 			"No routes found from '%s' to '%s' even after expanding search radius to %.0fkm. Please try a different date or time.",
 			req.From, req.To, usedRadius/1000,
 		)
+		response.RouteExists = false
+		response.DiscoveryStatus = "no_routes"
+	} else if staticRouteMessage != "" {
+		response.Message = staticRouteMessage
+		response.RouteExists = true
+		response.DiscoveryStatus = "route_available"
 	} else if fallbackMessage != "" {
 		response.Message = fallbackMessage
+		response.RouteExists = true
+		response.DiscoveryStatus = "scheduled_available"
 	} else {
 		response.Message = fmt.Sprintf(
 			"Found %d direct lounge route(s) from '%s' to '%s' (search radius: %.0fkm).",
 			len(results), req.From, req.To, usedRadius/1000,
 		)
+		response.RouteExists = true
+		response.DiscoveryStatus = "scheduled_available"
 	}
 
 	// Log timing

@@ -29,48 +29,145 @@ func NewSearchRepository(db DB) *SearchRepository {
 	panic("Invalid database type for SearchRepository")
 }
 
-// FindStopByName finds a stop by exact name match (case-insensitive)
-func (r *SearchRepository) FindStopByName(stopName string) (*models.StopInfo, *uuid.UUID, error) {
-	query := `
-		SELECT
-			s.id,
-			s.stop_name,
-			COUNT(DISTINCT s.master_route_id) as route_count
-		FROM master_route_stops s
-		JOIN master_routes r ON s.master_route_id = r.id
-		WHERE LOWER(s.stop_name) = LOWER($1)
-		  AND r.is_active = true
-		GROUP BY s.id, s.stop_name
-		ORDER BY route_count DESC
-		LIMIT 1
-	`
+// FindStaticLoungeRoutes finds lounge-to-lounge connections without requiring scheduled trips
+// This is used when no active schedules exist but we want to show route availability
+func (r *SearchRepository) FindStaticLoungeRoutes(
+	fromLat, fromLng float64,
+	toLat, toLng float64,
+	radiusMeters float64,
+) ([]models.TripResult, error) {
 
-	var result struct {
-		ID         uuid.UUID `db:"id"`
-		StopName   string    `db:"stop_name"`
-		RouteCount int       `db:"route_count"`
+	const query = `
+WITH
+haversine AS (SELECT 6371000.0 AS erm),
+
+start_lounges AS (
+    SELECT l.id, l.lounge_name,
+           erm * 2 * ASIN(SQRT(
+               POWER(SIN(RADIANS((l.latitude - $1)/2)),2) +
+               COS(RADIANS($1))*COS(RADIANS(l.latitude))*
+               POWER(SIN(RADIANS((l.longitude - $2)/2)),2)
+           )) AS dist_m
+    FROM lounges l, haversine
+    WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+      AND erm * 2 * ASIN(SQRT(
+              POWER(SIN(RADIANS((l.latitude - $1)/2)),2) +
+              COS(RADIANS($1))*COS(RADIANS(l.latitude))*
+              POWER(SIN(RADIANS((l.longitude - $2)/2)),2)
+          )) <= $5
+    ORDER BY dist_m ASC
+    LIMIT 5
+),
+
+drop_lounges AS (
+    SELECT l.id, l.lounge_name,
+           erm * 2 * ASIN(SQRT(
+               POWER(SIN(RADIANS((l.latitude - $3)/2)),2) +
+               COS(RADIANS($3))*COS(RADIANS(l.latitude))*
+               POWER(SIN(RADIANS((l.longitude - $4)/2)),2)
+           )) AS dist_m
+    FROM lounges l, haversine
+    WHERE l.latitude IS NOT NULL AND l.longitude IS NOT NULL
+      AND erm * 2 * ASIN(SQRT(
+              POWER(SIN(RADIANS((l.latitude - $3)/2)),2) +
+              COS(RADIANS($3))*COS(RADIANS(l.latitude))*
+              POWER(SIN(RADIANS((l.longitude - $4)/2)),2)
+          )) <= $5
+    ORDER BY dist_m ASC
+    LIMIT 5
+),
+
+lounge_pairs AS (
+    SELECT sl.id AS sl_id, sl.lounge_name AS sl_name, sl.dist_m AS sl_dist,
+           dl.id AS dl_id, dl.lounge_name AS dl_name, dl.dist_m AS dl_dist,
+           mr.id AS route_id, mr.route_name, mr.route_number,
+           mr.origin_city AS main_route_origin, mr.destination_city AS main_route_destination
+    FROM start_lounges sl
+    CROSS JOIN drop_lounges dl
+    JOIN lounge_routes lr_s ON lr_s.lounge_id = sl.id
+    JOIN lounge_routes lr_d ON lr_d.lounge_id = dl.id
+                           AND lr_d.master_route_id = lr_s.master_route_id
+    JOIN master_route_stops mrs_s ON mrs_s.id = lr_s.stop_before_id
+    JOIN master_route_stops mrs_d ON mrs_d.id = lr_d.stop_before_id
+    JOIN master_routes mr ON mr.id = lr_s.master_route_id AND mr.is_active = true
+    WHERE mrs_s.stop_order < mrs_d.stop_order AND sl.id <> dl.id
+    ORDER BY sl.dist_m ASC, dl.dist_m ASC
+    LIMIT 10
+)
+
+SELECT lp.sl_name AS start_lounge_name, lp.dl_name AS drop_lounge_name,
+       lp.sl_dist AS start_dist_m, lp.dl_dist AS drop_dist_m,
+       lp.route_name, lp.route_number, lp.route_id::text AS master_route_id,
+       lp.main_route_origin, lp.main_route_destination
+FROM lounge_pairs lp
+ORDER BY lp.sl_dist ASC, lp.dl_dist ASC
+LIMIT 5;
+`
+
+	type staticRow struct {
+		StartLoungeName   string  `db:"start_lounge_name"`
+		DropLoungeName    string  `db:"drop_lounge_name"`
+		StartDistM        float64 `db:"start_dist_m"`
+		DropDistM         float64 `db:"drop_dist_m"`
+		RouteName         string  `db:"route_name"`
+		RouteNumber       *string `db:"route_number"`
+		MasterRouteID     string  `db:"master_route_id"`
+		MainRouteOrigin   *string `db:"main_route_origin"`
+		MainRouteDestination *string `db:"main_route_destination"`
 	}
 
-	err := r.db.Get(&result, query, strings.TrimSpace(stopName))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// Stop not found - not an error, just return nil
-			return &models.StopInfo{
-				Matched:       false,
-				OriginalInput: stopName,
-			}, nil, nil
-		}
-		return nil, nil, fmt.Errorf("error finding stop: %w", err)
+	var rows []staticRow
+	if err := r.db.Select(&rows, query,
+		fromLat, fromLng, toLat, toLng, radiusMeters,
+	); err != nil {
+		return nil, fmt.Errorf("FindStaticLoungeRoutes: %w", err)
 	}
 
-	stopInfo := &models.StopInfo{
-		ID:            &result.ID,
-		Name:          result.StopName,
-		Matched:       true,
-		OriginalInput: stopName,
+	results := make([]models.TripResult, 0, len(rows))
+	for _, row := range rows {
+		// Create a ghost trip with no actual bus schedule
+		ghostTripID := uuid.New() // Generate a fake ID for the ghost trip
+		startL := row.StartLoungeName
+		dropL := row.DropLoungeName
+
+		results = append(results, models.TripResult{
+			TripID:           ghostTripID,
+			RouteName:        row.RouteName,
+			RouteNumber:      row.RouteNumber,
+			BusType:          "Unknown", // No bus assigned
+			DepartureTime:    time.Now(), // Placeholder
+			EstimatedArrival: time.Now().Add(time.Hour), // Placeholder
+			DurationMinutes:  60, // Placeholder
+			TotalSeats:       0, // No seats available
+			Fare:             0.0, // No fare
+			BoardingPoint:    startL, // Use lounge name as boarding point
+			DroppingPoint:    dropL, // Use lounge name as dropping point
+			FromLounge:       &startL,
+			ToLounge:         &dropL,
+			FromLoungeDistKm: row.StartDistM / 1000.0,
+			ToLoungeDistKm:   row.DropDistM / 1000.0,
+			BusFeatures: models.BusFeatures{
+				HasWiFi:          false,
+				HasAC:            false,
+				HasChargingPorts: false,
+				HasEntertainment: false,
+				HasRefreshments:  false,
+			},
+			IsBookable:          false, // Cannot book ghost trips
+			RouteStops:          []models.RouteStop{}, // No route stops
+			MasterRouteID:       &row.MasterRouteID,
+			MainRouteOrigin:     row.MainRouteOrigin,
+			MainRouteDestination: row.MainRouteDestination,
+			IsTransit:           false,
+			// New fields for route discovery
+			DiscoveryStatus:     "route_available",
+			RemainingGapKm:      0.0,
+			RouteExists:         true,
+			HasActiveSchedules:  false, // This is the key flag for ghost trips
+		})
 	}
 
-	return stopInfo, &result.ID, nil
+	return results, nil
 }
 
 // StopPairResult holds the result of finding two stops on the same route

@@ -163,6 +163,7 @@ class TripResult {
   final String discoveryStatus;
   final double remainingGapKm;
   final bool routeExists;
+  final bool hasActiveSchedules;
 
   /// Master route ID for lounge lookup
   final String? masterRouteId;
@@ -207,6 +208,7 @@ class TripResult {
     this.discoveryStatus = 'unknown',
     this.remainingGapKm = 0.0,
     this.routeExists = false,
+    this.hasActiveSchedules = true,
   });
 
   bool get isRouteOnly =>
@@ -330,6 +332,7 @@ class TripResult {
       discoveryStatus: json['discovery_status'] as String? ?? 'unknown',
       remainingGapKm: (json['remaining_gap_km'] as num?)?.toDouble() ?? 0.0,
       routeExists: json['route_exists'] as bool? ?? false,
+      hasActiveSchedules: json['has_active_schedules'] as bool? ?? true,
     );
   }
 
