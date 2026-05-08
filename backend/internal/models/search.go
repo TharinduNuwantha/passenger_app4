@@ -34,19 +34,19 @@ type SearchResponse struct {
 
 // SearchDetails provides information about how the search was performed
 type SearchDetails struct {
-	FromStop      StopInfo      `json:"from_stop"`              // Origin stop details
-	ToStop        StopInfo      `json:"to_stop"`                // Destination stop details
-	SearchType    string        `json:"search_type"`            // "exact", "fuzzy", "intercept", "failed"
+	FromStop      StopInfo       `json:"from_stop"`                // Origin stop details
+	ToStop        StopInfo       `json:"to_stop"`                  // Destination stop details
+	SearchType    string         `json:"search_type"`              // "exact", "fuzzy", "intercept", "failed"
 	InterceptInfo *InterceptInfo `json:"intercept_info,omitempty"` // Set when search_type == "intercept"
 }
 
 // InterceptInfo carries human-friendly details about the intercept suggestion
 type InterceptInfo struct {
-	UserInput       string  `json:"user_input"`       // What the user typed for "from"
+	UserInput       string  `json:"user_input"`        // What the user typed for "from"
 	NearestStopName string  `json:"nearest_stop_name"` // The closest bus stop the user should walk/travel to
-	DistanceKm      float64 `json:"distance_km"`      // Approximate distance in km
-	DistanceStr     string  `json:"distance_str"`     // Human-readable: "2.3 km away"
-	RouteName       string  `json:"route_name"`       // The long-haul route that passes that stop
+	DistanceKm      float64 `json:"distance_km"`       // Approximate distance in km
+	DistanceStr     string  `json:"distance_str"`      // Human-readable: "2.3 km away"
+	RouteName       string  `json:"route_name"`        // The long-haul route that passes that stop
 }
 
 // StopInfo represents a bus stop with matching details
@@ -104,10 +104,10 @@ type TripResult struct {
 	Leg1           *TripResult `json:"leg1,omitempty"`
 	Leg2           *TripResult `json:"leg2,omitempty"`
 	// Route discovery fields
-	DiscoveryStatus string  `json:"discovery_status"` // "full_coverage", "partial_coverage", "route_available", "no_route"
-	RemainingGapKm  float64 `json:"remaining_gap_km"` // Distance remaining if partial coverage
-	RouteExists     bool    `json:"route_exists"`     // Whether any route exists between locations
-	HasActiveSchedules bool `json:"has_active_schedules"` // Whether this trip has actual bus schedules
+	DiscoveryStatus    string  `json:"discovery_status"`     // "full_coverage", "partial_coverage", "route_available", "no_route"
+	RemainingGapKm     float64 `json:"remaining_gap_km"`     // Distance remaining if partial coverage
+	RouteExists        bool    `json:"route_exists"`         // Whether any route exists between locations
+	HasActiveSchedules bool    `json:"has_active_schedules"` // Whether this trip has actual bus schedules
 	// Internal field for building route stops (not in JSON)
 	BusOwnerRouteID *string `json:"-" db:"bus_owner_route_id"`
 }

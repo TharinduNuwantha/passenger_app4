@@ -105,14 +105,14 @@ LIMIT 5;
 `
 
 	type staticRow struct {
-		StartLoungeName   string  `db:"start_lounge_name"`
-		DropLoungeName    string  `db:"drop_lounge_name"`
-		StartDistM        float64 `db:"start_dist_m"`
-		DropDistM         float64 `db:"drop_dist_m"`
-		RouteName         string  `db:"route_name"`
-		RouteNumber       *string `db:"route_number"`
-		MasterRouteID     string  `db:"master_route_id"`
-		MainRouteOrigin   *string `db:"main_route_origin"`
+		StartLoungeName      string  `db:"start_lounge_name"`
+		DropLoungeName       string  `db:"drop_lounge_name"`
+		StartDistM           float64 `db:"start_dist_m"`
+		DropDistM            float64 `db:"drop_dist_m"`
+		RouteName            string  `db:"route_name"`
+		RouteNumber          *string `db:"route_number"`
+		MasterRouteID        string  `db:"master_route_id"`
+		MainRouteOrigin      *string `db:"main_route_origin"`
 		MainRouteDestination *string `db:"main_route_destination"`
 	}
 
@@ -134,14 +134,14 @@ LIMIT 5;
 			TripID:           ghostTripID,
 			RouteName:        row.RouteName,
 			RouteNumber:      row.RouteNumber,
-			BusType:          "Unknown", // No bus assigned
-			DepartureTime:    time.Now(), // Placeholder
+			BusType:          "Unknown",                 // No bus assigned
+			DepartureTime:    time.Now(),                // Placeholder
 			EstimatedArrival: time.Now().Add(time.Hour), // Placeholder
-			DurationMinutes:  60, // Placeholder
-			TotalSeats:       0, // No seats available
-			Fare:             0.0, // No fare
-			BoardingPoint:    startL, // Use lounge name as boarding point
-			DroppingPoint:    dropL, // Use lounge name as dropping point
+			DurationMinutes:  60,                        // Placeholder
+			TotalSeats:       0,                         // No seats available
+			Fare:             0.0,                       // No fare
+			BoardingPoint:    startL,                    // Use lounge name as boarding point
+			DroppingPoint:    dropL,                     // Use lounge name as dropping point
 			FromLounge:       &startL,
 			ToLounge:         &dropL,
 			FromLoungeDistKm: row.StartDistM / 1000.0,
@@ -153,17 +153,17 @@ LIMIT 5;
 				HasEntertainment: false,
 				HasRefreshments:  false,
 			},
-			IsBookable:          false, // Cannot book ghost trips
-			RouteStops:          []models.RouteStop{}, // No route stops
-			MasterRouteID:       &row.MasterRouteID,
-			MainRouteOrigin:     row.MainRouteOrigin,
+			IsBookable:           false,                // Cannot book ghost trips
+			RouteStops:           []models.RouteStop{}, // No route stops
+			MasterRouteID:        &row.MasterRouteID,
+			MainRouteOrigin:      row.MainRouteOrigin,
 			MainRouteDestination: row.MainRouteDestination,
-			IsTransit:           false,
+			IsTransit:            false,
 			// New fields for route discovery
-			DiscoveryStatus:     "route_available",
-			RemainingGapKm:      0.0,
-			RouteExists:         true,
-			HasActiveSchedules:  false, // This is the key flag for ghost trips
+			DiscoveryStatus:    "route_available",
+			RemainingGapKm:     0.0,
+			RouteExists:        true,
+			HasActiveSchedules: false, // This is the key flag for ghost trips
 		})
 	}
 
@@ -271,8 +271,8 @@ func (r *SearchRepository) FindStopPairOnSameRoute(fromName, toName string) (*St
 			Matched:       true,
 			OriginalInput: toName,
 		},
-		FromID:    result.FromID,
-		ToID:      result.ToID,
+		FromID:      result.FromID,
+		ToID:        result.ToID,
 		RouteID:     result.RouteID,
 		RouteName:   result.RouteName,
 		RouteNumber: result.RouteNumber,
@@ -622,9 +622,9 @@ func (r *SearchRepository) FindDirectTrips(
 		HasRefreshments  bool      `db:"has_refreshments"`
 		IsBookable       bool      `db:"is_bookable"`
 		// Route info for fetching stops
-		BusOwnerRouteID *string `db:"bus_owner_route_id"`
-		MasterRouteID   *string `db:"master_route_id"`
-		MainRouteOrigin *string `db:"main_route_origin"`
+		BusOwnerRouteID      *string `db:"bus_owner_route_id"`
+		MasterRouteID        *string `db:"master_route_id"`
+		MainRouteOrigin      *string `db:"main_route_origin"`
 		MainRouteDestination *string `db:"main_route_destination"`
 	}
 
@@ -762,10 +762,10 @@ func (r *SearchRepository) FindDirectTrips(
 				HasEntertainment: temp.HasEntertainment,
 				HasRefreshments:  temp.HasRefreshments,
 			},
-			IsBookable:      temp.IsBookable,
-			BusOwnerRouteID: temp.BusOwnerRouteID,
-			MasterRouteID:   temp.MasterRouteID,
-			MainRouteOrigin: temp.MainRouteOrigin,
+			IsBookable:           temp.IsBookable,
+			BusOwnerRouteID:      temp.BusOwnerRouteID,
+			MasterRouteID:        temp.MasterRouteID,
+			MainRouteOrigin:      temp.MainRouteOrigin,
 			MainRouteDestination: temp.MainRouteDestination,
 		}
 	}
@@ -1102,7 +1102,6 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 	return results, nil
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // FindLoungeDirectRoutes — Lounge-centric Direct Route Discovery
 //
@@ -1111,11 +1110,12 @@ func (r *SearchRepository) FindTransitJourneys(fromName, toName string, fromLat,
 // on the database server.
 //
 // Parameters:
-//   $1/$2  from_lat, from_lng  — origin coordinates
-//   $3/$4  to_lat,   to_lng    — destination coordinates
-//   $5     radius_metres       — candidate lounge search radius
-//   $6     afterTime           — earliest acceptable departure (UTC)
-//   $7     limit               — max rows returned
+//
+//	$1/$2  from_lat, from_lng  — origin coordinates
+//	$3/$4  to_lat,   to_lng    — destination coordinates
+//	$5     radius_metres       — candidate lounge search radius
+//	$6     afterTime           — earliest acceptable departure (UTC)
+//	$7     limit               — max rows returned
 //
 // Output includes from_lounge / to_lounge names so the Flutter card
 // can prominently display the specific lounges found by the algorithm.
@@ -1358,6 +1358,7 @@ LIMIT $7
 //     enforced by NOT EXISTS (SELECT 1 FROM direct_pairs)).
 //  4. Both are unified in a final UNION ALL ranked: direct first, then transit.
 //  5. The 15-minute transfer buffer is enforced inside the Leg-2 LATERAL JOIN.
+//
 // ─────────────────────────────────────────────────────────────────────────────
 func (r *SearchRepository) FindMultiModalRoutes(
 	fromLat, fromLng float64,
@@ -1700,25 +1701,37 @@ LIMIT $7;
 					HasEntertainment: row.L1HasEntertainment,
 					HasRefreshments:  row.L1HasRefreshments,
 				},
-				IsBookable:      row.L1IsBookable,
-				BusOwnerRouteID: row.L1BusOwnerRouteID,
-				MasterRouteID:   &row.L1TripMasterID,
-				MainRouteOrigin: row.R1MainOrigin,
+				IsBookable:           row.L1IsBookable,
+				BusOwnerRouteID:      row.L1BusOwnerRouteID,
+				MasterRouteID:        &row.L1TripMasterID,
+				MainRouteOrigin:      row.R1MainOrigin,
 				MainRouteDestination: row.R1MainDestination,
-				IsTransit:       false,
+				IsTransit:            false,
 			})
 		} else {
 			// Build transit trip with two legs
 			l2Dep, l2Arr := time.Time{}, time.Time{}
-			if row.L2Dep != nil { l2Dep = *row.L2Dep }
-			if row.L2Arr != nil { l2Arr = *row.L2Arr }
+			if row.L2Dep != nil {
+				l2Dep = *row.L2Dep
+			}
+			if row.L2Arr != nil {
+				l2Arr = *row.L2Arr
+			}
 			l2Boarding, l2Dropping := "", ""
-			if row.L2Boarding != nil { l2Boarding = *row.L2Boarding }
-			if row.L2Dropping != nil { l2Dropping = *row.L2Dropping }
+			if row.L2Boarding != nil {
+				l2Boarding = *row.L2Boarding
+			}
+			if row.L2Dropping != nil {
+				l2Dropping = *row.L2Dropping
+			}
 			r2Name := ""
-			if row.R2RouteName != nil { r2Name = *row.R2RouteName }
+			if row.R2RouteName != nil {
+				r2Name = *row.R2RouteName
+			}
 			transitHub := ""
-			if row.TransitLoungeName != nil { transitHub = *row.TransitLoungeName }
+			if row.TransitLoungeName != nil {
+				transitHub = *row.TransitLoungeName
+			}
 			var transitHubID *uuid.UUID
 			if row.TransitLoungeID != nil {
 				if id, err := uuid.Parse(*row.TransitLoungeID); err == nil {
@@ -1727,7 +1740,9 @@ LIMIT $7;
 			}
 
 			l2ID := uuid.UUID{}
-			if row.L2TripID != nil { l2ID, _ = uuid.Parse(*row.L2TripID) }
+			if row.L2TripID != nil {
+				l2ID, _ = uuid.Parse(*row.L2TripID)
+			}
 
 			leg1 := models.TripResult{
 				TripID: l1ID, RouteName: row.R1RouteName, RouteNumber: row.R1RouteNumber,
@@ -1741,43 +1756,45 @@ LIMIT $7;
 					HasEntertainment: row.L1HasEntertainment,
 					HasRefreshments:  row.L1HasRefreshments,
 				},
-				MainRouteOrigin: row.R1MainOrigin,
+				MainRouteOrigin:      row.R1MainOrigin,
 				MainRouteDestination: row.R1MainDestination,
 			}
 			leg2BusType := "Normal"
-			if row.L2BusType != nil { leg2BusType = *row.L2BusType }
+			if row.L2BusType != nil {
+				leg2BusType = *row.L2BusType
+			}
 			leg2 := models.TripResult{
 				TripID: l2ID, RouteName: r2Name, RouteNumber: row.R2RouteNumber,
 				BusType: leg2BusType, DepartureTime: l2Dep, EstimatedArrival: l2Arr,
 				Fare: row.L2Fare, BoardingPoint: l2Boarding, DroppingPoint: l2Dropping,
-				IsBookable: row.L2IsBookable,
-				MainRouteOrigin: row.R2MainOrigin,
+				IsBookable:           row.L2IsBookable,
+				MainRouteOrigin:      row.R2MainOrigin,
 				MainRouteDestination: row.R2MainDestination,
 			}
 
 			results = append(results, models.TripResult{
-				TripID:           l1ID,
-				RouteName:        fmt.Sprintf("%s → %s", row.R1RouteName, r2Name),
-				BusType:          row.L1BusType,
-				DepartureTime:    row.L1Dep,
-				EstimatedArrival: l2Arr,
-				DurationMinutes:  int(l2Arr.Sub(row.L1Dep).Minutes()),
-				TotalSeats:       row.L1TotalSeats,
-				Fare:             row.L1Fare + row.L2Fare,
-				BoardingPoint:    row.L1Boarding,
-				DroppingPoint:    l2Dropping,
-				FromLounge:       &startL,
-				ToLounge:         &dropL,
-				FromLoungeDistKm: row.StartDistM / 1000.0,
-				ToLoungeDistKm:   row.DropDistM / 1000.0,
-				IsBookable:       row.L1IsBookable && row.L2IsBookable,
-				IsTransit:        true,
-				TransitPoint:     transitHub,
-				TransitPointID:   transitHubID,
-				Leg1:             &leg1,
-				Leg2:             &leg2,
-				MasterRouteID:    &row.R1MasterID,
-				MainRouteOrigin:  row.R1MainOrigin,
+				TripID:               l1ID,
+				RouteName:            fmt.Sprintf("%s → %s", row.R1RouteName, r2Name),
+				BusType:              row.L1BusType,
+				DepartureTime:        row.L1Dep,
+				EstimatedArrival:     l2Arr,
+				DurationMinutes:      int(l2Arr.Sub(row.L1Dep).Minutes()),
+				TotalSeats:           row.L1TotalSeats,
+				Fare:                 row.L1Fare + row.L2Fare,
+				BoardingPoint:        row.L1Boarding,
+				DroppingPoint:        l2Dropping,
+				FromLounge:           &startL,
+				ToLounge:             &dropL,
+				FromLoungeDistKm:     row.StartDistM / 1000.0,
+				ToLoungeDistKm:       row.DropDistM / 1000.0,
+				IsBookable:           row.L1IsBookable && row.L2IsBookable,
+				IsTransit:            true,
+				TransitPoint:         transitHub,
+				TransitPointID:       transitHubID,
+				Leg1:                 &leg1,
+				Leg2:                 &leg2,
+				MasterRouteID:        &row.R1MasterID,
+				MainRouteOrigin:      row.R1MainOrigin,
 				MainRouteDestination: row.R2MainDestination,
 			})
 		}
