@@ -180,6 +180,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final booking = _bookingResponse!.booking;
     final busBooking = _bookingResponse!.busBooking;
     final seats = _bookingResponse!.seats;
+    final preLounge = _bookingResponse!.preLoungeBooking;
+    final postLounge = _bookingResponse!.postLoungeBooking;
     final qrCode = _bookingResponse!.qrCode ?? busBooking?.qrCodeData ?? '';
 
     return Container(
@@ -356,117 +358,29 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
               ),
 
-            const SizedBox(height: 20),
+                    if ((preLounge != null || postLounge != null) &&
+                        booking.bookingStatus != MasterBookingStatus.cancelled) ...[
+                      const SizedBox(height: 20),
+                      if (preLounge != null)
+                        _buildLoungeQRCodeCard(
+                          title: 'Boarding Lounge',
+                          qrData: preLounge.qrCode ?? preLounge.reference,
+                          subtitle: 'Show at lounge entry',
+                          icon: Icons.weekend,
+                          color: const Color(0xFF2196F3),
+                        ),
+                      if (postLounge != null) ...[
+                        const SizedBox(height: 20),
+                        _buildLoungeQRCodeCard(
+                          title: 'Destination Lounge',
+                          qrData: postLounge.qrCode ?? postLounge.reference,
+                          subtitle: 'Show at lounge entry',
+                          icon: Icons.hotel,
+                          color: const Color(0xFF9C27B0),
+                        ),
+                      ],
+                    ],
 
-            // Trip Details
-            if (busBooking != null) ...[
-              const Text(
-                'Trip Details',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    _buildDetailRow(Icons.route, 'Route', busBooking.routeName),
-                    const Divider(height: 20),
-                    _buildDetailRow(
-                      Icons.location_on_outlined,
-                      'From',
-                      busBooking.boardingStopName,
-                    ),
-                    _buildDetailRow(
-                      Icons.location_on,
-                      'To',
-                      busBooking.alightingStopName,
-                    ),
-                    const Divider(height: 20),
-                    _buildDetailRow(
-                      Icons.calendar_today,
-                      'Date & Time',
-                      _formatDateTime(busBooking.departureDatetime),
-                    ),
-                    if (busBooking.busType != null)
-                      _buildDetailRow(
-                        Icons.directions_bus,
-                        'Bus Type',
-                        busBooking.busTypeDisplay,
-                      ),
-                    if (busBooking.busNumber != null)
-                      _buildDetailRow(
-                        Icons.confirmation_number,
-                        'Bus Number',
-                        busBooking.busNumber!,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 20),
-
-            // Seat Details
-            const Text(
-              'Seat Details',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (seats.isNotEmpty)
-              ...seats.map((seat) => _buildSeatCard(seat))
-            else if (busBooking != null)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.event_seat, color: AppColors.primary),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${busBooking.numberOfSeats} seat(s)',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 20),
-
-            // Passenger Info
-            const Text(
-              'Passenger Information',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade200),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
                 children: [
                   _buildDetailRow(Icons.person, 'Name', booking.passengerName),
                   _buildDetailRow(Icons.phone, 'Phone', booking.passengerPhone),
@@ -705,6 +619,92 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Color(0xFF4CAF50),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoungeQRCodeCard({
+    required String title,
+    required String qrData,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withOpacity(0.08), Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: color.withOpacity(0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 10),
+                Text(
+                  title.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: QrImageView(
+              data: qrData,
+              version: QrVersions.auto,
+              size: 170,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: color.withOpacity(0.75),
             ),
           ),
         ],

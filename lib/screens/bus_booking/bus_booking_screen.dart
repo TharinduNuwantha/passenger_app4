@@ -745,8 +745,8 @@ class _BusListScreenState extends State<BusListScreen> {
                                         isRouteOnly
                                             ? trip.displayRouteName
                                             : trip.scheduleName ??
-                                                trip.busOwnerName ??
-                                                trip.displayRouteName,
+                                                  trip.busOwnerName ??
+                                                  trip.displayRouteName,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,

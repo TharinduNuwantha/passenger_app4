@@ -7,6 +7,8 @@
 
 import 'package:sms_auth_passenger_app/utils/date_utils.dart';
 
+import 'booking_intent_models.dart';
+
 enum BookingType {
   busOnly,
   loungeOnly,
@@ -983,12 +985,16 @@ class BookingResponse {
   final BusBooking? busBooking;
   final List<BusBookingSeat> seats;
   final String? qrCode;
+  final ConfirmedBookingInfo? preLoungeBooking;
+  final ConfirmedBookingInfo? postLoungeBooking;
 
   BookingResponse({
     required this.booking,
     this.busBooking,
     this.seats = const [],
     this.qrCode,
+    this.preLoungeBooking,
+    this.postLoungeBooking,
   });
 
   factory BookingResponse.fromJson(Map<String, dynamic> json) {
@@ -1009,6 +1015,16 @@ class BookingResponse {
               .toList() ??
           [],
       qrCode: json['qr_code'] as String?,
+      preLoungeBooking: json['pre_lounge_booking'] != null
+          ? ConfirmedBookingInfo.fromJson(
+              json['pre_lounge_booking'] as Map<String, dynamic>,
+            )
+          : null,
+      postLoungeBooking: json['post_lounge_booking'] != null
+          ? ConfirmedBookingInfo.fromJson(
+              json['post_lounge_booking'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 }

@@ -30,6 +30,8 @@ class SelectedLoungeData {
   final String? pickupLocation; // Selected pickup location
   final String? pickupLocationId; // Selected pickup location id
   final double transportCost; // Cost for transport
+  final String pendingGuestName;
+  final String pendingGuestPhone;
 
   final bool isExplicitlyBooked; // New field
 
@@ -48,6 +50,8 @@ class SelectedLoungeData {
     this.pickupLocation,
     this.pickupLocationId,
     this.transportCost = 0.0,
+    this.pendingGuestName = '',
+    this.pendingGuestPhone = '',
     this.isExplicitlyBooked = true, // Default to true for manual bookings
   });
 
@@ -66,6 +70,8 @@ class SelectedLoungeData {
     String? pickupLocation,
     String? pickupLocationId,
     double? transportCost,
+    String? pendingGuestName,
+    String? pendingGuestPhone,
     bool? isExplicitlyBooked,
   }) {
     return SelectedLoungeData(
@@ -83,6 +89,8 @@ class SelectedLoungeData {
       pickupLocation: pickupLocation ?? this.pickupLocation,
       pickupLocationId: pickupLocationId ?? this.pickupLocationId,
       transportCost: transportCost ?? this.transportCost,
+      pendingGuestName: pendingGuestName ?? this.pendingGuestName,
+      pendingGuestPhone: pendingGuestPhone ?? this.pendingGuestPhone,
       isExplicitlyBooked: isExplicitlyBooked ?? this.isExplicitlyBooked,
     );
   }
@@ -1483,6 +1491,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   @override
   void initState() {
     super.initState();
+    _guestNameController.addListener(_notifyDraftChanged);
+    _guestPhoneController.addListener(_notifyDraftChanged);
+
     if (widget.initialData != null) {
       _initializeFromExistingData(widget.initialData!);
     } else {
@@ -1501,6 +1512,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
   @override
   void dispose() {
+    _guestNameController.removeListener(_notifyDraftChanged);
+    _guestPhoneController.removeListener(_notifyDraftChanged);
     _guestNameController.dispose();
     _guestPhoneController.dispose();
     super.dispose();
@@ -1559,6 +1572,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       _postTripTransportType = data.transportType;
       _postTripPickupLocation = data.pickupLocationId;
     }
+    _guestNameController.text = data.pendingGuestName;
+    _guestPhoneController.text = data.pendingGuestPhone;
   }
 
   void _updateState(VoidCallback changes) {
@@ -1606,6 +1621,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           ? _preTripPickupLocation
           : _postTripPickupLocation,
       transportCost: _transportCost,
+      pendingGuestName: _guestNameController.text,
+      pendingGuestPhone: _guestPhoneController.text,
       isExplicitlyBooked: isExplicitlyBooked,
     );
   }
@@ -1800,6 +1817,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           ? _preTripPickupLocation
           : _postTripPickupLocation,
       transportCost: _transportCost,
+      pendingGuestName: _guestNameController.text,
+      pendingGuestPhone: _guestPhoneController.text,
       isExplicitlyBooked: true, // Manually booked via sheet
     );
 
