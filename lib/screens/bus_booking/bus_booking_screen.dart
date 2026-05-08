@@ -602,14 +602,27 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   Widget _buildEmptyState(SearchProvider provider) {
+    final response = provider.searchResponse;
+    final bool hasRouteOnlyDiscovery = response?.hasRouteOnlyDiscovery ?? false;
+    final bool hasPartialCoverage = response?.hasPartialCoverage ?? false;
+    final String message = hasPartialCoverage
+        ? 'A route exists, but only partial coverage is available. A remaining gap of ${response?.remainingGapKm.toStringAsFixed(1) ?? '0.0'} km remains.'
+        : hasRouteOnlyDiscovery
+            ? 'A route is available, but no buses are scheduled for this date. Try a different date or check back soon.'
+            : 'We couldn\'t find any buses for your search criteria on this date.';
+
     return Container(
       padding: const EdgeInsets.all(40),
       child: Column(
         children: [
           Icon(
-            Icons.directions_bus_filled_outlined,
+            hasRouteOnlyDiscovery || hasPartialCoverage
+                ? Icons.info_outline
+                : Icons.directions_bus_filled_outlined,
             size: 80,
-            color: Colors.grey.shade300,
+            color: hasRouteOnlyDiscovery || hasPartialCoverage
+                ? AppColors.primary
+                : Colors.grey.shade300,
           ),
           const SizedBox(height: 20),
           const Text(
@@ -618,7 +631,7 @@ class _BusListScreenState extends State<BusListScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'We couldn\'t find any buses for your search criteria on this date.',
+            message,
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade600),
           ),
@@ -645,8 +658,8 @@ class _BusListScreenState extends State<BusListScreen> {
         tripDate.month == now.month &&
         tripDate.day == now.day + 1;
 
-    // Route-only preview flag: true if no schedule is found but route exists
-    final bool isRouteOnly = !trip.isBookable && trip.busType == "Unknown";
+    final bool isRouteOnly = trip.isRouteOnly;
+    final bool isPartialCoverage = trip.isPartialCoverage;
 
     // Format the date display
     String dateLabel;
@@ -729,7 +742,8 @@ class _BusListScreenState extends State<BusListScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        trip.busOwnerName ??
+                                        trip.scheduleName ??
+                                            trip.busOwnerName ??
                                             trip.displayRouteName,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
@@ -793,13 +807,23 @@ class _BusListScreenState extends State<BusListScreen> {
                           _buildHeaderTag(
                             trip.isTransit
                                 ? 'TRANSIT'
-                                : trip.busType.toUpperCase(),
+                                : isRouteOnly
+                                    ? 'ROUTE ONLY'
+                                    : isPartialCoverage
+                                        ? 'PARTIAL'
+                                        : trip.busType.toUpperCase(),
                             trip.isTransit
                                 ? AppColors.secondary
-                                : AppColors.primary,
+                                : isRouteOnly
+                                    ? AppColors.primary.withOpacity(0.9)
+                                    : isPartialCoverage
+                                        ? AppColors.secondary
+                                        : AppColors.primary,
                             trip.isTransit
                                 ? Icons.alt_route_rounded
-                                : Icons.directions_bus_filled,
+                                : isRouteOnly
+                                    ? Icons.map_outlined
+                                    : Icons.directions_bus_filled,
                           ),
                         ],
                       ),
@@ -843,6 +867,35 @@ class _BusListScreenState extends State<BusListScreen> {
                             ),
                         ],
                       ),
+                      if (isRouteOnly || isPartialCoverage)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isRouteOnly
+                                  ? AppColors.primary.withOpacity(0.08)
+                                  : AppColors.secondary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              isRouteOnly
+                                  ? 'Route available but no bus schedule is available on this date.'
+                                  : 'Partial coverage: ${trip.remainingGapKm.toStringAsFixed(1)} km gap remains for complete journey.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isRouteOnly
+                                    ? AppColors.primary
+                                    : AppColors.secondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -945,29 +998,37 @@ class _BusListScreenState extends State<BusListScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => _handleBookingPress(context, trip),
+                      onPressed: trip.isBookable
+                          ? () => _handleBookingPress(context, trip)
+                          : () => _showRouteOnlyUnavailableMessage(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: trip.isBookable
+                            ? AppColors.primary
+                            : Colors.grey.shade400,
                         foregroundColor: Colors.white,
                         elevation: 4,
-                        shadowColor: AppColors.primary.withOpacity(0.3),
+                        shadowColor: trip.isBookable
+                            ? AppColors.primary.withOpacity(0.3)
+                            : Colors.transparent,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Book Now',
-                            style: TextStyle(
+                            trip.isBookable ? 'Book Now' : 'Not Bookable Yet',
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
                           ),
-                          SizedBox(width: 12),
-                          Icon(Icons.arrow_forward_rounded, size: 20),
+                          if (trip.isBookable) ...[
+                            const SizedBox(width: 12),
+                            const Icon(Icons.arrow_forward_rounded, size: 20),
+                          ],
                         ],
                       ),
                     ),
@@ -1552,6 +1613,17 @@ class _BusListScreenState extends State<BusListScreen> {
     } else {
       _showStopSelectionSheet(context, trip);
     }
+  }
+
+  void _showRouteOnlyUnavailableMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'This route is available, but booking is not possible yet for the selected date.',
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   void _showStopSelectionSheet(BuildContext context, TripResult trip) {

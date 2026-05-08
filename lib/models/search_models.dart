@@ -54,6 +54,9 @@ class SearchResponse {
   final SearchDetails searchDetails;
   final List<TripResult> results;
   final int searchTimeMs;
+  final String discoveryStatus;
+  final double remainingGapKm;
+  final bool routeExists;
 
   SearchResponse({
     required this.status,
@@ -61,6 +64,9 @@ class SearchResponse {
     required this.searchDetails,
     required this.results,
     required this.searchTimeMs,
+    required this.discoveryStatus,
+    required this.remainingGapKm,
+    required this.routeExists,
   });
 
   factory SearchResponse.fromJson(Map<String, dynamic> json) {
@@ -74,11 +80,16 @@ class SearchResponse {
               .toList() ??
           [],
       searchTimeMs: json['search_time_ms'] as int? ?? 0,
+      discoveryStatus: json['discovery_status'] as String? ?? 'unknown',
+      remainingGapKm: (json['remaining_gap_km'] as num?)?.toDouble() ?? 0.0,
+      routeExists: json['route_exists'] as bool? ?? false,
     );
   }
 
   bool get isSuccess => status == 'success';
   bool get hasResults => results.isNotEmpty;
+  bool get hasRouteOnlyDiscovery => !hasResults && routeExists;
+  bool get hasPartialCoverage => discoveryStatus == 'partial_coverage' || remainingGapKm > 0.0;
 }
 
 class SearchDetails {
@@ -128,6 +139,7 @@ class StopInfo {
 
 class TripResult {
   final String tripId;
+  final String? scheduleName;
   final String routeName;
   final String? routeNumber;
   final String? busOwnerId;
@@ -147,6 +159,9 @@ class TripResult {
   final BusFeatures busFeatures;
   final bool isBookable;
   final List<RouteStop> routeStops;
+  final String discoveryStatus;
+  final double remainingGapKm;
+  final bool routeExists;
 
   /// Master route ID for lounge lookup
   final String? masterRouteId;
@@ -160,6 +175,7 @@ class TripResult {
 
   TripResult({
     required this.tripId,
+    this.scheduleName,
     required this.routeName,
     this.routeNumber,
     this.busOwnerId,
@@ -187,7 +203,26 @@ class TripResult {
     this.transitPoint,
     this.leg1,
     this.leg2,
+    this.discoveryStatus = 'unknown',
+    this.remainingGapKm = 0.0,
+    this.routeExists = false,
   });
+
+  bool get isRouteOnly => !isBookable && (routeExists || discoveryStatus == 'route_available');
+
+  bool get isPartialCoverage => discoveryStatus == 'partial_coverage' || remainingGapKm > 0.0;
+
+  String get discoveryReason {
+    if (discoveryStatus == 'partial_coverage') {
+      return 'Partial coverage';
+    }
+
+    if (routeExists || discoveryStatus == 'route_available') {
+      return 'Route available';
+    }
+
+    return 'No route available';
+  }
 
   // Helper to ensure dates are parsed as UTC
   static DateTime _parseUtcDate(String dateStr) {
@@ -256,6 +291,7 @@ class TripResult {
   factory TripResult.fromJson(Map<String, dynamic> json) {
     return TripResult(
       tripId: json['trip_id'] as String,
+      scheduleName: json['schedule_name'] as String?,
       routeName: json['route_name'] as String? ?? 'Unknown Route',
       routeNumber: json['route_number'] as String?,
       busOwnerId: json['bus_owner_id'] as String?,
@@ -288,6 +324,9 @@ class TripResult {
       transitPoint: json['transit_point'] as String?,
       leg1: json['leg1'] != null ? TripResult.fromJson(json['leg1']) : null,
       leg2: json['leg2'] != null ? TripResult.fromJson(json['leg2']) : null,
+      discoveryStatus: json['discovery_status'] as String? ?? 'unknown',
+      remainingGapKm: (json['remaining_gap_km'] as num?)?.toDouble() ?? 0.0,
+      routeExists: json['route_exists'] as bool? ?? false,
     );
   }
 
