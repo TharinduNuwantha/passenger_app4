@@ -742,9 +742,11 @@ class _BusListScreenState extends State<BusListScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        trip.scheduleName ??
-                                            trip.busOwnerName ??
-                                            trip.displayRouteName,
+                                        isRouteOnly
+                                            ? trip.displayRouteName
+                                            : trip.scheduleName ??
+                                                trip.busOwnerName ??
+                                                trip.displayRouteName,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
@@ -808,22 +810,16 @@ class _BusListScreenState extends State<BusListScreen> {
                           _buildHeaderTag(
                             trip.isTransit
                                 ? 'TRANSIT'
-                                : isRouteOnly
-                                ? 'ROUTE ONLY'
                                 : isPartialCoverage
                                 ? 'PARTIAL'
                                 : trip.busType.toUpperCase(),
                             trip.isTransit
                                 ? AppColors.secondary
-                                : isRouteOnly
-                                ? AppColors.primary.withOpacity(0.9)
                                 : isPartialCoverage
                                 ? AppColors.secondary
                                 : AppColors.primary,
                             trip.isTransit
                                 ? Icons.alt_route_rounded
-                                : isRouteOnly
-                                ? Icons.map_outlined
                                 : Icons.directions_bus_filled,
                           ),
                         ],
