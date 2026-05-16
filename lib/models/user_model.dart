@@ -7,6 +7,11 @@ class UserModel {
   final String? lastName;
   final String? email;
   final String? gender;
+  final String? nic;
+  final String? dateOfBirth;
+  final String? address;
+  final String? city;
+  final String? postalCode;
   final String? profilePhotoUrl;
   final List<String> roles;
   final bool profileCompleted;
@@ -23,6 +28,11 @@ class UserModel {
     this.lastName,
     this.email,
     this.gender,
+    this.nic,
+    this.dateOfBirth,
+    this.address,
+    this.city,
+    this.postalCode,
     this.profilePhotoUrl,
     required this.roles,
     required this.profileCompleted,
@@ -41,7 +51,12 @@ class UserModel {
       firstName: json['first_name'] as String?,
       lastName: json['last_name'] as String?,
       email: json['email'] as String?,
-      gender: json['gender'] as String?,
+      gender: json['gender'] as String? ?? json['passenger_gender'] as String?,
+      nic: json['nic'] as String?,
+      dateOfBirth: json['date_of_birth'] as String?,
+      address: json['address'] as String?,
+      city: json['city'] as String?,
+      postalCode: json['postal_code'] as String?,
       profilePhotoUrl: json['profile_photo_url'] as String?,
       roles: (json['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? ['passenger'],
       profileCompleted: json['profile_completed'] as bool? ?? false,
@@ -62,6 +77,11 @@ class UserModel {
       'last_name': lastName,
       'email': email,
       'gender': gender,
+      'nic': nic,
+      'date_of_birth': dateOfBirth,
+      'address': address,
+      'city': city,
+      'postal_code': postalCode,
       'profile_photo_url': profilePhotoUrl,
       'roles': roles,
       'profile_completed': profileCompleted,
@@ -91,6 +111,11 @@ class UserModel {
     String? lastName,
     String? email,
     String? gender,
+    String? nic,
+    String? dateOfBirth,
+    String? address,
+    String? city,
+    String? postalCode,
     String? profilePhotoUrl,
     List<String>? roles,
     bool? profileCompleted,
@@ -107,6 +132,11 @@ class UserModel {
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
       gender: gender ?? this.gender,
+      nic: nic ?? this.nic,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      address: address ?? this.address,
+      city: city ?? this.city,
+      postalCode: postalCode ?? this.postalCode,
       profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       roles: roles ?? this.roles,
       profileCompleted: profileCompleted ?? this.profileCompleted,

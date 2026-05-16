@@ -1305,17 +1305,37 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             ),
           ],
         ),
-        child: Center(
-          child: Text(
-            seat.seatNumber.padLeft(2, '0'),
-            style: TextStyle(
-              fontSize: 12,
-              color: (seat.isBlocked || !seat.canBeSelected)
-                  ? Colors.black54
-                  : Colors.white,
-              fontWeight: FontWeight.bold,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Seat Number
+            Text(
+              seat.seatNumber.padLeft(2, '0'),
+              style: TextStyle(
+                fontSize: 11,
+                color: (seat.isBlocked || !seat.canBeSelected)
+                    ? Colors.black54
+                    : Colors.white.withOpacity(0.9),
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
+            
+            // Gender Icon (Subtle overlay)
+            if (seat.isBooked)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: Icon(
+                  seat.passengerGender?.toLowerCase() == 'male'
+                      ? Icons.male
+                      : seat.passengerGender?.toLowerCase() == 'female'
+                          ? Icons.female
+                          : null,
+                  size: 14,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+              ),
+          ],
         ),
       ),
     );

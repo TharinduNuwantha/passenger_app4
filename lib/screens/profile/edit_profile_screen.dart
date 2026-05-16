@@ -22,6 +22,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _nicController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _postalCodeController = TextEditingController();
   final UserService _userService = UserService();
   final SupabaseService _supabaseService = SupabaseService();
   final ImagePicker _picker = ImagePicker();
@@ -43,6 +48,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _nicController.dispose();
+    _dobController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _postalCodeController.dispose();
     super.dispose();
   }
 
@@ -57,6 +67,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _firstNameController.text = user.firstName ?? '';
         _lastNameController.text = user.lastName ?? '';
         _emailController.text = user.email ?? '';
+        _nicController.text = user.nic ?? '';
+        _dobController.text = user.dateOfBirth ?? '';
+        _addressController.text = user.address ?? '';
+        _cityController.text = user.city ?? '';
+        _postalCodeController.text = user.postalCode ?? '';
         _selectedGender = user.gender;
         _currentPhotoUrl = user.profilePhotoUrl;
         isLoading = false;
@@ -227,6 +242,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
         gender: _selectedGender,
+        nic: _nicController.text.trim(),
+        dateOfBirth: _dobController.text.trim(),
+        address: _addressController.text.trim(),
+        city: _cityController.text.trim(),
+        postalCode: _postalCodeController.text.trim(),
         profilePhotoUrl: photoUrl,
       );
 
@@ -439,6 +459,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               return null;
                             },
                           ),
+                          const SizedBox(height: 20),
+                          _buildSettingsField(
+                            label: 'NIC Number',
+                            controller: _nicController,
+                            icon: Icons.badge_outlined,
+                            hintText: 'Enter your NIC',
+                          ),
+                          const SizedBox(height: 20),
+                          _buildDateField(
+                            label: 'Date of Birth',
+                            controller: _dobController,
+                            icon: Icons.cake_outlined,
+                            hintText: 'Select your birthday',
+                          ),
+                          const SizedBox(height: 20),
+                          _buildSettingsField(
+                            label: 'Residential Address',
+                            controller: _addressController,
+                            icon: Icons.home_outlined,
+                            hintText: 'Enter your address',
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSettingsField(
+                                  label: 'City',
+                                  controller: _cityController,
+                                  icon: Icons.location_city_outlined,
+                                  hintText: 'City',
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildSettingsField(
+                                  label: 'Postal Code',
+                                  controller: _postalCodeController,
+                                  icon: Icons.mark_as_unread_outlined,
+                                  hintText: 'Postal Code',
+                                ),
+                              ),
+                            ],
+                          ),
                           
                           const SizedBox(height: 25),
                           
@@ -534,6 +597,81 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required String hintText,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+        TextFormField(
+          controller: controller,
+          readOnly: true,
+          onTap: () async {
+            final DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now().subtract(const Duration(days: 6570)), // 18 years ago
+              firstDate: DateTime(1900),
+              lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.light(
+                      primary: AppColors.primary,
+                      onPrimary: Colors.white,
+                      onSurface: AppColors.primary,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if (picked != null) {
+              setState(() {
+                controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+              });
+            }
+          },
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
+            prefixIcon: Icon(icon, color: AppColors.primary, size: 22),
+            suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.primary),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),

@@ -955,6 +955,7 @@ type ProfileResponse struct {
 	LastName         *string  `json:"last_name"`
 	NIC              *string  `json:"nic"`
 	DateOfBirth      *string  `json:"date_of_birth"`
+	Gender           *string  `json:"gender"`
 	Address          *string  `json:"address"`
 	City             *string  `json:"city"`
 	PostalCode       *string  `json:"postal_code"`
@@ -971,6 +972,7 @@ type UpdateProfileRequest struct {
 	FirstName       string `json:"first_name" binding:"required"`
 	LastName        string `json:"last_name" binding:"required"`
 	Email           string `json:"email" binding:"required,email"`
+	Gender          string `json:"gender"`
 	ProfilePhotoURL string `json:"profile_photo_url"`
 	Address         string `json:"address" binding:"required"`
 	City            string `json:"city"`
@@ -1177,6 +1179,10 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 			if passenger.ProfilePhotoURL.Valid {
 				response.ProfilePhotoURL = &passenger.ProfilePhotoURL.String
 			}
+			// Gender comes from users table, not passengers table
+			if user.Gender.Valid {
+				response.Gender = &user.Gender.String
+			}
 		} else {
 			// No passenger record yet, profile not completed
 			response.ProfileCompleted = false
@@ -1215,6 +1221,9 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		if user.ProfilePhotoURL.Valid {
 			response.ProfilePhotoURL = &user.ProfilePhotoURL.String
 		}
+		if user.Gender.Valid {
+			response.Gender = &user.Gender.String
+		}
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -1242,12 +1251,13 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Update profile in users table
+	// Update profile in users table (including gender)
 	err := h.userRepository.UpdateProfile(
 		userCtx.UserID,
 		req.FirstName,
 		req.LastName,
 		req.Email,
+		req.Gender,
 		req.ProfilePhotoURL,
 		req.Address,
 		req.City,
@@ -1362,6 +1372,9 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	}
 	if user.ProfilePhotoURL.Valid {
 		response.ProfilePhotoURL = &user.ProfilePhotoURL.String
+	}
+	if user.Gender.Valid {
+		response.Gender = &user.Gender.String
 	}
 
 	c.JSON(http.StatusOK, gin.H{

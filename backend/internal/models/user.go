@@ -77,6 +77,7 @@ type User struct {
 	Address          NullString   `json:"address,omitempty" db:"address"`
 	City             NullString   `json:"city,omitempty" db:"city"`
 	PostalCode       NullString   `json:"postal_code,omitempty" db:"postal_code"`
+	Gender           NullString   `json:"gender,omitempty" db:"gender"`
 	Roles            pq.StringArray `json:"roles" db:"roles"`
 	ProfilePhotoURL  NullString   `json:"profile_photo_url,omitempty" db:"profile_photo_url"`
 	ProfileCompleted bool         `json:"profile_completed" db:"profile_completed"`

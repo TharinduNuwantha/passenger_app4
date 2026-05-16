@@ -42,6 +42,8 @@ class UserService {
     required String lastName,
     required String email,
     String? gender,
+    String? nic,
+    String? dateOfBirth,
     String? profilePhotoUrl,
     String? address,
     String? city,
@@ -50,28 +52,29 @@ class UserService {
     try {
       _logger.i('Updating user profile');
 
-      // Prepare update data - backend requires non-empty address fields
+      // Prepare update data using snake_case keys matching backend Go struct json tags
       final Map<String, dynamic> updateData = {
         'first_name': firstName,
         'last_name': lastName,
         'email': email,
-        'gender': gender,
-        'profile_photo_url': profilePhotoUrl,
-        'address': address != null && address.isNotEmpty ? address : 'N/A',
-        'city': city != null && city.isNotEmpty ? city : 'N/A',
-        'postal_code': postalCode != null && postalCode.isNotEmpty ? postalCode : '00000',
+        'gender': gender ?? 'other',
+        'profile_photo_url': profilePhotoUrl ?? '',
+        'address': (address != null && address.isNotEmpty) ? address : 'N/A',
+        'city': (city != null && city.isNotEmpty) ? city : 'N/A',
+        'postal_code': (postalCode != null && postalCode.isNotEmpty) ? postalCode : '00000',
       };
 
+      _logger.i('Sending profile update (PUT) to ${ApiConfig.updateProfileEndpoint}');
+      _logger.i('Payload: $updateData');
 
       final response = await _apiService.put(
         ApiConfig.updateProfileEndpoint,
         data: updateData,
       );
 
-      if (response.statusCode == 200) {
-        _logger.i('Profile updated successfully');
-
-        final data = response.data as Map<String, dynamic>;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data as Map<String, dynamic>? ?? {};
+        _logger.i('Profile updated successfully. Response: $data');
 
         // Extract user from response - backend returns profile under 'profile' key
         UserModel user;
