@@ -293,8 +293,15 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
 
     try {
       final response = await _bookingService.getTripSeats(widget.trip.tripId);
+      List<TripSeat> seats = response.seats;
+
+      // ── Enrich booked seats with gender data from bookings API ──────────
+      // The trip-seats endpoint may not include passenger_gender.
+      // We fetch it from booking details (bus_booking_seats) and overlay it.
+      seats = await _enrichSeatsWithGender(seats);
+
       setState(() {
-        _seats = response.seats;
+        _seats = seats;
         _isLoading = false;
       });
       _logger.i('Loaded ${_seats.length} seats');
@@ -305,6 +312,89 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Enriches booked trip seats with passenger gender data.
+  ///
+  /// Strategy:
+  ///   1. If the backend already provides `passenger_gender`, use it directly.
+  ///   2. Fetch the current user's bookings and match them to this trip.
+  ///      For matched bookings, pull seat-level gender from booking details.
+  ///   3. Build a map of tripSeatId → gender and overlay onto the seats.
+  Future<List<TripSeat>> _enrichSeatsWithGender(List<TripSeat> seats) async {
+    // Quick check: if ALL booked seats already have gender, skip enrichment
+    final bookedSeats = seats.where((s) => s.isBooked).toList();
+    if (bookedSeats.isEmpty) return seats;
+
+    final allHaveGender = bookedSeats.every(
+      (s) => s.passengerGender != null && s.passengerGender!.isNotEmpty,
+    );
+    if (allHaveGender) return seats;
+
+    // Don't attempt enrichment if user isn't authenticated
+    final isAuthenticated = await _authService.isAuthenticated();
+    if (!isAuthenticated) return seats;
+
+    // Build a map: tripSeatId → passengerGender
+    final Map<String, String> genderMap = {};
+
+    try {
+      // Fetch the current user's bookings
+      final myBookings = await _bookingService.getMyBookings(limit: 50);
+
+      // Pre-filter: only fetch details for bookings that could be on this trip
+      // (matching departure date and route name)
+      final candidateBookings = myBookings.where((b) {
+        if (b.departureDatetime != null) {
+          final sameDay =
+              b.departureDatetime!.year == widget.trip.departureTime.year &&
+              b.departureDatetime!.month == widget.trip.departureTime.month &&
+              b.departureDatetime!.day == widget.trip.departureTime.day;
+          return sameDay;
+        }
+        return false;
+      }).toList();
+
+      _logger.d('Found ${candidateBookings.length} candidate bookings for gender enrichment');
+
+      for (final bookingItem in candidateBookings) {
+        try {
+          final bookingDetail =
+              await _bookingService.getBookingById(bookingItem.id);
+
+          // Verify this booking is actually for our trip
+          if (bookingDetail.busBooking?.scheduledTripId ==
+              widget.trip.tripId) {
+            for (final bSeat in bookingDetail.seats) {
+              if (bSeat.tripSeatId != null &&
+                  bSeat.passengerGender != null &&
+                  bSeat.passengerGender!.isNotEmpty) {
+                genderMap[bSeat.tripSeatId!] = bSeat.passengerGender!;
+              }
+            }
+          }
+        } catch (e) {
+          _logger.w('Could not fetch booking detail ${bookingItem.id}: $e');
+        }
+      }
+    } catch (e) {
+      _logger.w('Could not fetch user bookings for gender enrichment: $e');
+    }
+
+    // Apply the gender map to seats
+    if (genderMap.isNotEmpty) {
+      _logger.i('Enriching ${genderMap.length} seats with gender data');
+      seats = seats.map((seat) {
+        if (seat.isBooked &&
+            (seat.passengerGender == null || seat.passengerGender!.isEmpty) &&
+            genderMap.containsKey(seat.id)) {
+          return seat.copyWith(passengerGender: genderMap[seat.id]);
+        }
+        return seat;
+      }).toList();
+    }
+
+    return seats;
   }
 
   void _toggleSeatSelection(TripSeat seat) {

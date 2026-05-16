@@ -382,6 +382,35 @@ class TripSeat {
 
   /// Display formatted price
   String get formattedPrice => 'LKR ${currentPrice.toStringAsFixed(2)}';
+
+  /// Create a copy of this TripSeat with optional field overrides
+  TripSeat copyWith({
+    String? passengerGender,
+  }) {
+    return TripSeat(
+      id: id,
+      scheduledTripId: scheduledTripId,
+      seatConfigId: seatConfigId,
+      seatNumber: seatNumber,
+      seatType: seatType,
+      seatRow: seatRow,
+      seatColumn: seatColumn,
+      deckLevel: deckLevel,
+      basePrice: basePrice,
+      currentPrice: currentPrice,
+      isAvailable: isAvailable,
+      isBooked: isBooked,
+      isBlocked: isBlocked,
+      isSelected: isSelected,
+      bookedByUserId: bookedByUserId,
+      passengerGender: passengerGender ?? this.passengerGender,
+      bookingReference: bookingReference,
+      bookedAt: bookedAt,
+      reservedUntil: reservedUntil,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
 }
 
 // ============================================================================
