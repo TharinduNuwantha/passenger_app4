@@ -302,6 +302,7 @@ class TripSeat {
   final bool isBlocked;
   final bool isSelected;
   final String? bookedByUserId;
+  final String? passengerGender;
   final String? bookingReference;
   final DateTime? bookedAt;
   final DateTime? reservedUntil;
@@ -324,6 +325,7 @@ class TripSeat {
     required this.isBlocked,
     required this.isSelected,
     this.bookedByUserId,
+    this.passengerGender,
     this.bookingReference,
     this.bookedAt,
     this.reservedUntil,
@@ -362,6 +364,7 @@ class TripSeat {
       isBlocked: isBlocked,
       isSelected: json['is_selected'] as bool? ?? false,
       bookedByUserId: json['booked_by_user_id'] as String?,
+      passengerGender: json['passenger_gender'] as String? ?? json['gender'] as String?,
       bookingReference: json['booking_reference'] as String?,
       bookedAt: json['booked_at'] != null
           ? DateTime.parse(json['booked_at'] as String)

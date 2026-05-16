@@ -237,17 +237,22 @@ class AuthService {
     }
   }
 
-  // Complete basic profile (first_name + last_name only) - for new passengers
+  // Complete basic profile (first_name + last_name + gender) - for new passengers
   Future<Map<String, dynamic>> completeBasicProfile(
     String firstName,
     String lastName,
+    String gender,
   ) async {
     try {
-      _logger.i('Completing basic profile: $firstName $lastName');
+      _logger.i('Completing basic profile: $firstName $lastName $gender');
 
       final response = await _apiService.post(
         ApiConfig.completeBasicProfileEndpoint,
-        data: {'first_name': firstName, 'last_name': lastName},
+        data: {
+          'first_name': firstName,
+          'last_name': lastName,
+          'gender': gender,
+        },
       );
 
       if (response.statusCode == 200) {

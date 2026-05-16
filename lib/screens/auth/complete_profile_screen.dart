@@ -26,6 +26,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final _lastNameController = TextEditingController();
   final _firstNameFocusNode = FocusNode();
   final _lastNameFocusNode = FocusNode();
+  String? _selectedGender;
   final Logger _logger = Logger();
 
   @override
@@ -44,14 +45,23 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
+    final gender = _selectedGender;
 
-    _logger.i('Submitting profile: $firstName $lastName');
+    if (gender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select your gender')),
+      );
+      return;
+    }
+
+    _logger.i('Submitting profile: $firstName $lastName ($gender)');
 
     // Save to SharedPreferences first
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('firstName', firstName);
       await prefs.setString('lastName', lastName);
+      await prefs.setString('gender', gender);
       await prefs.setBool('profileCompleted', true);
       _logger.i('Profile saved to SharedPreferences');
     } catch (e) {
@@ -62,6 +72,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     final success = await authProvider.completeBasicProfile(
       firstName,
       lastName,
+      gender,
     );
 
     if (!mounted) return;
@@ -270,6 +281,41 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         onFieldSubmitted: (_) => _submitProfile(),
                       ),
 
+                      const SizedBox(height: 24),
+
+                      // Gender Selection
+                      Text(
+                        'Gender',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildGenderCard(
+                              title: 'Male',
+                              icon: Icons.male,
+                              isSelected: _selectedGender == 'male',
+                              onTap: () => setState(() => _selectedGender = 'male'),
+                              selectedColor: Colors.blue.shade600,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildGenderCard(
+                              title: 'Female',
+                              icon: Icons.female,
+                              isSelected: _selectedGender == 'female',
+                              onTap: () => setState(() => _selectedGender = 'female'),
+                              selectedColor: Colors.pink.shade400,
+                            ),
+                          ),
+                        ],
+                      ),
+
                       const SizedBox(height: 48),
 
                       // Continue Button
@@ -326,6 +372,56 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildGenderCard({
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Color selectedColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? selectedColor.withOpacity(0.1) : AppColors.surfaceWhite,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? selectedColor : AppColors.divider,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: selectedColor.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? selectedColor : Colors.grey,
+              size: 32,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? selectedColor : Colors.grey.shade700,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

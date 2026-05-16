@@ -216,8 +216,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Complete basic profile (first_name + last_name only) - for new passengers
-  Future<bool> completeBasicProfile(String firstName, String lastName) async {
+  // Complete basic profile (first_name + last_name + gender) - for new passengers
+  Future<bool> completeBasicProfile(String firstName, String lastName, String gender) async {
     try {
       _isLoading = true;
       _error = null;
@@ -228,6 +228,7 @@ class AuthProvider extends ChangeNotifier {
       final result = await _authService.completeBasicProfile(
         firstName,
         lastName,
+        gender,
       );
 
       if (result['success'] == true) {

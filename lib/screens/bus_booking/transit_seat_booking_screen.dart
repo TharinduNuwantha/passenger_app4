@@ -523,10 +523,12 @@ class _TransitSeatBookingScreenState extends State<TransitSeatBookingScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _legendItem(Icons.event_seat, AppColors.secondary, 'Selected'),
-          const SizedBox(width: 20),
+          const SizedBox(width: 12),
           _legendItem(Icons.event_seat_outlined, const Color(0xFF4CAF50), 'Available'),
-          const SizedBox(width: 20),
-          _legendItem(Icons.event_seat, const Color(0xFFE57373), 'Booked'),
+          const SizedBox(width: 12),
+          _legendItem(Icons.male, Colors.blue.shade600, 'Male'),
+          const SizedBox(width: 12),
+          _legendItem(Icons.female, Colors.pink.shade300, 'Female'),
         ],
       ),
     );
@@ -624,6 +626,9 @@ class _TransitSeatBookingScreenState extends State<TransitSeatBookingScreen>
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  _buildGenderLayoutLegend(),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -691,9 +696,21 @@ class _TransitSeatBookingScreenState extends State<TransitSeatBookingScreen>
     if (isSelected) {
       color = AppColors.secondary;
       icon = Icons.event_seat;
-    } else if (isBooked) {
-      color = const Color(0xFFE57373).withOpacity(0.7);
-      icon = Icons.event_seat;
+    } else if (seat.isBooked) {
+      final gender = seat.passengerGender?.toLowerCase();
+      if (gender == 'male') {
+        color = Colors.blue.shade600;
+        icon = Icons.male;
+      } else if (gender == 'female') {
+        color = Colors.pink.shade300;
+        icon = Icons.female;
+      } else {
+        color = const Color(0xFFE57373).withOpacity(0.7);
+        icon = Icons.event_seat;
+      }
+    } else if (seat.isBlocked) {
+      color = Colors.grey.shade400;
+      icon = Icons.event_seat_outlined;
     } else if (canSelect) {
       color = const Color(0xFF4CAF50);
       icon = Icons.event_seat_outlined;
@@ -727,6 +744,49 @@ class _TransitSeatBookingScreenState extends State<TransitSeatBookingScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGenderLayoutLegend() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.05)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildGenderLegendBox(Colors.blue.shade600, 'Male'),
+          const SizedBox(width: 24),
+          _buildGenderLegendBox(Colors.pink.shade300, 'Female'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenderLegendBox(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primary,
+          ),
+        ),
+      ],
     );
   }
 

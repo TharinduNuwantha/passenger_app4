@@ -332,9 +332,23 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     if (_selectedSeatIds.contains(seat.id)) {
       return AppColors.secondary;
     }
-    if (seat.isBooked || seat.isBlocked) {
+    
+    if (seat.isBooked) {
+      // Gender-based colors for booked seats
+      final gender = seat.passengerGender?.toLowerCase();
+      if (gender == 'male') {
+        return Colors.blue.shade600;
+      } else if (gender == 'female') {
+        return Colors.pink.shade300;
+      }
+      // Fallback for booked seats with no gender info
       return const Color.fromARGB(255, 215, 8, 8).withOpacity(0.5);
     }
+    
+    if (seat.isBlocked) {
+      return Colors.grey.shade400;
+    }
+    
     if (seat.canBeSelected) {
       return const Color(0xFF4CAF50);
     }
@@ -637,17 +651,23 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildLegendItem(Icons.event_seat, AppColors.secondary, 'Selected'),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             _buildLegendItem(
               Icons.event_seat_outlined,
               const Color(0xFF4CAF50),
               'Available',
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             _buildLegendItem(
-              Icons.event_seat,
-              const Color.fromARGB(255, 220, 108, 136),
-              'Booked',
+              Icons.male,
+              Colors.blue.shade600,
+              'Male',
+            ),
+            const SizedBox(width: 12),
+            _buildLegendItem(
+              Icons.female,
+              Colors.pink.shade300,
+              'Female',
             ),
           ],
         ),
@@ -852,12 +872,67 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   ),
 
                   const SizedBox(height: 16),
+                  
+                  // Gender Legend (Inline)
+                  _buildGenderLayoutLegend(),
+                  
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGenderLayoutLegend() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildGenderLegendBox(Colors.blue.shade600, 'Male'),
+          const SizedBox(width: 32),
+          _buildGenderLegendBox(Colors.pink.shade300, 'Female'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenderLegendBox(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1235,7 +1310,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             seat.seatNumber.padLeft(2, '0'),
             style: TextStyle(
               fontSize: 12,
-              color: (seat.isBooked || seat.isBlocked || !seat.canBeSelected)
+              color: (seat.isBlocked || !seat.canBeSelected)
                   ? Colors.black54
                   : Colors.white,
               fontWeight: FontWeight.bold,

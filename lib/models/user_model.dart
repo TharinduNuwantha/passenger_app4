@@ -6,6 +6,7 @@ class UserModel {
   final String? firstName;
   final String? lastName;
   final String? email;
+  final String? gender;
   final String? profilePhotoUrl;
   final List<String> roles;
   final bool profileCompleted;
@@ -21,6 +22,7 @@ class UserModel {
     this.firstName,
     this.lastName,
     this.email,
+    this.gender,
     this.profilePhotoUrl,
     required this.roles,
     required this.profileCompleted,
@@ -39,6 +41,7 @@ class UserModel {
       firstName: json['first_name'] as String?,
       lastName: json['last_name'] as String?,
       email: json['email'] as String?,
+      gender: json['gender'] as String?,
       profilePhotoUrl: json['profile_photo_url'] as String?,
       roles: (json['roles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? ['passenger'],
       profileCompleted: json['profile_completed'] as bool? ?? false,
@@ -58,6 +61,7 @@ class UserModel {
       'first_name': firstName,
       'last_name': lastName,
       'email': email,
+      'gender': gender,
       'profile_photo_url': profilePhotoUrl,
       'roles': roles,
       'profile_completed': profileCompleted,
@@ -86,6 +90,7 @@ class UserModel {
     String? firstName,
     String? lastName,
     String? email,
+    String? gender,
     String? profilePhotoUrl,
     List<String>? roles,
     bool? profileCompleted,
@@ -101,6 +106,7 @@ class UserModel {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
+      gender: gender ?? this.gender,
       profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       roles: roles ?? this.roles,
       profileCompleted: profileCompleted ?? this.profileCompleted,
