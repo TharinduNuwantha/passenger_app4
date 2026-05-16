@@ -28,6 +28,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   File? _imageFile;
   String? _currentPhotoUrl;
+  String? _selectedGender;
   bool isLoading = true;
   bool isSaving = false;
 
@@ -56,6 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _firstNameController.text = user.firstName ?? '';
         _lastNameController.text = user.lastName ?? '';
         _emailController.text = user.email ?? '';
+        _selectedGender = user.gender;
         _currentPhotoUrl = user.profilePhotoUrl;
         isLoading = false;
       });
@@ -224,6 +226,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
+        gender: _selectedGender,
         profilePhotoUrl: photoUrl,
       );
 
@@ -437,6 +440,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             },
                           ),
                           
+                          const SizedBox(height: 25),
+                          
+                          // Gender Selection
+                          _buildGenderSelection(),
+                          
                           const SizedBox(height: 50),
                           
                           SizedBox(
@@ -531,6 +539,99 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildGenderSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            "Gender",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildGenderCard(
+                title: 'Male',
+                icon: Icons.male_rounded,
+                isSelected: _selectedGender?.toLowerCase() == 'male',
+                onTap: () => setState(() => _selectedGender = 'male'),
+                selectedColor: Colors.blue.shade600,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildGenderCard(
+                title: 'Female',
+                icon: Icons.female_rounded,
+                isSelected: _selectedGender?.toLowerCase() == 'female',
+                onTap: () => setState(() => _selectedGender = 'female'),
+                selectedColor: Colors.pink.shade300,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenderCard({
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Color selectedColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? selectedColor.withOpacity(0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? selectedColor : Colors.grey[200]!,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: selectedColor.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? selectedColor : Colors.grey[400],
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? selectedColor : Colors.grey[600],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
