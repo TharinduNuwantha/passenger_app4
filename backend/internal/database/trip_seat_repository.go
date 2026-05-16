@@ -115,9 +115,16 @@ func (r *TripSeatRepository) GetByScheduledTripIDWithBookingInfo(scheduledTripID
 			ts.id, ts.scheduled_trip_id, ts.seat_number, ts.seat_type, ts.row_number, ts.position,
 			ts.seat_price, ts.status, ts.booking_type, ts.bus_booking_seat_id, ts.manual_booking_id,
 			ts.block_reason, ts.blocked_by_user_id, ts.blocked_at, ts.created_at, ts.updated_at,
-			mb.passenger_name, mb.passenger_phone, mb.booking_reference, mb.payment_status
+			COALESCE(mb.passenger_name, bbs.passenger_name) as passenger_name, 
+			COALESCE(mb.passenger_phone, bbs.passenger_phone) as passenger_phone, 
+			COALESCE(mb.booking_reference, b.booking_reference) as booking_reference, 
+			COALESCE(mb.payment_status::text, b.payment_status::text) as payment_status,
+			bbs.passenger_gender as passenger_gender
 		FROM trip_seats ts
 		LEFT JOIN manual_seat_bookings mb ON ts.manual_booking_id = mb.id
+		LEFT JOIN bus_booking_seats bbs ON ts.bus_booking_seat_id = bbs.id
+		LEFT JOIN bus_bookings bb ON bbs.bus_booking_id = bb.id
+		LEFT JOIN bookings b ON bb.booking_id = b.id
 		WHERE ts.scheduled_trip_id = $1
 		ORDER BY ts.row_number, ts.position
 	`
