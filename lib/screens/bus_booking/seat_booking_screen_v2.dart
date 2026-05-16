@@ -474,9 +474,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.all(20.0),
-                              child: _seats.length == 56
-                                  ? _buildSriLankanBusLayout()
-                                  : _buildSeatLayout(),
+                              child: _buildSeatLayout(),
                             ),
                           ),
                           _buildConfirmButton(),
@@ -711,7 +709,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
+            padding: const EdgeInsets.only(bottom: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -741,14 +739,30 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               ],
             ),
           ),
+          // Rear label at top
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'Rear',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.blueGrey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
-                children: sortedRows.map((rowNum) {
+                children: sortedRows.reversed.map((rowNum) {
                   final rowSeats = seatsByRow[rowNum]!;
                   rowSeats.sort((a, b) => a.seatColumn.compareTo(b.seatColumn));
                   return _buildDynamicSeatRow(
-                    rowNum,
                     rowSeats,
                     maxColumn,
                     aislePosition,
@@ -763,7 +777,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   }
 
   Widget _buildDynamicSeatRow(
-    int rowNum,
     List<TripSeat> rowSeats,
     int maxColumn,
     int aislePosition,
@@ -773,40 +786,165 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     };
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(maxColumn, (index) {
+          final colNum = index + 1;
+          if (index == aislePosition) {
+            return const SizedBox(width: 24);
+          }
+          final seat = seatMap[colNum];
+          if (seat == null) {
+            return const SizedBox(width: 44, height: 40);
+          }
+          return _buildSeatWidget(seat);
+        }),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 55 Seat Layout (Specific Arrangement)
+  // ---------------------------------------------------------------------------
+  Widget _build55SeatLayout() {
+    final Map<String, TripSeat> seatMap = {};
+    for (var seat in _seats) {
+      seatMap[seat.seatNumber] = seat;
+      if (int.tryParse(seat.seatNumber) != null) {
+        seatMap[int.parse(seat.seatNumber).toString().padLeft(2, '0')] = seat;
+        seatMap[int.parse(seat.seatNumber).toString()] = seat;
+      }
+    }
+
+    final List<List<String>> grid = [
+      ['01', '02', '07', '08'],
+      ['05', '06', '11', '12'],
+      ['09', '10', '15', '16'],
+      ['13', '14', '19', '20'],
+      ['17', '18', '23', '24'],
+      ['21', '22', '27', '28'],
+      ['25', '26', '31', '32'],
+      ['29', '30', '35', '36'],
+      ['33', '34', '39', '40'],
+      ['37', '38', '43', '44'],
+      ['41', '42', '47', '48'],
+      ['45', '46', '49', '50'],
+    ];
+    
+    final List<String> topRow = ['51', '52', '55', '54', '53'];
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F7FA),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
         children: [
-          SizedBox(
-            width: 30,
-            child: Text(
-              '$rowNum',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_selectedSeats.length} selected • ${_seats.length} total',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.directions_bus,
+                  size: 40,
+                  color: AppColors.primary,
+                ),
+              ],
             ),
           ),
+          
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'Rear',
+              style: TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w600),
+            ),
+          ),
+
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(maxColumn, (index) {
-                final colNum = index + 1;
-                if (index == aislePosition) {
-                  return const SizedBox(width: 20);
-                }
-                final seat = seatMap[colNum];
-                if (seat == null) {
-                  return const SizedBox(width: 40, height: 40);
-                }
-                return _buildSeatWidget(seat);
-              }),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Top Row (Row 14)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: topRow.map((seatNum) {
+                        return _buildSeatCell(seatMap[seatNum]);
+                      }).toList(),
+                    ),
+                  ),
+                  
+                  // Rows 13 down to 2
+                  ...grid.reversed.map((rowSeats) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildSeatCell(seatMap[rowSeats[0]]),
+                          _buildSeatCell(seatMap[rowSeats[1]]),
+                          const SizedBox(width: 24), // Aisle
+                          _buildSeatCell(seatMap[rowSeats[2]]),
+                          _buildSeatCell(seatMap[rowSeats[3]]),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  // Row 1 (Lowest Row with only 03 and 04 on the right)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(width: 44, height: 40),
+                        const SizedBox(width: 44, height: 40),
+                        const SizedBox(width: 24), // Aisle
+                        _buildSeatCell(seatMap['03']),
+                        _buildSeatCell(seatMap['04']),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildSeatCell(TripSeat? seat) {
+    if (seat == null) {
+      return const SizedBox(width: 44, height: 40);
+    }
+    return _buildSeatWidget(seat);
   }
 
   // ---------------------------------------------------------------------------
@@ -1134,32 +1272,38 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   Widget _buildSeatWidget(TripSeat seat) {
     final isSelectable = seat.canBeSelected;
     final isSelected = _selectedSeatIds.contains(seat.id);
+    final color = _getSeatColor(seat);
 
     return GestureDetector(
       onTap: isSelectable ? () => _toggleSeatSelection(seat) : null,
       child: Container(
-        width: 40,
+        width: 44,
         height: 40,
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        child: Tooltip(
-          message:
-              '${seat.seatNumber} - LKR ${seat.currentPrice.toStringAsFixed(0)}',
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(_getSeatIcon(seat), color: _getSeatColor(seat), size: 22),
-              const SizedBox(height: 2),
-              Text(
-                seat.seatNumber,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isSelected
-                      ? AppColors.primary
-                      : const Color.fromARGB(255, 0, 0, 0),
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ],
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(6),
+          border: isSelected
+              ? Border.all(color: AppColors.primary, width: 2)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            seat.seatNumber.padLeft(2, '0'),
+            style: TextStyle(
+              fontSize: 12,
+              color: (seat.isBooked || seat.isBlocked || !seat.canBeSelected)
+                  ? Colors.black54
+                  : Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

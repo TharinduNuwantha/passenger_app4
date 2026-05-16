@@ -381,6 +381,115 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       ],
                     ],
 
+            // Trip Details
+            if (busBooking != null) ...[
+              const Text(
+                'Trip Details',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow(Icons.route, 'Route', busBooking.routeName),
+                    const Divider(height: 20),
+                    _buildDetailRow(
+                      Icons.location_on_outlined,
+                      'From',
+                      busBooking.boardingStopName,
+                    ),
+                    _buildDetailRow(
+                      Icons.location_on,
+                      'To',
+                      busBooking.alightingStopName,
+                    ),
+                    const Divider(height: 20),
+                    _buildDetailRow(
+                      Icons.calendar_today,
+                      'Date & Time',
+                      _formatDateTime(busBooking.departureDatetime),
+                    ),
+                    if (busBooking.busType != null)
+                      _buildDetailRow(
+                        Icons.directions_bus,
+                        'Bus Type',
+                        busBooking.busTypeDisplay,
+                      ),
+                    if (busBooking.busNumber != null)
+                      _buildDetailRow(
+                        Icons.confirmation_number,
+                        'Bus Number',
+                        busBooking.busNumber!,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 20),
+
+            // Seat Details
+            const Text(
+              'Seat Details',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (seats.isNotEmpty)
+              ...seats.map((seat) => _buildSeatCard(seat))
+            else if (busBooking != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event_seat, color: AppColors.primary),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${busBooking.numberOfSeats} seat(s)',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            const SizedBox(height: 20),
+
+            // Passenger Info
+            const Text(
+              'Passenger Information',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
                 children: [
                   _buildDetailRow(Icons.person, 'Name', booking.passengerName),
                   _buildDetailRow(Icons.phone, 'Phone', booking.passengerPhone),
