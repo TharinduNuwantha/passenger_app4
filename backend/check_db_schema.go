@@ -16,27 +16,23 @@ func main() {
 	}
 	defer db.Close()
 
-	tables := []string{"bookings", "users"}
-	for _, t := range tables {
-		rows, err := db.Query(fmt.Sprintf(`
-			SELECT column_name, data_type 
-			FROM information_schema.columns 
-			WHERE table_name = '%s'
-			ORDER BY ordinal_position
-		`, t))
-		if err != nil {
+	rows, err := db.Query(`
+		SELECT column_name, data_type 
+		FROM information_schema.columns 
+		WHERE table_name = 'booking_intents'
+		ORDER BY ordinal_position
+	`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	fmt.Println("Columns in booking_intents:")
+	for rows.Next() {
+		var name, dtype string
+		if err := rows.Scan(&name, &dtype); err != nil {
 			log.Fatal(err)
 		}
-		defer rows.Close()
-
-		fmt.Printf("\nColumns in %s:\n", t)
-		for rows.Next() {
-			var name, dtype string
-			if err := rows.Scan(&name, &dtype); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("- %s (%s)\n", name, dtype)
-		}
+		fmt.Printf("- %s (%s)\n", name, dtype)
 	}
 }
-

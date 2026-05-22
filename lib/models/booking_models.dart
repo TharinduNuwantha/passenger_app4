@@ -308,6 +308,17 @@ class TripSeat {
   final DateTime? reservedUntil;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? passengerName;
+  final String? passengerPhone;
+  final String? paymentStatus;
+  final String? bookingType;
+
+  // Registered User Details from 'users' table
+  final String? userEmail;
+  final String? userNic;
+  final String? userFirstName;
+  final String? userLastName;
+  final String? userPhone;
 
   TripSeat({
     required this.id,
@@ -331,6 +342,15 @@ class TripSeat {
     this.reservedUntil,
     required this.createdAt,
     required this.updatedAt,
+    this.passengerName,
+    this.passengerPhone,
+    this.paymentStatus,
+    this.bookingType,
+    this.userEmail,
+    this.userNic,
+    this.userFirstName,
+    this.userLastName,
+    this.userPhone,
   });
 
   factory TripSeat.fromJson(Map<String, dynamic> json) {
@@ -364,7 +384,8 @@ class TripSeat {
       isBlocked: isBlocked,
       isSelected: json['is_selected'] as bool? ?? false,
       bookedByUserId: json['booked_by_user_id'] as String?,
-      passengerGender: json['passenger_gender'] as String? ?? json['gender'] as String?,
+      passengerGender:
+          json['passenger_gender'] as String? ?? json['gender'] as String?,
       bookingReference: json['booking_reference'] as String?,
       bookedAt: json['booked_at'] != null
           ? DateTime.parse(json['booked_at'] as String)
@@ -374,6 +395,15 @@ class TripSeat {
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      passengerName: json['passenger_name'] as String?,
+      passengerPhone: json['passenger_phone'] as String?,
+      paymentStatus: json['payment_status'] as String?,
+      bookingType: json['booking_type'] as String?,
+      userEmail: json['user_email'] as String?,
+      userNic: json['user_nic'] as String?,
+      userFirstName: json['user_first_name'] as String?,
+      userLastName: json['user_last_name'] as String?,
+      userPhone: json['user_phone'] as String?,
     );
   }
 
@@ -386,6 +416,15 @@ class TripSeat {
   /// Create a copy of this TripSeat with optional field overrides
   TripSeat copyWith({
     String? passengerGender,
+    String? passengerName,
+    String? passengerPhone,
+    String? paymentStatus,
+    String? bookingType,
+    String? userEmail,
+    String? userNic,
+    String? userFirstName,
+    String? userLastName,
+    String? userPhone,
   }) {
     return TripSeat(
       id: id,
@@ -409,6 +448,15 @@ class TripSeat {
       reservedUntil: reservedUntil,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      passengerName: passengerName ?? this.passengerName,
+      passengerPhone: passengerPhone ?? this.passengerPhone,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      bookingType: bookingType ?? this.bookingType,
+      userEmail: userEmail ?? this.userEmail,
+      userNic: userNic ?? this.userNic,
+      userFirstName: userFirstName ?? this.userFirstName,
+      userLastName: userLastName ?? this.userLastName,
+      userPhone: userPhone ?? this.userPhone,
     );
   }
 }

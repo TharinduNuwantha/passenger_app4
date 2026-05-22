@@ -68,6 +68,13 @@ type TripSeatWithBookingInfo struct {
 	PassengerGender *string `json:"passenger_gender,omitempty" db:"passenger_gender"`
 	BookingRef      *string `json:"booking_reference,omitempty" db:"booking_reference"`
 	PaymentStatus   *string `json:"payment_status,omitempty" db:"payment_status"`
+
+	// Registered User details from users table (if booked via app)
+	UserEmail     *string `json:"user_email,omitempty" db:"user_email"`
+	UserNIC       *string `json:"user_nic,omitempty" db:"user_nic"`
+	UserFirstName *string `json:"user_first_name,omitempty" db:"user_first_name"`
+	UserLastName  *string `json:"user_last_name,omitempty" db:"user_last_name"`
+	UserPhone     *string `json:"user_phone,omitempty" db:"user_phone"`
 }
 
 // CreateTripSeatsRequest is used when assigning a seat layout to a trip

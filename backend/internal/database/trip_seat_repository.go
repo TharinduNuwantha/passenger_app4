@@ -119,12 +119,18 @@ func (r *TripSeatRepository) GetByScheduledTripIDWithBookingInfo(scheduledTripID
 			COALESCE(mb.passenger_phone, bbs.passenger_phone) as passenger_phone, 
 			COALESCE(mb.booking_reference, b.booking_reference) as booking_reference, 
 			COALESCE(mb.payment_status::text, b.payment_status::text) as payment_status,
-			bbs.passenger_gender as passenger_gender
+			COALESCE(u.gender, bbs.passenger_gender) as passenger_gender,
+			u.email as user_email,
+			u.nic as user_nic,
+			u.first_name as user_first_name,
+			u.last_name as user_last_name,
+			u.phone as user_phone
 		FROM trip_seats ts
 		LEFT JOIN manual_seat_bookings mb ON ts.manual_booking_id = mb.id
 		LEFT JOIN bus_booking_seats bbs ON ts.bus_booking_seat_id = bbs.id
 		LEFT JOIN bus_bookings bb ON bbs.bus_booking_id = bb.id
 		LEFT JOIN bookings b ON bb.booking_id = b.id
+		LEFT JOIN users u ON b.user_id = u.id
 		WHERE ts.scheduled_trip_id = $1
 		ORDER BY ts.row_number, ts.position
 	`

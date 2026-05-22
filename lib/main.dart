@@ -24,7 +24,7 @@ import 'widgets/location_gatekeeper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Load environment variables
   await dotenv.load(fileName: ".env");
 
@@ -44,7 +44,6 @@ Future<void> main() async {
 
   runApp(const MyApp());
 }
-a
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -95,9 +94,8 @@ class MyApp extends StatelessWidget {
 
                 case AppConstants.homeRoute:
                   return MaterialPageRoute(
-                    builder: (_) => const LocationGatekeeper(
-                      child: DashBoard(),
-                    ),
+                    builder: (_) =>
+                        const LocationGatekeeper(child: DashBoard()),
                   );
 
                 case AppConstants.profileRoute:

@@ -1376,7 +1376,9 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     final color = _getSeatColor(seat);
 
     return GestureDetector(
-      onTap: isSelectable ? () => _toggleSeatSelection(seat) : null,
+      onTap: isSelectable
+          ? () => _toggleSeatSelection(seat)
+          : (seat.isBooked ? () => _showSeatDetailsDialog(seat) : null),
       child: Container(
         width: 44,
         height: 40,
@@ -1428,6 +1430,276 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showSeatDetailsDialog(TripSeat seat) {
+    final gender = seat.passengerGender?.toLowerCase();
+    final themeColor = gender == 'male'
+        ? Colors.blue.shade600
+        : gender == 'female'
+            ? Colors.pink.shade300
+            : AppColors.primary;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 10,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Dialog Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: themeColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.airline_seat_recline_normal_rounded,
+                            color: themeColor,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Seat ${seat.seatNumber}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24, thickness: 1.2),
+                
+                // Seat Status Indicator
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: themeColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: themeColor.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: themeColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Booked (${seat.bookingType?.toUpperCase() ?? 'APP'})',
+                        style: TextStyle(
+                          color: themeColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Passenger Details Grid
+                _buildDetailRow(
+                  icon: Icons.person_rounded,
+                  label: 'Passenger Name',
+                  value: seat.passengerName ?? 'N/A',
+                  themeColor: themeColor,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.phone_rounded,
+                  label: 'Phone Number',
+                  value: seat.passengerPhone ?? 'N/A',
+                  themeColor: themeColor,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.tag_rounded,
+                  label: 'Booking Ref',
+                  value: seat.bookingReference ?? 'N/A',
+                  valueStyle: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w600,
+                  ),
+                  themeColor: themeColor,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.wc_rounded,
+                  label: 'Gender',
+                  value: seat.passengerGender?.toUpperCase() ?? 'N/A',
+                  themeColor: themeColor,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.payment_rounded,
+                  label: 'Payment Status',
+                  value: seat.paymentStatus?.toUpperCase() ?? 'N/A',
+                  valueColor: seat.paymentStatus?.toLowerCase() == 'paid' || 
+                              seat.paymentStatus?.toLowerCase() == 'completed'
+                      ? Colors.green.shade700
+                      : Colors.orange.shade700,
+                  themeColor: themeColor,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.payments_rounded,
+                  label: 'Ticket Price',
+                  value: 'LKR ${seat.currentPrice.toStringAsFixed(2)}',
+                  themeColor: themeColor,
+                ),
+                
+                // Registered User Account Details (from users table)
+                if (seat.userFirstName != null ||
+                    seat.userLastName != null ||
+                    seat.userEmail != null ||
+                    seat.userNic != null ||
+                    seat.userPhone != null) ...[
+                  const SizedBox(height: 16),
+                  const Divider(height: 24, thickness: 1.2),
+                  Row(
+                    children: [
+                      Icon(Icons.badge_rounded, size: 20, color: themeColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Registered User Details',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: themeColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDetailRow(
+                    icon: Icons.assignment_ind_rounded,
+                    label: 'User Full Name',
+                    value: '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'.trim().isNotEmpty
+                        ? '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'.trim()
+                        : 'N/A',
+                    themeColor: themeColor,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildDetailRow(
+                    icon: Icons.email_rounded,
+                    label: 'User Email',
+                    value: seat.userEmail ?? 'N/A',
+                    themeColor: themeColor,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildDetailRow(
+                    icon: Icons.contact_emergency_rounded,
+                    label: 'User NIC',
+                    value: seat.userNic ?? 'N/A',
+                    themeColor: themeColor,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildDetailRow(
+                    icon: Icons.phone_android_rounded,
+                    label: 'User Phone',
+                    value: seat.userPhone ?? 'N/A',
+                    themeColor: themeColor,
+                  ),
+                ],
+                const SizedBox(height: 24),
+
+                // Close Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: themeColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Dismiss',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+    TextStyle? valueStyle,
+    required Color themeColor,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade600),
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ).merge(valueStyle).copyWith(color: valueColor),
+          ),
+        ),
+      ],
     );
   }
 
