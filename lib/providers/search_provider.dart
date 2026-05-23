@@ -44,6 +44,7 @@ class SearchProvider with ChangeNotifier {
     double? fromLng,
     double? toLat,
     double? toLng,
+    double? radiusLimit,
   }) async {
     _isSearching = true;
     _errorMessage = null;
@@ -62,6 +63,7 @@ class SearchProvider with ChangeNotifier {
         fromLng: fromLng,
         toLat: toLat,
         toLng: toLng,
+        radiusLimit: radiusLimit,
       );
 
       _searchResponse = response;

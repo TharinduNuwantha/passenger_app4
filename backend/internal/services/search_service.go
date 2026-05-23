@@ -89,6 +89,9 @@ func (s *SearchService) SearchTrips(
 
 	if fromLat != nil && fromLng != nil && toLat != nil && toLng != nil {
 		for _, radius := range radiusSteps {
+			if req.RadiusLimit != nil && radius > *req.RadiusLimit {
+				break
+			}
 			usedRadius = radius
 			s.logger.WithField("radius_m", radius).Info("Running multi-modal lounge search...")
 
@@ -194,7 +197,8 @@ func (s *SearchService) SearchTrips(
 			},
 			SearchType: searchType,
 		},
-		Results: results,
+		Results:    results,
+		RadiusUsed: usedRadius,
 	}
 
 	if len(results) == 0 {

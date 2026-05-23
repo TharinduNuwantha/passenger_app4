@@ -31,6 +31,7 @@ class SearchService {
     double? fromLng,
     double? toLat,
     double? toLng,
+    double? radiusLimit,
   }) async {
     try {
       _logger.i('Searching trips: $from → $to');
@@ -44,6 +45,7 @@ class SearchService {
         fromLng: fromLng,
         toLat: toLat,
         toLng: toLng,
+        radiusLimit: radiusLimit,
       );
 
       final jsonPayload = request.toJson();

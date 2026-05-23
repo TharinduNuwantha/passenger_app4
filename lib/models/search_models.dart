@@ -10,6 +10,7 @@ class SearchRequest {
   final double? fromLng;
   final double? toLat;
   final double? toLng;
+  final double? radiusLimit;
 
   SearchRequest({
     required this.from,
@@ -20,6 +21,7 @@ class SearchRequest {
     this.fromLng,
     this.toLat,
     this.toLng,
+    this.radiusLimit,
   });
 
   Map<String, dynamic> toJson() {
@@ -44,6 +46,7 @@ class SearchRequest {
       if (fromLng != null) 'from_lng': fromLng,
       if (toLat != null) 'to_lat': toLat,
       if (toLng != null) 'to_lng': toLng,
+      if (radiusLimit != null) 'radius_limit': radiusLimit,
     };
   }
 }
@@ -57,6 +60,7 @@ class SearchResponse {
   final String discoveryStatus;
   final double remainingGapKm;
   final bool routeExists;
+  final double radiusUsed;
 
   SearchResponse({
     required this.status,
@@ -67,6 +71,7 @@ class SearchResponse {
     required this.discoveryStatus,
     required this.remainingGapKm,
     required this.routeExists,
+    required this.radiusUsed,
   });
 
   factory SearchResponse.fromJson(Map<String, dynamic> json) {
@@ -83,6 +88,7 @@ class SearchResponse {
       discoveryStatus: json['discovery_status'] as String? ?? 'unknown',
       remainingGapKm: (json['remaining_gap_km'] as num?)?.toDouble() ?? 0.0,
       routeExists: json['route_exists'] as bool? ?? false,
+      radiusUsed: (json['radius_used'] as num?)?.toDouble() ?? 3000.0,
     );
   }
 

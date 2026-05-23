@@ -9,14 +9,15 @@ import (
 
 // SearchRequest represents a passenger's search query
 type SearchRequest struct {
-	From     string     `json:"from" binding:"required"` // Origin stop name (e.g., "Colombo Fort")
-	To       string     `json:"to" binding:"required"`   // Destination stop name (e.g., "Kandy")
-	DateTime *time.Time `json:"datetime,omitempty"`      // Optional: Departure date/time filter
-	Limit    int        `json:"limit,omitempty"`         // Optional: Max results (default: 20)
-	FromLat  *float64   `json:"from_lat,omitempty"`      // Optional: Precise origin latitude
-	FromLng  *float64   `json:"from_lng,omitempty"`      // Optional: Precise origin longitude
-	ToLat    *float64   `json:"to_lat,omitempty"`        // Optional: Precise destination latitude
-	ToLng    *float64   `json:"to_lng,omitempty"`        // Optional: Precise destination longitude
+	From        string     `json:"from" binding:"required"`  // Origin stop name (e.g., "Colombo Fort")
+	To          string     `json:"to" binding:"required"`    // Destination stop name (e.g., "Kandy")
+	DateTime    *time.Time `json:"datetime,omitempty"`       // Optional: Departure date/time filter
+	Limit       int        `json:"limit,omitempty"`          // Optional: Max results (default: 20)
+	FromLat     *float64   `json:"from_lat,omitempty"`       // Optional: Precise origin latitude
+	FromLng     *float64   `json:"from_lng,omitempty"`       // Optional: Precise origin longitude
+	ToLat       *float64   `json:"to_lat,omitempty"`         // Optional: Precise destination latitude
+	ToLng       *float64   `json:"to_lng,omitempty"`         // Optional: Precise destination longitude
+	RadiusLimit *float64   `json:"radius_limit,omitempty"`   // Optional: Limit the search radius in meters
 }
 
 // SearchResponse represents the search results returned to passenger
@@ -30,6 +31,7 @@ type SearchResponse struct {
 	DiscoveryStatus string  `json:"discovery_status"` // "full_coverage", "partial_coverage", "route_available", "no_route"
 	RemainingGapKm  float64 `json:"remaining_gap_km"` // Distance remaining if partial coverage
 	RouteExists     bool    `json:"route_exists"`     // Whether any route exists between locations
+	RadiusUsed      float64 `json:"radius_used"`      // The search radius actually used in meters
 }
 
 // SearchDetails provides information about how the search was performed
