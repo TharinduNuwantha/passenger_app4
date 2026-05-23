@@ -300,6 +300,30 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       // We fetch it from booking details (bus_booking_seats) and overlay it.
       seats = await _enrichSeatsWithGender(seats);
 
+      // Sort seats to determine sequential order
+      final List<TripSeat> sortedSeats = List.from(seats);
+      sortedSeats.sort((a, b) {
+        final numA =
+            int.tryParse(a.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        final numB =
+            int.tryParse(b.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        if (numA != numB) return numA.compareTo(numB);
+        return a.seatNumber.compareTo(b.seatNumber);
+      });
+
+      // Map each seat ID to its 1-based sequential display number
+      final Map<String, String> displayNumbers = {};
+      for (int i = 0; i < sortedSeats.length; i++) {
+        displayNumbers[sortedSeats[i].id] = (i + 1).toString().padLeft(2, '0');
+      }
+
+      // Re-create the seats list with the displaySeatNumber assigned
+      seats = seats.map((seat) {
+        return seat.copyWith(
+          displaySeatNumber: displayNumbers[seat.id],
+        );
+      }).toList();
+
       setState(() {
         _seats = seats;
         _isLoading = false;
@@ -1179,7 +1203,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
           children: [
             // Seat number — bold, centred, always clearly visible
             Text(
-              seat.seatNumber.padLeft(2, '0'),
+              seat.displaySeatNo,
               style: TextStyle(
                 fontSize: 13,
                 color: isUnavailable ? Colors.grey.shade600 : Colors.white,
@@ -1250,7 +1274,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Seat ${seat.seatNumber}',
+                          'Seat ${seat.displaySeatNo}',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -1509,7 +1533,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Selected: ${_selectedSeats.map((s) => s.seatNumber).join(', ')}',
+                    'Selected: ${_selectedSeats.map((s) => s.displaySeatNo).join(', ')}',
                     style: TextStyle(
                       color: AppColors.primary.withOpacity(0.7),
                       fontSize: 13,

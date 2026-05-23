@@ -291,6 +291,7 @@ class TripSeat {
   final String scheduledTripId;
   final String? seatConfigId;
   final String seatNumber;
+  final String? displaySeatNumber;
   final String seatType;
   final int seatRow;
   final int seatColumn;
@@ -320,11 +321,14 @@ class TripSeat {
   final String? userLastName;
   final String? userPhone;
 
+  String get displaySeatNo => displaySeatNumber ?? seatNumber;
+
   TripSeat({
     required this.id,
     required this.scheduledTripId,
     this.seatConfigId,
     required this.seatNumber,
+    this.displaySeatNumber,
     required this.seatType,
     required this.seatRow,
     required this.seatColumn,
@@ -425,12 +429,14 @@ class TripSeat {
     String? userFirstName,
     String? userLastName,
     String? userPhone,
+    String? displaySeatNumber,
   }) {
     return TripSeat(
       id: id,
       scheduledTripId: scheduledTripId,
       seatConfigId: seatConfigId,
       seatNumber: seatNumber,
+      displaySeatNumber: displaySeatNumber ?? this.displaySeatNumber,
       seatType: seatType,
       seatRow: seatRow,
       seatColumn: seatColumn,

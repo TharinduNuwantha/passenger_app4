@@ -71,7 +71,7 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> {
     // Initialize passenger forms
     _passengerForms = widget.selectedSeats.map((seat) {
       return PassengerFormData(
-        seatNumber: seat.seatNumber,
+        seatNumber: seat.displaySeatNo,
         tripSeatId: seat.id,
         seatPrice: seat.currentPrice,
         nameController: TextEditingController(),
@@ -174,7 +174,15 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> {
 
       if (mounted) {
         // Build seat numbers string
-        final seatNumbers = response.seats.map((s) => s.seatNumber).join(', ');
+        final seatNumbers = response.seats.map((s) {
+          final matchingIndex = widget.selectedSeats.indexWhere(
+            (selected) => selected.id == s.tripSeatId || selected.seatNumber == s.seatNumber,
+          );
+          if (matchingIndex != -1) {
+            return widget.selectedSeats[matchingIndex].displaySeatNo;
+          }
+          return s.seatNumber;
+        }).join(', ');
 
         // Format date time
         final formattedDateTime = DateFormat(
@@ -336,7 +344,7 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> {
           _buildDetailRow(
             Icons.event_seat,
             'Seats',
-            widget.selectedSeats.map((s) => s.seatNumber).join(', '),
+            widget.selectedSeats.map((s) => s.displaySeatNo).join(', '),
           ),
           const SizedBox(height: 8),
           _buildDetailRow(

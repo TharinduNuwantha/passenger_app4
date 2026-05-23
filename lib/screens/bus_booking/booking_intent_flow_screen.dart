@@ -116,7 +116,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     // Initialize passenger list
     _passengers = widget.selectedSeats.map((seat) {
       return PassengerInfo(
-        seatNumber: seat.seatNumber,
+        seatNumber: seat.displaySeatNo,
         tripSeatId: seat.id,
         seatPrice: seat.currentPrice,
         nameController: TextEditingController(),
@@ -548,7 +548,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             boardingPoint: widget.boardingPoint,
             alightingPoint: widget.alightingPoint,
             seatNumbers: widget.selectedSeats
-                .map((s) => s.seatNumber)
+                .map((s) => s.displaySeatNo)
                 .join(', '),
             preLoungeBooking: confirmedBooking.preLoungeBooking,
             postLoungeBooking: confirmedBooking.postLoungeBooking,
@@ -876,7 +876,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
             'Seats',
             widget.trip.isTransit
                 ? 'Leg 1: ${widget.selectedSeatsLeg1?.join(', ')} | Leg 2: ${widget.selectedSeatsLeg2?.join(', ')}'
-                : widget.selectedSeats.map((s) => s.seatNumber).join(', '),
+                : widget.selectedSeats.map((s) => s.displaySeatNo).join(', '),
           ),
         ],
       ),
