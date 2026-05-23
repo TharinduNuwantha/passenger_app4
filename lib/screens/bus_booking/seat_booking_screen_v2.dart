@@ -355,16 +355,18 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         return false;
       }).toList();
 
-      _logger.d('Found ${candidateBookings.length} candidate bookings for gender enrichment');
+      _logger.d(
+        'Found ${candidateBookings.length} candidate bookings for gender enrichment',
+      );
 
       for (final bookingItem in candidateBookings) {
         try {
-          final bookingDetail =
-              await _bookingService.getBookingById(bookingItem.id);
+          final bookingDetail = await _bookingService.getBookingById(
+            bookingItem.id,
+          );
 
           // Verify this booking is actually for our trip
-          if (bookingDetail.busBooking?.scheduledTripId ==
-              widget.trip.tripId) {
+          if (bookingDetail.busBooking?.scheduledTripId == widget.trip.tripId) {
             for (final bSeat in bookingDetail.seats) {
               if (bSeat.tripSeatId != null &&
                   bSeat.passengerGender != null &&
@@ -422,7 +424,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     if (_selectedSeatIds.contains(seat.id)) {
       return AppColors.secondary;
     }
-    
+
     if (seat.isBooked) {
       // Gender-based colors for booked seats
       final gender = seat.passengerGender?.toLowerCase();
@@ -748,17 +750,9 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               'Available',
             ),
             const SizedBox(width: 12),
-            _buildLegendItem(
-              Icons.male,
-              const Color(0xFFE53935),
-              'Male',
-            ),
+            _buildLegendItem(Icons.male, const Color(0xFFE53935), 'Male'),
             const SizedBox(width: 12),
-            _buildLegendItem(
-              Icons.female,
-              const Color(0xFFE91E63),
-              'Female',
-            ),
+            _buildLegendItem(Icons.female, const Color(0xFFE91E63), 'Female'),
           ],
         ),
       ),
@@ -803,8 +797,10 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     // 1. Sort all seats by numerical seat number
     final List<TripSeat> sortedSeats = List.from(_seats);
     sortedSeats.sort((a, b) {
-      final numA = int.tryParse(a.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      final numB = int.tryParse(b.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final numA =
+          int.tryParse(a.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final numB =
+          int.tryParse(b.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
       if (numA != numB) return numA.compareTo(numB);
       return a.seatNumber.compareTo(b.seatNumber);
     });
@@ -813,10 +809,13 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     final int rearSeatCount = 5;
     List<TripSeat> rearSeats = [];
     List<TripSeat> standardSeats = [];
-    
+
     if (sortedSeats.length > rearSeatCount) {
       rearSeats = sortedSeats.sublist(sortedSeats.length - rearSeatCount);
-      standardSeats = sortedSeats.sublist(0, sortedSeats.length - rearSeatCount);
+      standardSeats = sortedSeats.sublist(
+        0,
+        sortedSeats.length - rearSeatCount,
+      );
     } else {
       rearSeats = sortedSeats;
     }
@@ -836,15 +835,15 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     // Handle the front row gap (remainder seats) first so they stay at the bottom/front
     final List<List<TripSeat>> leftColumnPairs = [];
     final List<List<TripSeat>> rightColumnPairs = [];
-    
+
     final int remainder = standardSeats.length % 4;
     int startIndex = 0;
-    
+
     if (remainder > 0) {
       final frontSeats = standardSeats.sublist(0, remainder);
       List<TripSeat> leftPair = [];
       List<TripSeat> rightPair = [];
-      
+
       // Real buses have the door on the front-left, so right side fills first
       if (remainder == 1) {
         rightPair = [frontSeats[0]];
@@ -854,22 +853,22 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         leftPair = [frontSeats[0]];
         rightPair = [frontSeats[1], frontSeats[2]];
       }
-      
+
       leftColumnPairs.add(leftPair);
       rightColumnPairs.add(rightPair);
       startIndex = remainder;
     }
-    
+
     for (int i = startIndex; i < standardSeats.length; i += 4) {
       List<TripSeat> leftPair = [];
       List<TripSeat> rightPair = [];
-      
+
       if (i < standardSeats.length) leftPair.add(standardSeats[i]);
       if (i + 1 < standardSeats.length) leftPair.add(standardSeats[i + 1]);
-      
+
       if (i + 2 < standardSeats.length) rightPair.add(standardSeats[i + 2]);
       if (i + 3 < standardSeats.length) rightPair.add(standardSeats[i + 3]);
-      
+
       leftColumnPairs.add(leftPair);
       rightColumnPairs.add(rightPair);
     }
@@ -893,7 +892,10 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -907,7 +909,11 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                     ),
                   ),
                 ),
-                const Icon(Icons.directions_bus, size: 40, color: AppColors.primary),
+                const Icon(
+                  Icons.directions_bus,
+                  size: 40,
+                  color: AppColors.primary,
+                ),
               ],
             ),
           ),
@@ -925,33 +931,40 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   if (rearSeats.isNotEmpty) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: rearSeats.map((s) => _buildSeatWidget(s)).toList(),
+                      children: rearSeats
+                          .map((s) => _buildSeatWidget(s))
+                          .toList(),
                     ),
                     const SizedBox(height: 6),
                   ],
 
                   // Standard rows: Left and Right blocks aligned at the top
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start, // Crucial for stagger effect
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start, // Crucial for stagger effect
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Left block
                       Column(
-                        children: leftReversed.map((pair) => _buildPairWidget(pair)).toList(),
+                        children: leftReversed
+                            .map((pair) => _buildPairWidget(pair))
+                            .toList(),
                       ),
-                      
+
                       // Wider Walkway (48px aligns perfectly with rear middle seat)
                       const SizedBox(width: 48),
-                      
+
                       // Right block
                       Column(
-                        children: rightReversed.map((pair) => _buildPairWidget(pair)).toList(),
+                        children: rightReversed
+                            .map((pair) => _buildPairWidget(pair))
+                            .toList(),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 10),
-                  
+
                   // Add Driver section in the bottom left, aligned with the left block
                   // If the right block is longer, we can put the driver below the left block
                   // to fill the gap.
@@ -960,14 +973,17 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 104, // Aligned with the left block columns (52 * 2)
+                        width:
+                            104, // Aligned with the left block columns (52 * 2)
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: _buildDriverIcon(),
                         ),
                       ),
                       const SizedBox(width: 48), // Aisle
-                      const SizedBox(width: 104), // Right block space to maintain symmetry
+                      const SizedBox(
+                        width: 104,
+                      ), // Right block space to maintain symmetry
                     ],
                   ),
 
@@ -976,10 +992,10 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   _buildDirectionChip('FRONT'),
 
                   const SizedBox(height: 16),
-                  
+
                   // Gender Legend (Inline)
                   _buildGenderLayoutLegend(),
-                  
+
                   const SizedBox(height: 8),
                 ],
               ),
@@ -1125,8 +1141,6 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     );
   }
 
-
-
   Widget _buildSeatWidget(TripSeat seat) {
     final isSelectable = seat.canBeSelected;
     final isSelected = _selectedSeatIds.contains(seat.id);
@@ -1168,9 +1182,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
               seat.seatNumber.padLeft(2, '0'),
               style: TextStyle(
                 fontSize: 13,
-                color: isUnavailable
-                    ? Colors.grey.shade600
-                    : Colors.white,
+                color: isUnavailable ? Colors.grey.shade600 : Colors.white,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.3,
               ),
@@ -1183,8 +1195,8 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   gender == 'male'
                       ? Icons.male
                       : gender == 'female'
-                          ? Icons.female
-                          : Icons.person_outline,
+                      ? Icons.female
+                      : Icons.person_outline,
                   size: 10,
                   color: Colors.white.withOpacity(0.85),
                 ),
@@ -1200,8 +1212,8 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     final themeColor = gender == 'male'
         ? const Color(0xFFE53935)
         : gender == 'female'
-            ? const Color(0xFFE91E63)
-            : AppColors.primary;
+        ? const Color(0xFFE91E63)
+        : AppColors.primary;
 
     showDialog(
       context: context,
@@ -1254,11 +1266,14 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   ],
                 ),
                 const Divider(height: 24, thickness: 1.2),
-                
+
                 // Seat Status Indicator
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: themeColor.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(10),
@@ -1325,8 +1340,9 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   icon: Icons.payment_rounded,
                   label: 'Payment Status',
                   value: seat.paymentStatus?.toUpperCase() ?? 'N/A',
-                  valueColor: seat.paymentStatus?.toLowerCase() == 'paid' || 
-                              seat.paymentStatus?.toLowerCase() == 'completed'
+                  valueColor:
+                      seat.paymentStatus?.toLowerCase() == 'paid' ||
+                          seat.paymentStatus?.toLowerCase() == 'completed'
                       ? Colors.green.shade700
                       : Colors.orange.shade700,
                   themeColor: themeColor,
@@ -1338,7 +1354,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   value: 'LKR ${seat.currentPrice.toStringAsFixed(2)}',
                   themeColor: themeColor,
                 ),
-                
+
                 // Registered User Account Details (from users table)
                 if (seat.userFirstName != null ||
                     seat.userLastName != null ||
@@ -1365,8 +1381,12 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                   _buildDetailRow(
                     icon: Icons.assignment_ind_rounded,
                     label: 'User Full Name',
-                    value: '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'.trim().isNotEmpty
-                        ? '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'.trim()
+                    value:
+                        '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'
+                            .trim()
+                            .isNotEmpty
+                        ? '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'
+                              .trim()
                         : 'N/A',
                     themeColor: themeColor,
                   ),
