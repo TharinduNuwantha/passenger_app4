@@ -6,7 +6,23 @@ import '../../services/booking_service.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import 'booking_confirm_screen.dart';
+import 'package:flutter/services.dart';
 import 'booking_intent_flow_screen.dart';
+
+// ── Design tokens ────────────────────────────────────────────────────────────
+// Seat state colours
+const _kAvailable  = Color(0xFF27AE60);   // Emerald green
+const _kSelected   = Color(0xFF1976D2);   // Brand blue (= AppColors.primary)
+const _kMale       = Color(0xFFE53935);   // Red – male booked
+const _kFemale     = Color(0xFFE91E63);   // Pink – female booked
+const _kBlocked    = Color(0xFFBDBDBD);   // Medium grey
+const _kUnavail    = Color(0xFFEEEEEE);   // Light grey
+
+// Surface / background
+const _kBg         = Color(0xFFF4F6FB);   // Page background
+const _kCard       = Colors.white;
+const _kDivider    = Color(0xFFE8EBF0);
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// Enhanced seat booking screen that fetches real seat data from API
 class SeatBookingScreenV2 extends StatefulWidget {
@@ -426,15 +442,20 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   void _toggleSeatSelection(TripSeat seat) {
     if (!seat.canBeSelected) return;
 
+    HapticFeedback.selectionClick();
+
     setState(() {
       if (_selectedSeatIds.contains(seat.id)) {
         _selectedSeatIds.remove(seat.id);
       } else {
         if (_selectedSeatIds.length >= 10) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Maximum 10 seats can be selected'),
-              backgroundColor: Colors.orange,
+            SnackBar(
+              content: const Text('Maximum 10 seats can be selected'),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             ),
           );
           return;
@@ -446,29 +467,29 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
 
   Color _getSeatColor(TripSeat seat) {
     if (_selectedSeatIds.contains(seat.id)) {
-      return AppColors.secondary;
+      return _kSelected;
     }
 
     if (seat.isBooked) {
       // Gender-based colors for booked seats
       final gender = seat.passengerGender?.toLowerCase();
       if (gender == 'male') {
-        return const Color(0xFFE53935); // Modern red for male booked
+        return _kMale; // Modern red for male booked
       } else if (gender == 'female') {
-        return const Color(0xFFE91E63); // Modern pink for female booked
+        return _kFemale; // Modern pink for female booked
       }
       // Fallback for booked seats with unknown gender
-      return const Color(0xFFE53935);
+      return _kMale;
     }
 
     if (seat.isBlocked) {
-      return const Color(0xFFBDBDBD); // Soft grey for blocked
+      return _kBlocked; // Soft grey for blocked
     }
 
     if (seat.canBeSelected) {
-      return const Color(0xFF43A047); // Modern green for available
+      return _kAvailable; // Modern green for available
     }
-    return const Color(0xFFE0E0E0); // Light grey for unavailable
+    return _kUnavail; // Light grey for unavailable
   }
 
   IconData _getSeatIcon(TripSeat seat) {
@@ -496,9 +517,12 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     if (!isAuthenticated) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login to continue with booking'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Please login to continue with booking'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         ),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
@@ -556,64 +580,148 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     }
   }
 
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _kBg,
+      extendBodyBehindAppBar: false,
+      appBar: _buildAppBar(),
+      body: _isLoading
+          ? _buildLoadingView()
+          : _errorMessage != null
+          ? _buildErrorView()
+          : _buildBody(),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
       backgroundColor: AppColors.primary,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Select Seats',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      elevation: 0,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      leading: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Material(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => Navigator.pop(context),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
           ),
         ),
-        centerTitle: true,
       ),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              )
-            : _errorMessage != null
-            ? _buildErrorView()
-            : Column(
-                children: [
-                  _buildTripInfo(),
-                  if (_hasExistingBooking) _buildExistingBookingsBanner(),
-                  _buildLegend(),
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.only(top: 10),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
+      title: const Text(
+        'Select Seats',
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          letterSpacing: 0.2,
+        ),
+      ),
+      centerTitle: true,
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(72),
+        child: _buildTripInfoBar(),
+      ),
+    );
+  }
+
+  Widget _buildTripInfoBar() {
+    return Container(
+      color: AppColors.primary,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.trip.routeName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.my_location_rounded, color: Colors.white60, size: 12),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '${widget.boardingPoint} → ${widget.alightingPoint}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: _buildSeatLayout(),
-                            ),
-                          ),
-                          _buildConfirmButton(),
-                        ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.35)),
+            ),
+            child: Text(
+              widget.trip.busTypeDisplay.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Loading / Error ────────────────────────────────────────────────────────
+
+  Widget _buildLoadingView() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 3,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Loading seats…',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -621,199 +729,373 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
   Widget _buildErrorView() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.white70),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage ?? 'Something went wrong',
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadSeats,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.primary,
-              ),
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExistingBookingsBanner() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: GestureDetector(
-        onTap: _showExistingBookingsSheet,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 82, 156, 222),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.info_outline,
-                color: Color.fromARGB(255, 241, 242, 243),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'You have ${_existingBookings.length} booking(s) on this trip',
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 243, 244, 246),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: Color.fromARGB(255, 210, 211, 213),
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTripInfo() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 82, 156, 222),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.trip.routeName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${widget.boardingPoint} → ${widget.alightingPoint}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFC300),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                widget.trip.busTypeDisplay,
-                style: const TextStyle(
-                  color: Color.fromARGB(255, 12, 12, 12),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLegend() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildLegendItem(Icons.event_seat, AppColors.secondary, 'Selected'),
-            const SizedBox(width: 12),
-            _buildLegendItem(
-              Icons.event_seat_outlined,
-              const Color(0xFF4CAF50),
-              'Available',
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.wifi_off_rounded,
+                size: 48,
+                color: AppColors.error,
+              ),
             ),
-            const SizedBox(width: 12),
-            _buildLegendItem(Icons.male, const Color(0xFFE53935), 'Male'),
-            const SizedBox(width: 12),
-            _buildLegendItem(Icons.female, const Color(0xFFE91E63), 'Female'),
+            const SizedBox(height: 20),
+            const Text(
+              'Couldn\'t load seats',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? 'Something went wrong. Please try again.',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: 160,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: _loadSeats,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text(
+                  'Try Again',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLegendItem(IconData icon, Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+  // ── Main Body ──────────────────────────────────────────────────────────────
+
+  Widget _buildBody() {
+    final bool panelVisible = _selectedSeatIds.isNotEmpty;
+    return Stack(
       children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: AppColors.primary.withOpacity(0.8),
+        // Scrollable content
+        CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Existing bookings banner
+            if (_hasExistingBooking)
+              SliverToBoxAdapter(child: _buildExistingBookingsBanner()),
+
+            // Legend row
+            SliverToBoxAdapter(child: _buildLegend()),
+
+            // Seat map card
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, panelVisible ? 160 : 24),
+              sliver: SliverToBoxAdapter(child: _buildSeatMapCard()),
+            ),
+          ],
+        ),
+
+        // Bottom action panel — always present in layout, slides in/out via
+        // AnimatedSlide so Flutter always sees a fully width-constrained widget.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeOutCubic,
+            offset: panelVisible ? Offset.zero : const Offset(0, 1),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOut,
+              opacity: panelVisible ? 1.0 : 0.0,
+              // IgnorePointer when invisible so hidden panel doesn't eat taps
+              child: IgnorePointer(
+                ignoring: !panelVisible,
+                child: _buildBottomPanel(),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Fallback: original dynamic layout (used when total seats != 56)
-  // ---------------------------------------------------------------------------
+  // ── Existing Bookings Banner ───────────────────────────────────────────────
 
-  /// Dynamic layout — matches the reference image exactly.
-  /// Uses a Left Column and a Right Column aligned at the top,
-  /// sorting seats sequentially to automatically create the staggered
-  /// layout (right side extending further down/front).
+  Widget _buildExistingBookingsBanner() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showExistingBookingsSheet,
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withOpacity(0.12),
+                  AppColors.primaryLight.withOpacity(0.08),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.bookmarks_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'You have ${_existingBookings.length} booking(s) on this trip',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Tap to view details',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Legend & Summary ───────────────────────────────────────────────────────
+
+  Widget _buildLegend() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _kDivider),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _legendPill(_kAvailable,  'Available',  filled: false),
+            _legendPill(_kSelected,   'Selected',   filled: true),
+            _legendPill(_kMale,       'Male',       filled: true),
+            _legendPill(_kFemale,     'Female',     filled: true),
+            _legendPill(_kBlocked,    'Blocked',    filled: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _legendPill(Color color, String label, {required bool filled}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: filled ? color : Colors.transparent,
+            border: Border.all(color: color, width: 2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Seat Map ───────────────────────────────────────────────────────────────
+
+  Widget _buildSeatMapCard() {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kDivider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildSeatMapHeader(),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: _buildSeatLayout(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeatMapHeader() {
+    final available = _seats.where((s) => s.canBeSelected).length;
+    final booked = _seats.where((s) => s.isBooked).length;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: _kBg,
+        border: const Border(bottom: BorderSide(color: _kDivider)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.directions_bus_rounded, color: AppColors.primary, size: 22),
+          const SizedBox(width: 8),
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Text(
+              'Seat Map',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _statChip('${_seats.length}', 'Total', AppColors.textSecondary),
+                _statChip('$available', 'Free', _kAvailable),
+                _statChip('$booked', 'Booked', _kMale),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statChip(String value, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSeatLayout() {
     if (_seats.isEmpty) {
-      return const Center(
-        child: Text(
-          'No seats available',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
+      return const Padding(
+        padding: EdgeInsets.all(40),
+        child: Center(
+          child: Text(
+            'No seats available',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          ),
         ),
       );
     }
@@ -821,10 +1103,8 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     // 1. Sort all seats by numerical seat number
     final List<TripSeat> sortedSeats = List.from(_seats);
     sortedSeats.sort((a, b) {
-      final numA =
-          int.tryParse(a.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      final numB =
-          int.tryParse(b.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final numA = int.tryParse(a.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final numB = int.tryParse(b.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
       if (numA != numB) return numA.compareTo(numB);
       return a.seatNumber.compareTo(b.seatNumber);
     });
@@ -836,10 +1116,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
 
     if (sortedSeats.length > rearSeatCount) {
       rearSeats = sortedSeats.sublist(sortedSeats.length - rearSeatCount);
-      standardSeats = sortedSeats.sublist(
-        0,
-        sortedSeats.length - rearSeatCount,
-      );
+      standardSeats = sortedSeats.sublist(0, sortedSeats.length - rearSeatCount);
     } else {
       rearSeats = sortedSeats;
     }
@@ -856,10 +1133,8 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     }
 
     // 3. Group standard seats into rows of 4 (2 for left, 2 for right)
-    // Handle the front row gap (remainder seats) first so they stay at the bottom/front
     final List<List<TripSeat>> leftColumnPairs = [];
     final List<List<TripSeat>> rightColumnPairs = [];
-
     final int remainder = standardSeats.length % 4;
     int startIndex = 0;
 
@@ -897,193 +1172,122 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       rightColumnPairs.add(rightPair);
     }
 
-    // 5. Reverse the columns so the highest numbers (rear) are at the top
+    // Reverse the columns so the highest numbers (rear) are at the top
     final leftReversed = leftColumnPairs.reversed.toList();
     final rightReversed = rightColumnPairs.reversed.toList();
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          // Stats header
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${_selectedSeats.length} selected • ${_seats.length} total',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.directions_bus,
-                  size: 40,
-                  color: AppColors.primary,
-                ),
-              ],
-            ),
+    return Column(
+      children: [
+        _buildDirectionChip('REAR', Icons.arrow_upward_rounded),
+        const SizedBox(height: 24),
+
+        // Rear row at top (full width)
+        if (rearSeats.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: rearSeats.map((s) => _buildSeatWidget(s)).toList(),
           ),
+          const SizedBox(height: 6),
+        ],
 
-          // "Rear" label at top
-          _buildDirectionChip('REAR'),
-          const SizedBox(height: 10),
+        // Standard rows: Left and Right blocks aligned at the top
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Left block
+            Column(
+              children: leftReversed.map((pair) => _buildPairWidget(pair)).toList(),
+            ),
 
-          // Seat grid
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // Rear row at top (full width)
-                  if (rearSeats.isNotEmpty) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: rearSeats
-                          .map((s) => _buildSeatWidget(s))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 6),
-                  ],
+            // Wider Walkway
+            const SizedBox(width: 44),
 
-                  // Standard rows: Left and Right blocks aligned at the top
-                  Row(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start, // Crucial for stagger effect
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Left block
-                      Column(
-                        children: leftReversed
-                            .map((pair) => _buildPairWidget(pair))
-                            .toList(),
-                      ),
+            // Right block
+            Column(
+              children: rightReversed.map((pair) => _buildPairWidget(pair)).toList(),
+            ),
+          ],
+        ),
 
-                      // Wider Walkway (48px aligns perfectly with rear middle seat)
-                      const SizedBox(width: 48),
+        const SizedBox(height: 12),
 
-                      // Right block
-                      Column(
-                        children: rightReversed
-                            .map((pair) => _buildPairWidget(pair))
-                            .toList(),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Add Driver section in the bottom left, aligned with the left block
-                  // If the right block is longer, we can put the driver below the left block
-                  // to fill the gap.
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width:
-                            104, // Aligned with the left block columns (52 * 2)
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: _buildDriverIcon(),
-                        ),
-                      ),
-                      const SizedBox(width: 48), // Aisle
-                      const SizedBox(
-                        width: 104,
-                      ), // Right block space to maintain symmetry
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  _buildDirectionChip('FRONT'),
-
-                  const SizedBox(height: 16),
-
-                  // Gender Legend (Inline)
-                  _buildGenderLayoutLegend(),
-
-                  const SizedBox(height: 8),
-                ],
+        // Driver section
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 104, // Aligned with the left block columns (52 * 2)
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _buildDriverIcon(),
               ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 44),
+            const SizedBox(width: 104), // Space to maintain symmetry
+          ],
+        ),
+
+        const SizedBox(height: 24),
+        _buildDirectionChip('FRONT', Icons.arrow_downward_rounded),
+        const SizedBox(height: 32),
+        
+        // Gender Legend Layout
+        _buildGenderLayoutLegend(),
+      ],
     );
   }
 
   Widget _buildGenderLayoutLegend() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: _kBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        border: Border.all(color: _kDivider),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 10,
         children: [
-          _buildGenderLegendBox(const Color(0xFFE53935), 'Male'),
-          const SizedBox(width: 32),
-          _buildGenderLegendBox(const Color(0xFFE91E63), 'Female'),
+          _buildGenderLegendBox(_kMale, 'Male booked', Icons.male_rounded),
+          _buildGenderLegendBox(_kFemale, 'Female booked', Icons.female_rounded),
         ],
       ),
     );
   }
 
-  Widget _buildGenderLegendBox(Color color, String label) {
+  Widget _buildGenderLegendBox(Color color, String label, IconData icon) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 24,
-          height: 24,
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(6),
           ),
+          child: Icon(icon, size: 14, color: color),
         ),
         const SizedBox(width: 8),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.primary,
+            color: AppColors.textSecondary,
           ),
         ),
       ],
     );
   }
 
-  /// Helper to render a pair of seats in a column
   Widget _buildPairWidget(List<TripSeat> pair) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1094,70 +1298,64 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     );
   }
 
-  /// Helper to render an individual cell (seat or empty space)
   Widget _buildSeatCell(TripSeat? seat) {
-    if (seat == null) return const SizedBox(width: 48, height: 40);
+    if (seat == null) return const SizedBox(width: 52, height: 50); // Space matching seat width
     return _buildSeatWidget(seat);
   }
 
-  // ---------------------------------------------------------------------------
-  // Shared UI Helpers
-  // ---------------------------------------------------------------------------
-
-  /// Pill-shaped direction label — displayed above the back row (REAR)
-  /// and below the standard rows (FRONT) so riders can instantly orient.
-  Widget _buildDirectionChip(String label) {
+  Widget _buildDirectionChip(String label, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFE2E8F0), // Soft blue-grey from image
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF475569), // Darker slate
-        ),
-      ),
-    );
-  }
-
-  /// Driver section — displayed at the bottom left (front of bus).
-  Widget _buildDriverIcon() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9), // Very soft background
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: _kBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kDivider),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF94A3B8), width: 1.2),
-            ),
-            child: const Icon(
-              Icons.person_outline,
-              size: 16,
-              color: Color(0xFF64748B),
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(width: 6),
-          const Flexible(
-            child: Text(
-              'Driver',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF475569),
-              ),
-              overflow: TextOverflow.ellipsis,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDriverIcon() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _kDivider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.sports_motorsports_rounded, size: 18, color: AppColors.primary),
+          SizedBox(width: 6),
+          Text(
+            'Driver',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -1170,59 +1368,50 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     final isSelected = _selectedSeatIds.contains(seat.id);
     final color = _getSeatColor(seat);
     final gender = seat.passengerGender?.toLowerCase();
-    // Unavailable seats get grey text so numbers remain readable on light bg
-    final isUnavailable =
-        !seat.isBooked && !seat.isBlocked && !seat.canBeSelected;
+    
+    final isUnavailable = !seat.isBooked && !seat.isBlocked && !seat.canBeSelected;
 
     return GestureDetector(
       onTap: isSelectable ? () => _toggleSeatSelection(seat) : null,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        width: 46,
-        height: 46,
-        margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        width: 44,
+        height: 48,
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-          border: isSelected
-              ? Border.all(color: Colors.white, width: 2.5)
-              : null,
-          boxShadow: [
+          color: isSelected ? color : (isUnavailable ? _kUnavail : color.withOpacity(0.15)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? color : (isUnavailable ? Colors.transparent : color.withOpacity(0.4)),
+            width: isSelected ? 2 : 1.5,
+          ),
+          boxShadow: isSelected ? [
             BoxShadow(
-              color: color.withOpacity(isSelected ? 0.55 : 0.35),
-              blurRadius: isSelected ? 10 : 5,
-              spreadRadius: isSelected ? 1 : 0,
-              offset: const Offset(0, 3),
+              color: color.withOpacity(0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ],
+          ] : [],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Seat number — bold, centred, always clearly visible
             Text(
               seat.displaySeatNo,
               style: TextStyle(
                 fontSize: 13,
-                color: isUnavailable ? Colors.grey.shade600 : Colors.white,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.3,
+                color: isSelected ? Colors.white : (isUnavailable ? Colors.grey.shade400 : color),
+                fontWeight: FontWeight.w800,
               ),
             ),
-            // Tiny gender icon below number (only for booked seats)
             if (seat.isBooked && gender != null && gender.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 1),
+                padding: const EdgeInsets.only(top: 2),
                 child: Icon(
-                  gender == 'male'
-                      ? Icons.male
-                      : gender == 'female'
-                      ? Icons.female
-                      : Icons.person_outline,
-                  size: 10,
-                  color: Colors.white.withOpacity(0.85),
+                  gender == 'male' ? Icons.male_rounded : Icons.female_rounded,
+                  size: 12,
+                  color: color,
                 ),
               ),
           ],
@@ -1231,353 +1420,162 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
     );
   }
 
-  void _showSeatDetailsDialog(TripSeat seat) {
-    final gender = seat.passengerGender?.toLowerCase();
-    final themeColor = gender == 'male'
-        ? const Color(0xFFE53935)
-        : gender == 'female'
-        ? const Color(0xFFE91E63)
-        : AppColors.primary;
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+  // ── Bottom Panel ───────────────────────────────────────────────────────────
+
+  Widget _buildBottomPanel() {
+    final seats = _selectedSeats;
+    final seatCount = seats.length;
+    final totalPrice = seats.fold(0.0, (sum, s) => sum + s.currentPrice);
+    final seatLabel = seats.isEmpty ? '—' : seats.map((s) => s.displaySeatNo).join(', ');
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final panelWidth = constraints.hasBoundedWidth ? constraints.maxWidth : MediaQuery.of(context).size.width;
+
+        return Container(
+          width: panelWidth,
+          decoration: BoxDecoration(
+            color: _kCard,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, -6),
+              ),
+            ],
           ),
-          elevation: 10,
-          backgroundColor: Colors.white,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Dialog Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: panelWidth - 40,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: themeColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.airline_seat_recline_normal_rounded,
-                            color: themeColor,
-                            size: 24,
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'SEATS SELECTED',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.grey.shade400,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                seatLabel,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          'Seat ${seat.displaySeatNo}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                        SizedBox(
+                          width: 110,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'TOTAL',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.grey.shade400,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  'LKR ${totalPrice.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.grey),
-                      onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: seatCount == 0 ? null : _proceedToConfirm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        disabledBackgroundColor: Colors.grey.shade200,
+                        disabledForegroundColor: Colors.grey.shade400,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Flexible(
+                            child: Text(
+                              'Continue to Booking',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$seatCount',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-                const Divider(height: 24, thickness: 1.2),
-
-                // Seat Status Indicator
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: themeColor.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: themeColor.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: themeColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Booked (${seat.bookingType?.toUpperCase() ?? 'APP'})',
-                        style: TextStyle(
-                          color: themeColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Passenger Details Grid
-                _buildDetailRow(
-                  icon: Icons.person_rounded,
-                  label: 'Passenger Name',
-                  value: seat.passengerName ?? 'N/A',
-                  themeColor: themeColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  icon: Icons.phone_rounded,
-                  label: 'Phone Number',
-                  value: seat.passengerPhone ?? 'N/A',
-                  themeColor: themeColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  icon: Icons.tag_rounded,
-                  label: 'Booking Ref',
-                  value: seat.bookingReference ?? 'N/A',
-                  valueStyle: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w600,
-                  ),
-                  themeColor: themeColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  icon: Icons.wc_rounded,
-                  label: 'Gender',
-                  value: seat.passengerGender?.toUpperCase() ?? 'N/A',
-                  themeColor: themeColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  icon: Icons.payment_rounded,
-                  label: 'Payment Status',
-                  value: seat.paymentStatus?.toUpperCase() ?? 'N/A',
-                  valueColor:
-                      seat.paymentStatus?.toLowerCase() == 'paid' ||
-                          seat.paymentStatus?.toLowerCase() == 'completed'
-                      ? Colors.green.shade700
-                      : Colors.orange.shade700,
-                  themeColor: themeColor,
-                ),
-                const SizedBox(height: 12),
-                _buildDetailRow(
-                  icon: Icons.payments_rounded,
-                  label: 'Ticket Price',
-                  value: 'LKR ${seat.currentPrice.toStringAsFixed(2)}',
-                  themeColor: themeColor,
-                ),
-
-                // Registered User Account Details (from users table)
-                if (seat.userFirstName != null ||
-                    seat.userLastName != null ||
-                    seat.userEmail != null ||
-                    seat.userNic != null ||
-                    seat.userPhone != null) ...[
-                  const SizedBox(height: 16),
-                  const Divider(height: 24, thickness: 1.2),
-                  Row(
-                    children: [
-                      Icon(Icons.badge_rounded, size: 20, color: themeColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Registered User Details',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: themeColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailRow(
-                    icon: Icons.assignment_ind_rounded,
-                    label: 'User Full Name',
-                    value:
-                        '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'
-                            .trim()
-                            .isNotEmpty
-                        ? '${seat.userFirstName ?? ''} ${seat.userLastName ?? ''}'
-                              .trim()
-                        : 'N/A',
-                    themeColor: themeColor,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildDetailRow(
-                    icon: Icons.email_rounded,
-                    label: 'User Email',
-                    value: seat.userEmail ?? 'N/A',
-                    themeColor: themeColor,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildDetailRow(
-                    icon: Icons.contact_emergency_rounded,
-                    label: 'User NIC',
-                    value: seat.userNic ?? 'N/A',
-                    themeColor: themeColor,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildDetailRow(
-                    icon: Icons.phone_android_rounded,
-                    label: 'User Phone',
-                    value: seat.userPhone ?? 'N/A',
-                    themeColor: themeColor,
                   ),
                 ],
-                const SizedBox(height: 24),
-
-                // Close Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: themeColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Dismiss',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         );
       },
     );
-  }
-
-  Widget _buildDetailRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    Color? valueColor,
-    TextStyle? valueStyle,
-    required Color themeColor,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: Colors.grey.shade600),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ).merge(valueStyle).copyWith(color: valueColor),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildConfirmButton() {
-    final seatCount = _selectedSeats.length;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          if (seatCount > 0)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Selected: ${_selectedSeats.map((s) => s.displaySeatNo).join(', ')}',
-                    style: TextStyle(
-                      color: AppColors.primary.withOpacity(0.7),
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    'LKR ${_totalPrice.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: seatCount == 0 ? null : _proceedToConfirm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                disabledBackgroundColor: Colors.grey.shade300,
-              ),
-              child: Text(
-                seatCount > 0
-                    ? 'Continue ($seatCount ${seatCount == 1 ? 'Seat' : 'Seats'})'
-                    : 'Select Seats to Continue',
-                style: TextStyle(
-                  color: seatCount > 0
-                      ? const Color.fromARGB(255, 236, 237, 238)
-                      : Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+}
 }
