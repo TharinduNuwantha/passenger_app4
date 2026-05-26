@@ -796,12 +796,12 @@ class _BusListScreenState extends State<BusListScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
@@ -812,7 +812,7 @@ class _BusListScreenState extends State<BusListScreen> {
         ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
             Material(
@@ -828,7 +828,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   });
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -940,22 +940,14 @@ class _BusListScreenState extends State<BusListScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // --- 2. TIMES SECTION ---
                       if (!isRouteOnly) _buildTimeAndDurationSection(trip),
 
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Divider(height: 1, color: AppColors.divider),
-                      ),
+                      const SizedBox(height: 16),
 
-                      // --- 3. JOURNEY TIMELINE ---
-                      _buildLocationTimeline(trip),
-
-                      const SizedBox(height: 20),
-
-                      // --- 3.5 AMENITIES & BADGES ---
+                      // --- 3. AMENITIES & BADGES ---
                       Row(
                         children: [
                           Expanded(child: _buildFeaturesRow(trip)),
@@ -1009,6 +1001,26 @@ class _BusListScreenState extends State<BusListScreen> {
                             ),
                           ),
                         ),
+                        
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            isExpanded ? 'Hide Details' : 'View Lounges & Details',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Icon(
+                            isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -1020,14 +1032,26 @@ class _BusListScreenState extends State<BusListScreen> {
               firstChild: const SizedBox.shrink(),
               secondChild: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50]!.withOpacity(0.5),
+                  color: Colors.grey[50],
+                  border: const Border(top: BorderSide(color: AppColors.divider)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Divider(height: 32),
+                    const Text(
+                      'JOURNEY DETAILS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildLocationTimeline(trip),
+                    const SizedBox(height: 24),
                     const Text(
                       'ROUTE STOPS & SCHEDULE',
                       style: TextStyle(
@@ -1050,66 +1074,62 @@ class _BusListScreenState extends State<BusListScreen> {
 
             // --- 5. FOOTER: PRICE & BOOK ---
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.04),
-                border: const Border(top: BorderSide(color: AppColors.divider)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.divider)),
               ),
-              child: Column(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'TOTAL FARE',
-                            style: TextStyle(
-                              fontSize: 10,
-                              letterSpacing: 1,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[500],
-                            ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TOTAL FARE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            letterSpacing: 1,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[500],
                           ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                trip.formattedFare,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primary,
-                                ),
+                        ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              trip.formattedFare,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.primary,
                               ),
-                              if (trip.isTransit &&
-                                  trip.leg1 != null &&
-                                  trip.leg2 != null) ...[
-                                const SizedBox(width: 8),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 4),
-                                  child: Text(
-                                    '(LKR ${trip.leg1!.fare.toStringAsFixed(0)} + ${trip.leg2!.fare.toStringAsFixed(0)})',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.secondary.withOpacity(
-                                        0.8,
-                                      ),
-                                    ),
+                            ),
+                            if (trip.isTransit &&
+                                trip.leg1 != null &&
+                                trip.leg2 != null) ...[
+                              const SizedBox(width: 4),
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  '(LKR ${trip.leg1!.fare.toStringAsFixed(0)} + ${trip.leg2!.fare.toStringAsFixed(0)})',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.secondary.withOpacity(0.8),
                                   ),
                                 ),
-                              ],
+                              ),
                             ],
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(width: 12),
                   SizedBox(
-                    width: double.infinity,
+                    width: 140,
                     child: ElevatedButton(
                       onPressed: trip.isBookable
                           ? () => _handleBookingPress(context, trip)
@@ -1119,30 +1139,18 @@ class _BusListScreenState extends State<BusListScreen> {
                             ? AppColors.primary
                             : Colors.grey.shade400,
                         foregroundColor: Colors.white,
-                        elevation: 4,
-                        shadowColor: trip.isBookable
-                            ? AppColors.primary.withOpacity(0.3)
-                            : Colors.transparent,
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            trip.isBookable ? 'Book Now' : 'Not Bookable Yet',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          if (trip.isBookable) ...[
-                            const SizedBox(width: 12),
-                            const Icon(Icons.arrow_forward_rounded, size: 20),
-                          ],
-                        ],
+                      child: Text(
+                        trip.isBookable ? 'Book Now' : 'Not Bookable',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
@@ -1183,19 +1191,22 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   Widget _buildTimeAndDurationSection(TripResult trip) {
+    final fromName = (trip.fromLounge ?? trip.boardingPoint).replaceAll(" (Nearest Join Point)", "");
+    final toName = (trip.toLounge ?? trip.droppingPoint).replaceAll(" (Nearest Join Point)", "");
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Departure
         Expanded(
-          flex: 2,
+          flex: 3,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 DateFormat('hh:mm').format(trip.departureTime),
                 style: const TextStyle(
-                  fontSize: 28,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.5,
@@ -1204,17 +1215,28 @@ class _BusListScreenState extends State<BusListScreen> {
               Text(
                 DateFormat('a').format(trip.departureTime),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[600],
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                fromName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
         // Duration Visual
         Expanded(
-          flex: 3,
+          flex: 4,
           child: Column(
             children: [
               Text(
@@ -1272,14 +1294,14 @@ class _BusListScreenState extends State<BusListScreen> {
         ),
         // Arrival
         Expanded(
-          flex: 2,
+          flex: 3,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 DateFormat('hh:mm').format(trip.estimatedArrival),
                 style: const TextStyle(
-                  fontSize: 28,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.5,
@@ -1288,10 +1310,22 @@ class _BusListScreenState extends State<BusListScreen> {
               Text(
                 DateFormat('a').format(trip.estimatedArrival),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[600],
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                toName,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.right,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
