@@ -351,93 +351,106 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
 
   Widget _buildAppBar(double topPadding) {
     return Container(
-      padding: EdgeInsets.fromLTRB(8, topPadding + 8, 16, 8),
+      padding: EdgeInsets.fromLTRB(8, topPadding + 12, 16, 16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
-          // Back button
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, size: 24),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
             color: Colors.black87,
             onPressed: () => Navigator.pop(context),
           ),
-          const SizedBox(width: 4),
-          // Search field — takes remaining space
+          const SizedBox(width: 8),
           Expanded(
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F7FA),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: AppColors.primary.withOpacity(0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Icon(
-                      Icons.search_rounded,
-                      color: AppColors.primary,
-                      size: 22,
+            child: Hero(
+              tag: widget.isPickup ? 'search_pickup' : 'search_drop',
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.grey.shade200,
+                      width: 1.2,
                     ),
                   ),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: widget.isPickup
-                            ? 'Search pickup location...'
-                            : 'Search destination...',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      textInputAction: TextInputAction.search,
-                    ),
-                  ),
-                  if (_searchController.text.isNotEmpty)
-                    GestureDetector(
-                      onTap: () {
-                        _searchController.clear();
-                        setState(() {
-                          _suggestions = [];
-                          _isLoadingSuggestions = false;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 12),
+                  child: Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Icon(
-                          Icons.close_rounded,
-                          size: 20,
-                          color: Colors.grey.shade500,
+                          Icons.search_rounded,
+                          color: Colors.grey.shade400,
+                          size: 22,
                         ),
                       ),
-                    ),
-                ],
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                            letterSpacing: 0.2,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: widget.isPickup
+                                ? 'Where from?'
+                                : 'Where to?',
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          textInputAction: TextInputAction.search,
+                          cursorColor: AppColors.primary,
+                        ),
+                      ),
+                      if (_searchController.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {
+                              _suggestions = [];
+                              _isLoadingSuggestions = false;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -455,43 +468,45 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.25), width: 1.5),
+          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (isLoading)
               SizedBox(
-                width: 22,
-                height: 22,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               )
             else
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 18),
-              ),
+              Icon(icon, color: color, size: 22),
             const SizedBox(width: 10),
-            Expanded(
+            Flexible(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: color.withOpacity(0.85),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -559,49 +574,65 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     final mainText = suggestion['main_text'] as String;
     final secondaryText = suggestion['secondary_text'] as String;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      minVerticalPadding: 0,
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(
-          Icons.location_on_rounded,
-          color: AppColors.primary,
-          size: 22,
-        ),
-      ),
-      title: Text(
-        mainText,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: secondaryText.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Text(
-                secondaryText,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            )
-          : null,
-      trailing: const Icon(
-        Icons.north_west_rounded,
-        size: 16,
-        color: Colors.grey,
-      ),
+    return InkWell(
       onTap: () => _selectPlace(suggestion),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.location_on_rounded,
+                color: Colors.black87,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mainText,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (secondaryText.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      secondaryText,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Icon(
+              Icons.arrow_outward_rounded,
+              size: 18,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -611,47 +642,72 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     final otherText =
         widget.isPickup ? item['drop']! : item['pickup']!;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      minVerticalPadding: 0,
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          Icons.history_rounded,
-          color: Colors.grey.shade500,
-          size: 22,
-        ),
-      ),
-      title: Text(
-        displayText,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 3),
-        child: Text(
-          '↔ $otherText',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      trailing: const Icon(
-        Icons.north_west_rounded,
-        size: 16,
-        color: Colors.grey,
-      ),
+    return InkWell(
       onTap: () => _selectFromHistory(item),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade200, width: 1),
+              ),
+              child: Icon(
+                Icons.history_rounded,
+                color: Colors.grey.shade500,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayText,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.swap_horiz_rounded, size: 14, color: Colors.grey.shade400),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          otherText,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Icon(
+              Icons.arrow_outward_rounded,
+              size: 18,
+              color: Colors.grey.shade400,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -660,20 +716,27 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.search_off_rounded, size: 64, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
+          ),
+          const SizedBox(height: 20),
+          const Text(
             'No locations found',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade500,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Try a different search or use the map',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -685,26 +748,34 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.pin_drop_rounded,
-            size: 64,
-            color: AppColors.primary.withOpacity(0.2),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.location_on_rounded,
+              size: 48,
+              color: AppColors.primary.withOpacity(0.8),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             widget.isPickup
                 ? 'Where are you starting from?'
                 : 'Where are you going?',
             style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
               color: Colors.black87,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Type a location, use GPS, or pick on map',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            'Search for a location or use quick actions',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
           ),
         ],
       ),
