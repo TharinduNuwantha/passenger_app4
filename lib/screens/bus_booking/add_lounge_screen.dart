@@ -121,6 +121,10 @@ class SelectedLoungeData {
       basePrice: basePrice,
       preOrderTotal: preOrderTotal,
       totalPrice: totalPrice,
+      transportType: transportType,
+      pickupLocation: pickupLocation,
+      pickupLocationId: pickupLocationId,
+      transportCost: transportCost,
     );
   }
 }

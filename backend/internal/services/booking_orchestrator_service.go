@@ -933,6 +933,23 @@ func (s *BookingOrchestratorService) createLoungeBookingFromIntent(
 		booking.PrimaryGuestPhone = *loungeIntent.Guests[0].GuestPhone
 	}
 
+	// Map transport / pickup details
+	if loungeIntent.TransportType != nil {
+		booking.TransportType.String = *loungeIntent.TransportType
+		booking.TransportType.Valid = true
+	}
+	if loungeIntent.PickupLocation != nil {
+		booking.PickupLocation.String = *loungeIntent.PickupLocation
+		booking.PickupLocation.Valid = true
+	}
+	if loungeIntent.PickupLocationID != nil && *loungeIntent.PickupLocationID != "" {
+		pickupLocID, err := uuid.Parse(*loungeIntent.PickupLocationID)
+		if err == nil {
+			booking.PickupLocationID = &pickupLocID
+		}
+	}
+	booking.TransportCost = fmt.Sprintf("%.2f", loungeIntent.TransportCost)
+
 	// Set booking type
 	switch bookingType {
 	case "pre_trip":

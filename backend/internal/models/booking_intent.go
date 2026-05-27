@@ -91,20 +91,24 @@ type BusIntentTripInfo struct {
 
 // LoungeIntentPayload stores lounge booking intent data in JSONB
 type LoungeIntentPayload struct {
-	LoungeID      string                 `json:"lounge_id"`
-	LoungeName    string                 `json:"lounge_name"`
-	LoungeAddress *string                `json:"lounge_address,omitempty"`
-	PricingType   string                 `json:"pricing_type"`  // "1_hour", "2_hours", "3_hours", "until_bus"
-	Date          string                 `json:"date"`          // "2025-12-15"
-	CheckInTime   string                 `json:"check_in_time"` // "09:00"
-	CheckOutTime  *string                `json:"check_out_time,omitempty"`
-	GuestCount    int                    `json:"guest_count"` // Total: primary + additional guests
-	Guests        []LoungeIntentGuest    `json:"guests"`
-	PreOrders     []LoungeIntentPreOrder `json:"pre_orders,omitempty"`
-	PricePerGuest float64                `json:"price_per_guest"`
-	BasePrice     float64                `json:"base_price"` // price_per_guest * guest_count
-	PreOrderTotal float64                `json:"pre_order_total"`
-	TotalPrice    float64                `json:"total_price"` // base_price + pre_order_total
+	LoungeID         string                 `json:"lounge_id"`
+	LoungeName       string                 `json:"lounge_name"`
+	LoungeAddress    *string                `json:"lounge_address,omitempty"`
+	PricingType      string                 `json:"pricing_type"`  // "1_hour", "2_hours", "3_hours", "until_bus"
+	Date             string                 `json:"date"`          // "2025-12-15"
+	CheckInTime      string                 `json:"check_in_time"` // "09:00"
+	CheckOutTime     *string                `json:"check_out_time,omitempty"`
+	GuestCount       int                    `json:"guest_count"` // Total: primary + additional guests
+	Guests           []LoungeIntentGuest    `json:"guests"`
+	PreOrders        []LoungeIntentPreOrder `json:"pre_orders,omitempty"`
+	PricePerGuest    float64                `json:"price_per_guest"`
+	BasePrice        float64                `json:"base_price"` // price_per_guest * guest_count
+	PreOrderTotal    float64                `json:"pre_order_total"`
+	TotalPrice       float64                `json:"total_price"` // base_price + pre_order_total
+	TransportType    *string                `json:"transport_type,omitempty"`
+	PickupLocation   *string                `json:"pickup_location,omitempty"`
+	PickupLocationID *string                `json:"pickup_location_id,omitempty"`
+	TransportCost    float64                `json:"transport_cost,omitempty"`
 }
 
 // LoungeIntentGuest represents a guest in lounge intent

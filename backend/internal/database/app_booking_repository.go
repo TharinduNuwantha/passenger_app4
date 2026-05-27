@@ -579,13 +579,14 @@ func (r *AppBookingRepository) GetLoungeBookingsByBookingID(bookingID string) ([
 	var bookings []models.LoungeBooking
 	query := `
 		SELECT 
-			lb.lounge_booking_id, lb.booking_reference, lb.user_id, lb.lounge_id, lb.master_booking_id, lb.bus_booking_id,
+			lb.id, lb.booking_reference, lb.user_id, lb.lounge_id, lb.master_booking_id, lb.bus_booking_id,
 			lb.booking_type, lb.scheduled_arrival, lb.scheduled_departure, lb.actual_arrival, lb.actual_departure,
 			lb.number_of_guests, lb.pricing_type, lb.base_price, lb.pre_order_total,
 			lb.discount_amount, lb.total_amount, lb.status, lb.payment_status,
 			lb.primary_guest_name, lb.primary_guest_phone, lb.promo_code, lb.special_requests,
 			lb.internal_notes, lb.cancelled_at, lb.cancellation_reason, lb.created_at, lb.updated_at,
 			lb.qr_code_data,
+			lb.transport_type, lb.pickup_location, lb.pickup_location_id, lb.transport_cost,
 			l.lounge_name, l.address as lounge_address
 		FROM lounge_bookings lb
 		JOIN lounges l ON lb.lounge_id = l.id
@@ -610,6 +611,7 @@ func (r *AppBookingRepository) GetLoungeBookingsByBookingID(bookingID string) ([
 			&booking.PrimaryGuestName, &booking.PrimaryGuestPhone, &booking.PromoCode, &booking.SpecialRequests,
 			&booking.InternalNotes, &booking.CancelledAt, &booking.CancellationReason, &booking.CreatedAt, &booking.UpdatedAt,
 			&booking.QRCodeData,
+			&booking.TransportType, &booking.PickupLocation, &booking.PickupLocationID, &booking.TransportCost,
 			&booking.LoungeName, &booking.LoungeAddress,
 		)
 		if err != nil {

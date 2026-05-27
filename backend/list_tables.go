@@ -29,7 +29,7 @@ func main() {
 	rows, err := conn.Query(context.Background(), `
 		SELECT column_name, data_type 
 		FROM information_schema.columns 
-		WHERE table_name = 'booking_intents'
+		WHERE table_name = 'lounge_bookings'
 		ORDER BY ordinal_position
 	`)
 	if err != nil {

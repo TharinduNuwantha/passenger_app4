@@ -418,9 +418,10 @@ func (r *LoungeBookingRepository) CreateLoungeBooking(
 			lounge_name, lounge_address, lounge_phone,
 			primary_guest_name, primary_guest_phone, promo_code, special_requests,
 			qr_code_data, qr_generated_at,
+			transport_type, pickup_location, pickup_location_id, transport_cost,
 			created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33
 		)
 	`
 	_, err = tx.Exec(bookingQuery,
@@ -433,6 +434,7 @@ func (r *LoungeBookingRepository) CreateLoungeBooking(
 		booking.LoungeName, booking.LoungeAddress, booking.LoungePhone,
 		booking.PrimaryGuestName, booking.PrimaryGuestPhone, booking.PromoCode, booking.SpecialRequests,
 		booking.QRCodeData, booking.QRGeneratedAt,
+		booking.TransportType, booking.PickupLocation, booking.PickupLocationID, booking.TransportCost,
 		booking.CreatedAt, booking.UpdatedAt,
 	)
 	if err != nil {
@@ -500,6 +502,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingByID(bookingID uuid.UUID) (*mo
 			lb.primary_guest_name, lb.primary_guest_phone, lb.promo_code, lb.special_requests,
 			lb.internal_notes, lb.cancelled_at, lb.cancellation_reason, lb.created_at, lb.updated_at,
 			lb.qr_code_data,
+			lb.transport_type, lb.pickup_location, lb.pickup_location_id, lb.transport_cost,
 			l.lounge_name, l.address as lounge_address
 		FROM lounge_bookings lb
 		JOIN lounges l ON lb.lounge_id = l.id
@@ -516,6 +519,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingByID(bookingID uuid.UUID) (*mo
 		&booking.PrimaryGuestName, &booking.PrimaryGuestPhone, &booking.PromoCode, &booking.SpecialRequests,
 		&booking.InternalNotes, &booking.CancelledAt, &booking.CancellationReason, &booking.CreatedAt, &booking.UpdatedAt,
 		&booking.QRCodeData,
+		&booking.TransportType, &booking.PickupLocation, &booking.PickupLocationID, &booking.TransportCost,
 		&booking.LoungeName, &booking.LoungeAddress,
 	)
 	if err == sql.ErrNoRows {
@@ -582,6 +586,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingsByBookingID(masterBookingID s
 			lb.primary_guest_name, lb.primary_guest_phone, lb.promo_code, lb.special_requests,
 			lb.internal_notes, lb.cancelled_at, lb.cancellation_reason, lb.created_at, lb.updated_at,
 			lb.qr_code_data,
+			lb.transport_type, lb.pickup_location, lb.pickup_location_id, lb.transport_cost,
 			l.lounge_name, l.address as lounge_address
 		FROM lounge_bookings lb
 		JOIN lounges l ON lb.lounge_id = l.id
@@ -606,6 +611,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingsByBookingID(masterBookingID s
 			&booking.PrimaryGuestName, &booking.PrimaryGuestPhone, &booking.PromoCode, &booking.SpecialRequests,
 			&booking.InternalNotes, &booking.CancelledAt, &booking.CancellationReason, &booking.CreatedAt, &booking.UpdatedAt,
 			&booking.QRCodeData,
+			&booking.TransportType, &booking.PickupLocation, &booking.PickupLocationID, &booking.TransportCost,
 			&booking.LoungeName, &booking.LoungeAddress,
 		)
 		if err != nil {

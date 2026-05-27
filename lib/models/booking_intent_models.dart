@@ -382,6 +382,12 @@ class LoungeIntentRequest {
   final double preOrderTotal;
   final double totalPrice;
 
+  // Transport / Pickup details
+  final String? transportType;
+  final String? pickupLocation;
+  final String? pickupLocationId;
+  final double? transportCost;
+
   LoungeIntentRequest({
     required this.loungeId,
     required this.loungeName,
@@ -396,6 +402,10 @@ class LoungeIntentRequest {
     required this.basePrice,
     this.preOrderTotal = 0.0,
     required this.totalPrice,
+    this.transportType,
+    this.pickupLocation,
+    this.pickupLocationId,
+    this.transportCost,
   });
 
   int get guestCount => guests.length;
@@ -417,6 +427,10 @@ class LoungeIntentRequest {
       'base_price': basePrice,
       'pre_order_total': preOrderTotal,
       'total_price': totalPrice,
+      if (transportType != null) 'transport_type': transportType,
+      if (pickupLocation != null) 'pickup_location': pickupLocation,
+      if (pickupLocationId != null) 'pickup_location_id': pickupLocationId,
+      if (transportCost != null) 'transport_cost': transportCost,
     };
   }
 }

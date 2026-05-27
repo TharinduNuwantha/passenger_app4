@@ -268,6 +268,12 @@ type LoungeBooking struct {
 	LoungePhone   sql.NullString `db:"lounge_phone" json:"lounge_phone,omitempty"`
 	PricePerGuest string         `db:"price_per_guest" json:"price_per_guest"`
 
+	// Transport / Pickup Details
+	TransportType    sql.NullString `db:"transport_type" json:"transport_type,omitempty"`
+	PickupLocation   sql.NullString `db:"pickup_location" json:"pickup_location,omitempty"`
+	PickupLocationID *uuid.UUID     `db:"pickup_location_id" json:"pickup_location_id,omitempty"`
+	TransportCost    string         `db:"transport_cost" json:"transport_cost"`
+
 	// Timestamps
 	CancelledAt        sql.NullTime   `db:"cancelled_at" json:"cancelled_at,omitempty"`
 	CancellationReason sql.NullString `db:"cancellation_reason" json:"cancellation_reason,omitempty"`
@@ -295,6 +301,8 @@ func (lb *LoungeBooking) MarshalJSON() ([]byte, error) {
 		LoungeAddress      *string    `json:"lounge_address,omitempty"`
 		LoungePhone        *string    `json:"lounge_phone,omitempty"`
 		CancellationReason *string    `json:"cancellation_reason,omitempty"`
+		TransportType      *string    `json:"transport_type,omitempty"`
+		PickupLocation     *string    `json:"pickup_location,omitempty"`
 	}{
 		Alias:              (*Alias)(lb),
 		ScheduledDeparture: nullTimeToPtr(lb.ScheduledDeparture),
@@ -307,6 +315,8 @@ func (lb *LoungeBooking) MarshalJSON() ([]byte, error) {
 		LoungeAddress:      nullStringToPtr(lb.LoungeAddress),
 		LoungePhone:        nullStringToPtr(lb.LoungePhone),
 		CancellationReason: nullStringToPtr(lb.CancellationReason),
+		TransportType:      nullStringToPtr(lb.TransportType),
+		PickupLocation:     nullStringToPtr(lb.PickupLocation),
 	})
 }
 
@@ -494,6 +504,12 @@ type CreateLoungeBookingRequest struct {
 
 	// Special Requests
 	SpecialRequests *string `json:"special_requests,omitempty"`
+
+	// Transport / Pickup Details
+	TransportType    *string  `json:"transport_type,omitempty"`
+	PickupLocation   *string  `json:"pickup_location,omitempty"`
+	PickupLocationID *string  `json:"pickup_location_id,omitempty"`
+	TransportCost    *float64 `json:"transport_cost,omitempty"`
 }
 
 // GuestRequest represents a guest to add to a booking
