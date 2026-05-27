@@ -859,10 +859,10 @@ class _BusListScreenState extends State<BusListScreen> {
                                     children: [
                                       Text(
                                         isRouteOnly
-                                            ? trip.displayRouteName
+                                            ? (trip.displayRouteName == 'Colombo - Kandy' ? 'colombo express' : trip.displayRouteName)
                                             : trip.scheduleName ??
                                                   trip.busOwnerName ??
-                                                  trip.displayRouteName,
+                                                  (trip.displayRouteName == 'Colombo - Kandy' ? 'colombo express' : trip.displayRouteName),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
@@ -906,7 +906,9 @@ class _BusListScreenState extends State<BusListScreen> {
                                             bottom: 4.0,
                                           ),
                                           child: Text(
-                                            trip.routeName,
+                                            trip.routeName == 'Colombo - Kandy' 
+                                                ? 'colombo express' 
+                                                : trip.routeName,
                                             style: TextStyle(
                                               fontSize: 13,
                                               color: Colors.grey[600],
