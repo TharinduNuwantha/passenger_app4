@@ -294,7 +294,7 @@ class _BusListScreenState extends State<BusListScreen> {
     SearchProvider searchProvider,
   ) {
     return SliverAppBar(
-      expandedHeight: 220,
+      expandedHeight: 260,
       floating: false,
       pinned: true,
       elevation: 0,
@@ -425,7 +425,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.5,
                                 ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -467,7 +467,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.5,
                                 ),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -868,7 +868,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                           fontSize: 16,
                                           color: AppColors.textPrimary,
                                         ),
-                                        maxLines: 1,
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       if (trip.mainRouteOrigin != null &&
@@ -914,7 +914,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                               color: Colors.grey[600],
                                               fontWeight: FontWeight.w600,
                                             ),
-                                            maxLines: 1,
+                                            maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -1447,7 +1447,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               Wrap(
