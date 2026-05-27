@@ -344,19 +344,27 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         widget.startLng,
       );
 
+      // Reorder so lounges matching the search-API hint appear first.
+      // This ensures the Add Lounge screen shows the same lounge the
+      // user saw on the bus booking card.
+      final prioritized = _prioritizeByHintName(
+        sorted,
+        widget.trip.fromLounge,
+      );
+
       setState(() {
-        _departureLounges = sorted;
+        _departureLounges = prioritized;
         _isLoadingDeparture = false;
       });
 
-      _logger.i('Departure: ${sorted.length} lounges discovered');
+      _logger.i('Departure: ${prioritized.length} lounges discovered');
 
-      if (sorted.isNotEmpty && _selectedPreTripLounge == null) {
+      if (prioritized.isNotEmpty && _selectedPreTripLounge == null) {
         _autoSelectLounge(
-          _pickBestLounge(sorted, widget.trip.fromLounge),
+          _pickBestLounge(prioritized, widget.trip.fromLounge),
           true,
         );
-        _suggestedDepartureLoungeId = sorted.first.id;
+        _suggestedDepartureLoungeId = prioritized.first.id;
       }
     } catch (e) {
       _logger.e('Error discovered departure lounges: $e');
@@ -436,16 +444,22 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         widget.dropLng,
       );
 
+      // Reorder so lounges matching the search-API hint appear first.
+      final prioritized = _prioritizeByHintName(
+        sorted,
+        widget.trip.toLounge,
+      );
+
       setState(() {
-        _arrivalLounges = sorted;
+        _arrivalLounges = prioritized;
         _isLoadingArrival = false;
       });
 
-      _logger.i('Arrival: ${sorted.length} lounges discovered');
+      _logger.i('Arrival: ${prioritized.length} lounges discovered');
 
-      if (sorted.isNotEmpty && _selectedPostTripLounge == null) {
-        _autoSelectLounge(_pickBestLounge(sorted, widget.trip.toLounge), false);
-        _suggestedArrivalLoungeId = sorted.first.id;
+      if (prioritized.isNotEmpty && _selectedPostTripLounge == null) {
+        _autoSelectLounge(_pickBestLounge(prioritized, widget.trip.toLounge), false);
+        _suggestedArrivalLoungeId = prioritized.first.id;
       }
     } catch (e) {
       _logger.e('Error discovered arrival lounges: $e');
@@ -457,14 +471,58 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
   }
 
   /// Selects the lounge matching [hintName] from [lounges], or [lounges.first] as default.
+  ///
+  /// Matching strategy (in priority order):
+  ///   1. Exact case-insensitive match
+  ///   2. One name contains the other (handles "Everest Lounge" vs "Ruwan Hotel - Everest Lounges")
+  ///   3. Falls back to the first lounge in the list
   Lounge _pickBestLounge(List<Lounge> lounges, String? hintName) {
     if (hintName != null && hintName.isNotEmpty) {
-      final match = lounges.where(
-        (l) => l.loungeName.toLowerCase() == hintName.toLowerCase(),
+      final hint = hintName.toLowerCase().trim();
+
+      // Priority 1: Exact match
+      final exact = lounges.where(
+        (l) => l.loungeName.toLowerCase().trim() == hint,
       );
-      if (match.isNotEmpty) return match.first;
+      if (exact.isNotEmpty) return exact.first;
+
+      // Priority 2: Partial / contains match
+      final partial = lounges.where((l) {
+        final name = l.loungeName.toLowerCase().trim();
+        return name.contains(hint) || hint.contains(name);
+      });
+      if (partial.isNotEmpty) return partial.first;
     }
     return lounges.first;
+  }
+
+  /// Reorders [lounges] so entries whose name matches [hintName] come first,
+  /// preserving relative order within each group.
+  ///
+  /// This ensures the Add Lounge screen shows the same lounge that the
+  /// search API surfaced on the bus booking card at the top of the list.
+  List<Lounge> _prioritizeByHintName(List<Lounge> lounges, String? hintName) {
+    if (hintName == null || hintName.isEmpty || lounges.length <= 1) {
+      return lounges;
+    }
+
+    final hint = hintName.toLowerCase().trim();
+
+    bool matches(Lounge l) {
+      final name = l.loungeName.toLowerCase().trim();
+      return name == hint || name.contains(hint) || hint.contains(name);
+    }
+
+    final matched = lounges.where(matches).toList();
+    final rest = lounges.where((l) => !matches(l)).toList();
+
+    if (matched.isNotEmpty) {
+      _logger.i(
+        'Prioritized ${matched.length} lounge(s) matching hint "$hintName"',
+      );
+    }
+
+    return [...matched, ...rest];
   }
 
   /// Calculate distance between two points in km
