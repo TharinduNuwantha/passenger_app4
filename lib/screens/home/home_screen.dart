@@ -32,6 +32,7 @@ import '../bus_tracking/bus_tracking_screen.dart';
 import '../../widgets/blue_header.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/map_selection_screen.dart';
+import 'location_selection_screen.dart';
 
 class DashBoard extends StatefulWidget {
   const DashBoard({super.key});
@@ -44,8 +45,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   int _selectedIndex = 0;
 
   DateTime? selectedDate;
-  bool showPickupSuggestions = false;
-  bool showDropSuggestions = false;
+  // Suggestion booleans removed — replaced by full-screen LocationSelectionScreen
 
   late AdvertisementService _advertisementService;
   late NotificationService _notificationService;
@@ -198,8 +198,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       selectedDate = null;
       pickupAutocompleteSuggestions.clear();
       dropAutocompleteSuggestions.clear();
-      showPickupSuggestions = false;
-      showDropSuggestions = false;
     });
   }
 
@@ -677,12 +675,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             pickupController.text = address!;
             pickupLat = lat;
             pickupLng = lng;
-            showPickupSuggestions = false;
           } else {
             dropController.text = address!;
             dropLat = lat;
             dropLng = lng;
-            showDropSuggestions = false;
           }
         });
 
@@ -990,12 +986,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               _resolvedPickupAddress = cleanAddress;
               pickupLat = position.latitude;
               pickupLng = position.longitude;
-              showPickupSuggestions = false;
             } else {
               dropController.text = cleanAddress;
               dropLat = position.latitude;
               dropLng = position.longitude;
-              showDropSuggestions = false;
             }
           });
 
@@ -1026,9 +1020,55 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
   }
 
-  Widget _buildModernLocationSelector() {
+  // ── Open full-screen location selection ──────────────────────────────────
+
+  Future<void> _openLocationSelection({required bool isPickup}) async {
+    HapticFeedback.selectionClick();
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationSelectionScreen(
+          isPickup: isPickup,
+          googleMapsApiKey: googleMapsApiKey,
+          searchHistory: _searchHistory,
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      final address = result['address'] as String?;
+      final lat = (result['lat'] as num?)?.toDouble();
+      final lng = (result['lng'] as num?)?.toDouble();
+
+      if (address != null && address.isNotEmpty) {
+        setState(() {
+          if (isPickup) {
+            pickupController.text = address;
+            pickupLat = lat;
+            pickupLng = lng;
+            _resolvedPickupAddress = address;
+          } else {
+            dropController.text = address;
+            dropLat = lat;
+            dropLng = lng;
+          }
+        });
+        // Auto-navigate to booking if both fields filled
+        _autoNavigateToBooking();
+      }
+    }
+  }
+
+  // ── Large PikMe-style location card ──────────────────────────────────────
+
+  Widget _buildLocationInputCard() {
+    final bool fromFilled = pickupController.text.isNotEmpty;
+    final bool toFilled = dropController.text.isNotEmpty;
+    final bool isYourLocation =
+        pickupController.text == 'Your Location';
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -1053,7 +1093,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with icon badge
+          // ── Header ────────────────────────────────────────────────────
           Row(
             children: [
               Container(
@@ -1095,293 +1135,147 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
 
-          // Input block
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF7F8FA),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200, width: 1),
-            ),
-            child: Row(
-              children: [
-                // Timeline dots
-                Column(
+          // ── From / To blocks with connector ──────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Timeline indicators
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Green circle — From
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 2.5),
+                    ),
+                  ),
+                  // Dashed connector line
+                  SizedBox(
+                    height: 40,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        const dashHeight = 5.0;
+                        const dashSpace = 4.0;
+                        final count =
+                            (constraints.maxHeight / (dashHeight + dashSpace))
+                                .floor();
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            count,
+                            (_) => Container(
+                              width: 2,
+                              height: dashHeight,
+                              margin: const EdgeInsets.only(bottom: dashSpace),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Orange square — To
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF6B35),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 14),
+
+              // From + To fields
+              Expanded(
+                child: Column(
                   children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primary, width: 2.5),
-                      ),
+                    // ── FROM field ──────────────────────────────────────
+                    _buildLocationDisplayBlock(
+                      label: 'FROM',
+                      displayText: fromFilled
+                          ? pickupController.text
+                          : null,
+                      placeholder: 'Choose pickup location',
+                      isFilled: fromFilled,
+                      isPickup: true,
+                      isYourLocation: isYourLocation,
+                      onTap: () => _openLocationSelection(isPickup: true),
+                      onClear: () => setState(() {
+                        pickupController.clear();
+                        pickupLat = null;
+                        pickupLng = null;
+                        _resolvedPickupAddress = null;
+                      }),
                     ),
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      width: 1.5,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            AppColors.primary.withOpacity(0.4),
-                            Colors.orange.withOpacity(0.5),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
+                    const SizedBox(height: 8),
+                    // ── TO field ────────────────────────────────────────
+                    _buildLocationDisplayBlock(
+                      label: 'TO',
+                      displayText: toFilled ? dropController.text : null,
+                      placeholder: 'Choose destination',
+                      isFilled: toFilled,
+                      isPickup: false,
+                      onTap: () => _openLocationSelection(isPickup: false),
+                      onClear: () => setState(() {
+                        dropController.clear();
+                        dropLat = null;
+                        dropLng = null;
+                      }),
                     ),
                   ],
                 ),
-                const SizedBox(width: 14),
+              ),
+              const SizedBox(width: 10),
 
-                // Fields
-                Expanded(
-                  child: Column(
-                    children: [
-                      _buildPremiumField(
-                        controller: pickupController,
-                        hint: 'Pickup location',
-                        isPickup: true,
-                      ),
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Colors.grey.shade200,
-                      ),
-                      _buildPremiumField(
-                        controller: dropController,
-                        hint: 'Where are you going?',
-                        isPickup: false,
+              // Swap button
+              GestureDetector(
+                onTap: _swapLocations,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 10),
-
-                // Swap Button
-                GestureDetector(
-                  onTap: _swapLocations,
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade200),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.swap_vert_rounded,
-                      color: Colors.grey.shade700,
-                      size: 20,
-                    ),
+                  child: Icon(
+                    Icons.swap_vert_rounded,
+                    color: Colors.grey.shade700,
+                    size: 22,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
 
-          if (showPickupSuggestions || showDropSuggestions)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: _buildCompactSuggestionsPanel(),
-            ),
-
           const SizedBox(height: 20),
-
-          if (!showPickupSuggestions && !showDropSuggestions)
-            _buildModernSearchButton(),
+          _buildModernSearchButton(),
         ],
       ),
     );
   }
 
-  Widget _buildPremiumField({
-    required TextEditingController controller,
-    required String hint,
-    required bool isPickup,
-  }) {
-    final bool isYourLocation = isPickup && controller.text == 'Your Location';
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (isPickup) {
-            showPickupSuggestions = true;
-            showDropSuggestions = false;
-            if (isYourLocation) controller.clear();
-          } else {
-            showDropSuggestions = true;
-            showPickupSuggestions = false;
-          }
-        });
-        if (isPickup) _pickupFocusNode.requestFocus();
-      },
-      child: Container(
-        height: 48, // Increased height for better tap target
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-        ), // Added horizontal padding inside the field
-        alignment: Alignment.centerLeft,
-        color: Colors.transparent, // Ensures the whole area is clickable
-        child: Row(
-          children: [
-            Expanded(
-              child: isYourLocation
-                  ? Row(
-                      children: [
-                        const Flexible(
-                          child: Text(
-                            'Your Location',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _isFindingLocation
-                                    ? Icons.gps_not_fixed_rounded
-                                    : Icons.gps_fixed_rounded,
-                                size: 10,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _isFindingLocation ? 'Finding...' : 'GPS',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Focus(
-                      onFocusChange: (hasFocus) {
-                        setState(() {
-                          if (isPickup)
-                            showPickupSuggestions = hasFocus;
-                          else
-                            showDropSuggestions = hasFocus;
-                        });
-                      },
-                      child: TextField(
-                        controller: controller,
-                        focusNode: isPickup ? _pickupFocusNode : null,
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: hint,
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ),
-            ),
-            const SizedBox(width: 8),
-            if (controller.text.isNotEmpty &&
-                controller.text != 'Your Location')
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    controller.clear();
-                    if (isPickup) {
-                      pickupLat = null;
-                      pickupLng = null;
-                    } else {
-                      dropLat = null;
-                      dropLng = null;
-                    }
-                  });
-                },
-                child: Icon(
-                  Icons.close_rounded,
-                  size: 20,
-                  color: Colors.grey.shade400,
-                ),
-              )
-            else if (controller.text.isEmpty || isYourLocation)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isPickup) ...[
-                    GestureDetector(
-                      onTap: () => _useCurrentLocation(isPickup: true),
-                      child: Icon(
-                        Icons.my_location_rounded,
-                        size: 20,
-                        color: Colors.grey.shade400,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  GestureDetector(
-                    onTap: () => _navigateToMapForLocation(isPickup: isPickup),
-                    child: Icon(
-                      Icons.map_rounded,
-                      size: 20,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildModernSearchButton() {
-    final bool isReady =
-        pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
-    return Container(
-      width: double.infinity,
+    final bool isReady = pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       height: 56,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -1433,123 +1327,148 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildCompactSuggestionsPanel() {
-    final bool isPickup = showPickupSuggestions;
-    final suggestions = isPickup
-        ? pickupAutocompleteSuggestions
-        : dropAutocompleteSuggestions;
-    final isLoading = isPickup
-        ? isLoadingPickupSuggestions
-        : isLoadingDropSuggestions;
+  /// A large, touch-friendly display block for a single location field.
+  Widget _buildLocationDisplayBlock({
+    required String label,
+    required String? displayText,
+    required String placeholder,
+    required bool isFilled,
+    required bool isPickup,
+    bool isYourLocation = false,
+    required VoidCallback onTap,
+    required VoidCallback onClear,
+  }) {
+    final Color accentColor =
+        isPickup ? AppColors.primary : const Color(0xFFFF6B35);
 
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      constraints: const BoxConstraints(maxHeight: 280),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        constraints: const BoxConstraints(minHeight: 64),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isFilled
+              ? accentColor.withOpacity(0.05)
+              : const Color(0xFFF7F8FA),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isFilled
+                ? accentColor.withOpacity(0.25)
+                : Colors.grey.shade200,
+            width: 1.5,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          if (isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            )
-          else ...[
-            if (isPickup &&
-                pickupController.text.isEmpty &&
-                _searchHistory.isNotEmpty)
-              ..._searchHistory
-                  .take(3)
-                  .map(
-                    (history) => ListTile(
-                      leading: const Icon(
-                        Icons.history,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
-                      title: Text(
-                        history['pickup']!,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      onTap: () {
-                        setState(() {
-                          pickupController.text = history['pickup']!;
-                          dropController.text = history['drop']!;
-                          showPickupSuggestions = false;
-                        });
-                        FocusScope.of(context).unfocus();
-                      },
-                    ),
-                  ),
+        ),
+        child: Row(
+          children: [
+            // Label pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: accentColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
 
-            ...suggestions
-                .take(5)
-                .map(
-                  (s) => ListTile(
-                    leading: const Icon(
-                      Icons.location_on_outlined,
-                      size: 20,
-                      color: AppColors.primary,
-                    ),
-                    title: Text(
-                      s['description'],
-                      style: const TextStyle(
+            // Display text
+            Expanded(
+              child: isFilled
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          displayText!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: isYourLocation && isPickup
+                                ? AppColors.primary
+                                : Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (isYourLocation && isPickup) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                _isFindingLocation
+                                    ? Icons.gps_not_fixed_rounded
+                                    : Icons.gps_fixed_rounded,
+                                size: 11,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _isFindingLocation
+                                    ? 'Finding location...'
+                                    : 'GPS detected',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.primary.withOpacity(0.7),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    )
+                  : Text(
+                      placeholder,
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade400,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    onTap: () {
-                      setState(() {
-                        if (isPickup) {
-                          pickupController.text = s['description'];
-                          showPickupSuggestions = false;
-                        } else {
-                          dropController.text = s['description'];
-                          showDropSuggestions = false;
-                        }
-                      });
-                      FocusScope.of(context).unfocus();
-                      _autoNavigateToBooking();
-                    },
+            ),
+
+            // Trailing icons
+            if (isFilled)
+              GestureDetector(
+                onTap: onClear,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 14,
+                    color: Colors.grey.shade500,
                   ),
                 ),
-
-            if (!isLoading)
-              ListTile(
-                leading: const Icon(
-                  Icons.map_outlined,
-                  color: AppColors.primary,
-                ),
-                title: const Text(
-                  'Select on map',
-                  style: TextStyle(fontSize: 14),
-                ),
-                onTap: () {
-                  setState(() {
-                    showPickupSuggestions = false;
-                    showDropSuggestions = false;
-                  });
-                  FocusScope.of(context).unfocus();
-                  _navigateToMapForLocation(isPickup: isPickup);
-                },
+              )
+            else
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.grey.shade400,
+                size: 20,
               ),
           ],
-        ],
+        ),
       ),
     );
   }
+
+  // _buildPremiumField removed — replaced by _buildLocationDisplayBlock inside _buildLocationInputCard
+
+
 
   void _onItemTapped(int index) {
     setState(() {
@@ -2436,8 +2355,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         setState(() {
           pickupController.text = fromLocation;
           dropController.text = toLocation;
-          showPickupSuggestions = false;
-          showDropSuggestions = false;
         });
         FocusScope.of(context).unfocus();
       },
@@ -2672,10 +2589,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 16),
 
-          // ── Where are you going? (Location Selector) ────────────────
+          // ── WHERE TO? Location Card ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildModernLocationSelector(),
+            child: _buildLocationInputCard(),
           ),
           const SizedBox(height: 24),
           // Advertisement carousel (auto-rotating every 5s)
