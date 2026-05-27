@@ -55,7 +55,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()..loadThemeMode()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => SearchProvider()),
+        ChangeNotifierProvider(create: (_) => SearchProvider()),  
         ChangeNotifierProvider(create: (_) => BookingIntentProvider()),
       ],
       child: Consumer<ThemeProvider>(

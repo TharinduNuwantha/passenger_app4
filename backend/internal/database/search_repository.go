@@ -1235,7 +1235,9 @@ SELECT
     sched.has_entertainment,
     sched.has_refreshments,
     sched.bus_owner_route_id,
-    sched.trip_master_route_id
+    sched.trip_master_route_id,
+    sched.schedule_name,
+    sched.bus_owner_name
 FROM matched_routes mr_data
 JOIN master_route_stops boarding_stop ON boarding_stop.id = mr_data.boarding_stop_id
 JOIN master_route_stops dropping_stop ON dropping_stop.id = mr_data.dropping_stop_id
@@ -1256,9 +1258,12 @@ JOIN LATERAL (
         COALESCE(b.has_entertainment,  false) AS has_entertainment,
         COALESCE(b.has_refreshments,   false) AS has_refreshments,
         bor.id::text                                                             AS bus_owner_route_id,
-        COALESCE(bor.master_route_id, rp.master_route_id)::text                AS trip_master_route_id
+        COALESCE(bor.master_route_id, rp.master_route_id)::text                AS trip_master_route_id,
+        bor.custom_route_name                                                    AS schedule_name,
+        bo.name                                                                  AS bus_owner_name
     FROM scheduled_trips st
     LEFT JOIN bus_owner_routes bor          ON bor.id = st.bus_owner_route_id
+    LEFT JOIN bus_owners bo                 ON bo.id = bor.bus_owner_id
     LEFT JOIN route_permits rp              ON rp.id  = st.permit_id
     LEFT JOIN buses b                       ON b.license_plate = rp.bus_registration_number
     LEFT JOIN bus_seat_layout_templates bslt ON bslt.id = b.seat_layout_id
@@ -1297,6 +1302,8 @@ LIMIT $7
 		HasRefreshments   bool      `db:"has_refreshments"`
 		BusOwnerRouteID   *string   `db:"bus_owner_route_id"`
 		TripMasterRouteID *string   `db:"trip_master_route_id"`
+		ScheduleName      *string   `db:"schedule_name"`
+		BusOwnerName      *string   `db:"bus_owner_name"`
 	}
 
 	var rows []loungeRow
@@ -1341,6 +1348,8 @@ LIMIT $7
 			IsBookable:      row.IsBookable,
 			BusOwnerRouteID: row.BusOwnerRouteID,
 			MasterRouteID:   row.TripMasterRouteID,
+			ScheduleName:    row.ScheduleName,
+			BusOwnerName:    row.BusOwnerName,
 		})
 	}
 
@@ -1507,12 +1516,15 @@ direct_results AS (
            s1.has_refreshments AS l1_has_refreshments,
            s1.bus_owner_route_id AS l1_bus_owner_route_id,
            s1.trip_master_route_id AS l1_trip_master_id,
+           s1.schedule_name AS l1_schedule_name,
+           s1.bus_owner_name AS l1_bus_owner_name,
            NULL::text AS r2_route_name, NULL::text AS r2_route_number,
            NULL::text AS r2_main_origin, NULL::text AS r2_main_destination,
            NULL::text AS l2_boarding, NULL::text AS l2_dropping,
            NULL::text AS l2_trip_id, NULL::timestamptz AS l2_dep,
            NULL::timestamptz AS l2_arr, 0::float AS l2_fare,
-           NULL::text AS l2_bus_type, false AS l2_is_bookable
+           NULL::text AS l2_bus_type, false AS l2_is_bookable,
+           NULL::text AS l2_schedule_name, NULL::text AS l2_bus_owner_name
     FROM direct_pairs dp
     JOIN master_route_stops bs ON bs.id = dp.boarding_stop_id
     JOIN master_route_stops ds ON ds.id = dp.dropping_stop_id
@@ -1528,9 +1540,12 @@ direct_results AS (
                COALESCE(b.has_entertainment,false) AS has_entertainment,
                COALESCE(b.has_refreshments,false) AS has_refreshments,
                bor.id::text AS bus_owner_route_id,
-               COALESCE(bor.master_route_id,rp.master_route_id)::text AS trip_master_route_id
+               COALESCE(bor.master_route_id,rp.master_route_id)::text AS trip_master_route_id,
+               bor.custom_route_name AS schedule_name,
+               bo.name AS bus_owner_name
         FROM scheduled_trips st
         LEFT JOIN bus_owner_routes bor ON bor.id = st.bus_owner_route_id
+        LEFT JOIN bus_owners bo        ON bo.id = bor.bus_owner_id
         LEFT JOIN route_permits rp     ON rp.id  = st.permit_id
         LEFT JOIN buses b              ON b.license_plate = rp.bus_registration_number
         LEFT JOIN bus_seat_layout_templates bslt ON bslt.id = b.seat_layout_id
@@ -1559,12 +1574,14 @@ transit_results AS (
            l1.has_entertainment AS l1_has_entertainment,
            l1.has_refreshments AS l1_has_refreshments,
            NULL::text AS l1_bus_owner_route_id, tc.r1_id::text AS l1_trip_master_id,
+           l1.schedule_name AS l1_schedule_name, l1.bus_owner_name AS l1_bus_owner_name,
            mr2.route_name AS r2_route_name, mr2.route_number AS r2_route_number,
            mr2.origin_city AS r2_main_origin, mr2.destination_city AS r2_main_destination,
            b2s.stop_name AS l2_boarding, d2s.stop_name AS l2_dropping,
            l2.trip_id AS l2_trip_id, l2.departure_time AS l2_dep,
            l2.estimated_arrival AS l2_arr, l2.fare AS l2_fare,
-           l2.bus_type AS l2_bus_type, l2.is_bookable AS l2_is_bookable
+           l2.bus_type AS l2_bus_type, l2.is_bookable AS l2_is_bookable,
+           l2.schedule_name AS l2_schedule_name, l2.bus_owner_name AS l2_bus_owner_name
     FROM transit_chains tc
     JOIN master_routes mr1 ON mr1.id = tc.r1_id
     JOIN master_routes mr2 ON mr2.id = tc.r2_id
@@ -1582,9 +1599,12 @@ transit_results AS (
                COALESCE(b.has_wifi,false) AS has_wifi, COALESCE(b.has_ac,false) AS has_ac,
                COALESCE(b.has_charging_ports,false) AS has_charging_ports,
                COALESCE(b.has_entertainment,false) AS has_entertainment,
-               COALESCE(b.has_refreshments,false) AS has_refreshments
+               COALESCE(b.has_refreshments,false) AS has_refreshments,
+               bor.custom_route_name AS schedule_name,
+               bo.name AS bus_owner_name
         FROM scheduled_trips st
         LEFT JOIN bus_owner_routes bor ON bor.id = st.bus_owner_route_id
+        LEFT JOIN bus_owners bo        ON bo.id = bor.bus_owner_id
         LEFT JOIN route_permits rp     ON rp.id  = st.permit_id
         LEFT JOIN buses b              ON b.license_plate = rp.bus_registration_number
         LEFT JOIN bus_seat_layout_templates bslt ON bslt.id = b.seat_layout_id
@@ -1597,9 +1617,12 @@ transit_results AS (
         SELECT st.id::text AS trip_id, st.departure_datetime AS departure_time,
                st.departure_datetime + (COALESCE(st.estimated_duration_minutes,0)*INTERVAL'1 minute') AS estimated_arrival,
                COALESCE(rp.approved_fare,st.base_fare,0) AS fare,
-               COALESCE(b.bus_type,'Normal') AS bus_type, st.is_bookable
+               COALESCE(b.bus_type,'Normal') AS bus_type, st.is_bookable,
+               bor.custom_route_name AS schedule_name,
+               bo.name AS bus_owner_name
         FROM scheduled_trips st
         LEFT JOIN bus_owner_routes bor ON bor.id = st.bus_owner_route_id
+        LEFT JOIN bus_owners bo        ON bo.id = bor.bus_owner_id
         LEFT JOIN route_permits rp     ON rp.id  = st.permit_id
         LEFT JOIN buses b              ON b.license_plate = rp.bus_registration_number
         WHERE COALESCE(bor.master_route_id,rp.master_route_id) = tc.r2_id
@@ -1662,6 +1685,10 @@ LIMIT $7;
 		L2Fare             float64    `db:"l2_fare"`
 		L2BusType          *string    `db:"l2_bus_type"`
 		L2IsBookable       bool       `db:"l2_is_bookable"`
+		L1ScheduleName     *string    `db:"l1_schedule_name"`
+		L1BusOwnerName     *string    `db:"l1_bus_owner_name"`
+		L2ScheduleName     *string    `db:"l2_schedule_name"`
+		L2BusOwnerName     *string    `db:"l2_bus_owner_name"`
 	}
 
 	var rows []mmRow
@@ -1707,6 +1734,8 @@ LIMIT $7;
 				MainRouteOrigin:      row.R1MainOrigin,
 				MainRouteDestination: row.R1MainDestination,
 				IsTransit:            false,
+				ScheduleName:         row.L1ScheduleName,
+				BusOwnerName:         row.L1BusOwnerName,
 			})
 		} else {
 			// Build transit trip with two legs
@@ -1756,6 +1785,8 @@ LIMIT $7;
 					HasEntertainment: row.L1HasEntertainment,
 					HasRefreshments:  row.L1HasRefreshments,
 				},
+				ScheduleName:         row.L1ScheduleName,
+				BusOwnerName:         row.L1BusOwnerName,
 				MainRouteOrigin:      row.R1MainOrigin,
 				MainRouteDestination: row.R1MainDestination,
 			}
@@ -1770,6 +1801,8 @@ LIMIT $7;
 				IsBookable:           row.L2IsBookable,
 				MainRouteOrigin:      row.R2MainOrigin,
 				MainRouteDestination: row.R2MainDestination,
+				ScheduleName:         row.L2ScheduleName,
+				BusOwnerName:         row.L2BusOwnerName,
 			}
 
 			results = append(results, models.TripResult{

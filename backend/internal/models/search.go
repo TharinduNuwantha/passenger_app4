@@ -74,6 +74,8 @@ type RouteStop struct {
 type TripResult struct {
 	TripID           uuid.UUID `json:"trip_id" db:"trip_id"`
 	RouteName        string    `json:"route_name" db:"route_name"`
+	ScheduleName     *string   `json:"schedule_name,omitempty" db:"schedule_name"`
+	BusOwnerName     *string   `json:"bus_owner_name,omitempty" db:"bus_owner_name"`
 	RouteNumber      *string   `json:"route_number,omitempty" db:"route_number"`
 	BusType          string    `json:"bus_type" db:"bus_type"`
 	DepartureTime    time.Time `json:"-" db:"departure_time"`
