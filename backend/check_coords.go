@@ -16,22 +16,31 @@ func main() {
 	}
 	defer conn.Close(context.Background())
 
-	fmt.Println("Checking stops for Route ID: 0739d921-5215-48b0-a584-243ec4c761d8 (Colombo - Kandy)")
-	rows, _ := conn.Query(context.Background(), `
-		SELECT stop_name, stop_order, latitude, longitude
-		FROM master_route_stops
-		WHERE master_route_id = '0739d921-5215-48b0-a584-243ec4c761d8'
-		ORDER BY stop_order
+	fmt.Println("Checking all stops for all master routes...")
+	rows, err := conn.Query(context.Background(), `
+		SELECT mr.route_name, s.stop_name, s.stop_order, s.latitude, s.longitude, s.id
+		FROM master_route_stops s
+		JOIN master_routes mr ON s.master_route_id = mr.id
+		ORDER BY mr.route_name, s.stop_order
 	`)
+	if err != nil {
+		log.Fatalf("Query failed: %v", err)
+	}
+	defer rows.Close()
+
 	for rows.Next() {
-		var name string
+		var routeName, stopName string
 		var order int
 		var lat, lng *float64
-		rows.Scan(&name, &order, &lat, &lng)
-		if lat == nil || lng == nil {
-			fmt.Printf("%d. %s | LAT/LNG: NULL\n", order, name)
-		} else {
-			fmt.Printf("%d. %s | LAT/LNG: %f, %f\n", order, name, *lat, *lng)
+		var id string
+		rows.Scan(&routeName, &stopName, &order, &lat, &lng, &id)
+		latStr, lngStr := "NULL", "NULL"
+		if lat != nil {
+			latStr = fmt.Sprintf("%f", *lat)
 		}
+		if lng != nil {
+			lngStr = fmt.Sprintf("%f", *lng)
+		}
+		fmt.Printf("Route: %s | Stop %d: %s | ID: %s | LAT/LNG: %s, %s\n", routeName, order, stopName, id, latStr, lngStr)
 	}
 }
