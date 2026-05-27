@@ -2051,7 +2051,29 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   String _cleanLocation(String location) {
-    // Remove country/region info if present (e.g., "Colombo, Sri Lanka" → "Colombo")
+    if (location.isEmpty) return '';
+    
+    // Split the location by commas to get individual address components
+    final components = location.split(',');
+    
+    for (var component in components) {
+      final trimmedComponent = component.trim();
+      if (trimmedComponent.isEmpty) continue;
+      
+      // Split the component by space to check for plus codes (e.g., "7523+P54" or "7523+P54 Colombo")
+      final words = trimmedComponent.split(' ');
+      final cleanWords = words.where((word) => !word.contains('+')).toList();
+      
+      // If we have words left after removing any plus codes, join them and return
+      if (cleanWords.isNotEmpty) {
+        final result = cleanWords.join(' ').trim();
+        if (result.isNotEmpty) {
+          return result;
+        }
+      }
+    }
+    
+    // Fallback if everything had a plus code or was empty
     return location.split(',').first.trim();
   }
 

@@ -182,6 +182,54 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     Navigator.pop(context, {'address': description, 'lat': null, 'lng': null});
   }
 
+  String _getCleanAddress(List<dynamic> results) {
+    if (results.isEmpty) return '';
+
+    // 1. Try to find the first result whose formatted_address does NOT contain a plus code and is not just "Sri Lanka"
+    for (var result in results) {
+      final addr = result['formatted_address'] as String? ?? '';
+      final trimmed = addr.trim();
+      if (!addr.contains('+') && 
+          trimmed != 'Sri Lanka' && 
+          trimmed != 'Sri Lanka,' && 
+          trimmed.isNotEmpty) {
+        return addr;
+      }
+    }
+
+    // 2. If all results contain a plus code or are just "Sri Lanka", try to extract the locality/neighborhood/POI from components
+    for (var result in results) {
+      final components = result['address_components'] as List<dynamic>? ?? [];
+      
+      // Check preferred component types in order of specificity
+      final preferredTypes = [
+        'point_of_interest',
+        'establishment',
+        'neighborhood',
+        'sublocality_level_1',
+        'sublocality',
+        'locality',
+        'administrative_area_level_3',
+        'administrative_area_level_2'
+      ];
+
+      for (var type in preferredTypes) {
+        for (var component in components) {
+          final List<dynamic> types = component['types'] ?? [];
+          if (types.contains(type)) {
+            final name = component['long_name'] as String? ?? '';
+            if (name.isNotEmpty && !name.contains('+')) {
+              return name;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Fallback to the first formatted address if nothing else is available
+    return results[0]['formatted_address'] as String? ?? '';
+  }
+
   // ── Current Location ─────────────────────────────────────────────────────
 
   Future<void> _useCurrentLocation() async {
@@ -204,8 +252,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       String address = 'Your Location';
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['status'] == 'OK' && data['results'].isNotEmpty) {
-          address = data['results'][0]['formatted_address'];
+        if (data['status'] == 'OK' && data['results'] != null && (data['results'] as List).isNotEmpty) {
+          address = _getCleanAddress(data['results']);
         }
       }
 
