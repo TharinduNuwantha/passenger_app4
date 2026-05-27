@@ -858,17 +858,11 @@ class _BusListScreenState extends State<BusListScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        () {
-                                          final name = isRouteOnly
-                                              ? trip.displayRouteName
-                                              : trip.scheduleName ??
+                                        isRouteOnly
+                                            ? trip.displayRouteName
+                                            : trip.scheduleName ??
                                                   trip.busOwnerName ??
-                                                  trip.displayRouteName;
-                                          if (name.trim().toLowerCase() == 'colombo - kandy') {
-                                            return 'Colombo Express';
-                                          }
-                                          return name;
-                                        }(),
+                                                  trip.displayRouteName,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
