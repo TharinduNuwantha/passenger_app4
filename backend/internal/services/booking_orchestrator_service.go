@@ -824,11 +824,29 @@ func (s *BookingOrchestratorService) createBusBookingFromIntent(intent *models.B
 		totalAmount = intent.TotalAmount
 	}
 
+	loungeTotal := 0.0
+	preOrderTotal := 0.0
+
+	if intent.PreTripLoungeIntent != nil {
+		loungeTotal += intent.PreTripLoungeIntent.BasePrice + intent.PreTripLoungeIntent.TransportCost
+		preOrderTotal += intent.PreTripLoungeIntent.PreOrderTotal
+	}
+	if intent.TransitLoungeIntent != nil {
+		loungeTotal += intent.TransitLoungeIntent.BasePrice + intent.TransitLoungeIntent.TransportCost
+		preOrderTotal += intent.TransitLoungeIntent.PreOrderTotal
+	}
+	if intent.PostTripLoungeIntent != nil {
+		loungeTotal += intent.PostTripLoungeIntent.BasePrice + intent.PostTripLoungeIntent.TransportCost
+		preOrderTotal += intent.PostTripLoungeIntent.PreOrderTotal
+	}
+
 	// Build master booking
 	masterBooking := &models.MasterBooking{
 		UserID:         intent.UserID.String(),
 		BookingType:    bookingType,
 		BusTotal:       intent.BusFare,
+		LoungeTotal:    loungeTotal,
+		PreOrderTotal:  preOrderTotal,
 		Subtotal:       totalAmount,
 		TotalAmount:    totalAmount,
 		PaymentStatus:  models.MasterPaymentPaid, // Paid via intent
