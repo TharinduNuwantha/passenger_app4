@@ -1424,14 +1424,18 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                                 color: AppColors.primary,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                _isFindingLocation
-                                    ? 'Finding location...'
-                                    : 'GPS detected',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.primary.withOpacity(0.7),
-                                  fontWeight: FontWeight.w500,
+                              Flexible(
+                                child: Text(
+                                  _isFindingLocation
+                                      ? 'Finding location...'
+                                      : 'GPS detected',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.primary.withOpacity(0.7),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -1446,6 +1450,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                         fontWeight: FontWeight.w500,
                         color: Colors.grey.shade400,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
             ),
 
