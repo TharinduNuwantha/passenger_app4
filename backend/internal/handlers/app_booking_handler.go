@@ -226,8 +226,21 @@ func (h *AppBookingHandler) GetMyBookings(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	status := c.Query("status")
 
-	bookings, err := h.bookingRepo.GetBookingsByUserID(userCtx.UserID.String(), limit, offset)
+	var bookings []models.BookingListItem
+	var err error
+
+	if status == "upcoming" {
+		bookings, err = h.bookingRepo.GetUpcomingBookingsByUserID(userCtx.UserID.String(), limit, offset)
+	} else if status == "completed" {
+		bookings, err = h.bookingRepo.GetCompletedBookingsByUserID(userCtx.UserID.String(), limit, offset)
+	} else if status == "cancelled" {
+		bookings, err = h.bookingRepo.GetExpiredOrCancelledBookingsByUserID(userCtx.UserID.String(), limit, offset)
+	} else {
+		bookings, err = h.bookingRepo.GetBookingsByUserID(userCtx.UserID.String(), limit, offset)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bookings"})
 		return
@@ -257,7 +270,7 @@ func (h *AppBookingHandler) GetUpcomingBookings(c *gin.Context) {
 		return
 	}
 
-	bookings, err := h.bookingRepo.GetUpcomingBookingsByUserID(userCtx.UserID.String())
+	bookings, err := h.bookingRepo.GetUpcomingBookingsByUserID(userCtx.UserID.String(), 100, 0)
 	if err != nil {
 		if h.logger != nil {
 			h.logger.WithError(err).WithField("user_id", userCtx.UserID.String()).Error("Failed to get upcoming bookings")
@@ -286,7 +299,7 @@ func (h *AppBookingHandler) GetCompletedBookings(c *gin.Context) {
 		return
 	}
 
-	bookings, err := h.bookingRepo.GetCompletedBookingsByUserID(userCtx.UserID.String())
+	bookings, err := h.bookingRepo.GetCompletedBookingsByUserID(userCtx.UserID.String(), 100, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get completed bookings", "details": err.Error()})
 		return
@@ -312,7 +325,7 @@ func (h *AppBookingHandler) GetExpiredOrCancelledBookings(c *gin.Context) {
 		return
 	}
 
-	bookings, err := h.bookingRepo.GetExpiredOrCancelledBookingsByUserID(userCtx.UserID.String())
+	bookings, err := h.bookingRepo.GetExpiredOrCancelledBookingsByUserID(userCtx.UserID.String(), 100, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get cancelled bookings", "details": err.Error()})
 		return

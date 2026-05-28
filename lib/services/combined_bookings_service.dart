@@ -113,6 +113,11 @@ class CombinedBookingsService {
         unified.retainWhere((b) => b.status == UnifiedBookingStatus.completed);
       }
 
+      // Defensive filter: ensure only exact upcoming or inProgress items are included when status is upcoming
+      if (status == 'upcoming') {
+        unified.retainWhere((b) => b.status == UnifiedBookingStatus.upcoming || b.status == UnifiedBookingStatus.inProgress);
+      }
+
       // Sort based on status semantics
       if (status == 'upcoming') {
         unified.sort((a, b) => a.dateTime.compareTo(b.dateTime));

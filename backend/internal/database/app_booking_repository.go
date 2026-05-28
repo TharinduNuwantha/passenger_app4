@@ -362,7 +362,7 @@ func (r *AppBookingRepository) GetBookingsByUserID(userID string, limit, offset 
 
 // GetUpcomingBookingsByUserID retrieves upcoming bookings for a user
 // Only returns bookings where scheduled_trips.departure_datetime > NOW() and not cancelled/completed
-func (r *AppBookingRepository) GetUpcomingBookingsByUserID(userID string) ([]models.BookingListItem, error) {
+func (r *AppBookingRepository) GetUpcomingBookingsByUserID(userID string, limit, offset int) ([]models.BookingListItem, error) {
 	query := `
 		SELECT 
 			b.id, b.booking_reference, b.booking_type,
@@ -380,15 +380,16 @@ func (r *AppBookingRepository) GetUpcomingBookingsByUserID(userID string) ([]mod
 		  AND b.booking_status NOT IN ('cancelled', 'completed', 'partial_cancel')
 		  AND bb.status NOT IN ('cancelled', 'completed', 'no_show')
 		  AND st.departure_datetime > NOW()
-		ORDER BY st.departure_datetime ASC`
+		ORDER BY st.departure_datetime ASC
+		LIMIT $2 OFFSET $3`
 
 	var bookings []models.BookingListItem
-	err := r.db.Select(&bookings, query, userID)
+	err := r.db.Select(&bookings, query, userID, limit, offset)
 	return bookings, err
 }
 
 // GetCompletedBookingsByUserID retrieves completed bookings for a user
-func (r *AppBookingRepository) GetCompletedBookingsByUserID(userID string) ([]models.BookingListItem, error) {
+func (r *AppBookingRepository) GetCompletedBookingsByUserID(userID string, limit, offset int) ([]models.BookingListItem, error) {
 	query := `
 		SELECT 
 			b.id, b.booking_reference, b.booking_type,
@@ -407,17 +408,18 @@ func (r *AppBookingRepository) GetCompletedBookingsByUserID(userID string) ([]mo
 			b.booking_status = 'completed'
 			OR bb.status = 'completed'
 		  )
-		ORDER BY b.created_at DESC`
+		ORDER BY b.created_at DESC
+		LIMIT $2 OFFSET $3`
 
 	var bookings []models.BookingListItem
-	err := r.db.Select(&bookings, query, userID)
+	err := r.db.Select(&bookings, query, userID, limit, offset)
 	return bookings, err
 }
 
 // GetExpiredOrCancelledBookingsByUserID retrieves cancelled bookings AND
 // expired bookings where scheduled_trips.departure_datetime < NOW() and not completed.
 // This is used for the Cancelled/Expired tab in the passenger app.
-func (r *AppBookingRepository) GetExpiredOrCancelledBookingsByUserID(userID string) ([]models.BookingListItem, error) {
+func (r *AppBookingRepository) GetExpiredOrCancelledBookingsByUserID(userID string, limit, offset int) ([]models.BookingListItem, error) {
 	query := `
 		SELECT 
 			b.id, b.booking_reference, b.booking_type,
@@ -441,10 +443,11 @@ func (r *AppBookingRepository) GetExpiredOrCancelledBookingsByUserID(userID stri
 			-- OR expired: departure has passed and trip was not completed
 			OR (st.departure_datetime IS NOT NULL AND st.departure_datetime < NOW())
 		  )
-		ORDER BY b.created_at DESC`
+		ORDER BY b.created_at DESC
+		LIMIT $2 OFFSET $3`
 
 	var bookings []models.BookingListItem
-	err := r.db.Select(&bookings, query, userID)
+	err := r.db.Select(&bookings, query, userID, limit, offset)
 	return bookings, err
 }
 

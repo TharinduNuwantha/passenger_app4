@@ -93,11 +93,27 @@ class UnifiedBooking {
 
   /// Create from bus booking list item
   factory UnifiedBooking.fromBusBooking(BookingListItem booking) {
+    final now = DateTime.now();
+    final isExpired = booking.departureDatetime != null &&
+        booking.departureDatetime!.isBefore(now);
+    
+    final isCompleted = booking.bookingStatus == MasterBookingStatus.completed ||
+        booking.busStatus == BusBookingStatus.completed;
+
+    UnifiedBookingStatus mappedStatus;
+    if (isCompleted) {
+      mappedStatus = UnifiedBookingStatus.completed;
+    } else if (isExpired && booking.bookingStatus != MasterBookingStatus.cancelled && booking.busStatus != BusBookingStatus.cancelled) {
+      mappedStatus = UnifiedBookingStatus.cancelled;
+    } else {
+      mappedStatus = _mapBusStatus(booking.bookingStatus);
+    }
+
     return UnifiedBooking(
       id: booking.id,
       bookingReference: booking.bookingReference,
       type: UnifiedBookingType.bus,
-      status: _mapBusStatus(booking.bookingStatus),
+      status: mappedStatus,
       dateTime: booking.departureDatetime ?? booking.createdAt,
       totalAmount: booking.totalAmount,
       title: booking.routeName ?? 'Bus Trip',
@@ -110,11 +126,24 @@ class UnifiedBooking {
 
   /// Create from lounge booking
   factory UnifiedBooking.fromLoungeBooking(LoungeBooking booking) {
+    final now = DateTime.now();
+    final isExpired = booking.checkInTime.isBefore(now);
+    final isCompleted = booking.bookingStatus == LoungeBookingStatus.completed;
+    
+    UnifiedBookingStatus mappedStatus;
+    if (isCompleted) {
+      mappedStatus = UnifiedBookingStatus.completed;
+    } else if (isExpired && booking.bookingStatus != LoungeBookingStatus.cancelled && booking.bookingStatus != LoungeBookingStatus.noShow) {
+      mappedStatus = UnifiedBookingStatus.cancelled;
+    } else {
+      mappedStatus = _mapLoungeStatus(booking.bookingStatus);
+    }
+
     return UnifiedBooking(
       id: booking.id,
       bookingReference: booking.bookingReference,
       type: UnifiedBookingType.lounge,
-      status: _mapLoungeStatus(booking.bookingStatus),
+      status: mappedStatus,
       dateTime: booking.checkInTime,
       totalAmount: booking.totalAmount,
       title: booking.loungeName ?? 'Lounge',
