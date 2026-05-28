@@ -1416,7 +1416,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                                 ? AppColors.primary
                                 : Colors.black87,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (isYourLocation && isPickup) ...[
@@ -1431,7 +1431,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                                 color: AppColors.primary,
                               ),
                               const SizedBox(width: 4),
-                              Flexible(
+                              Expanded(
                                 child: Text(
                                   _isFindingLocation
                                       ? 'Finding location...'

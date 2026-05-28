@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
 import '../config/constants.dart';
-import '../config/theme_config.dart';
 import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -94,106 +93,125 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(flex: 2),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double screenHeight = constraints.maxHeight;
+              final double logoSize = (screenHeight * 0.22).clamp(80.0, 200.0);
+              final double textWidth = (screenHeight * 0.22).clamp(100.0, 200.0);
+              final double spacing = (screenHeight * 0.025).clamp(6.0, 24.0);
 
-              // === BUS ICON ===
-              FadeTransition(
-                opacity: _fade,
-                child: SlideTransition(
-                  position: _slideUp,
-                  child: Image.asset(
-                    'assets/images/only_bus.png',
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.contain,
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: screenHeight,
                   ),
-                ),
-              ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(height: spacing * 2),
 
-              const SizedBox(height: 20),
-
-              // === APP NAME ===
-              FadeTransition(
-                opacity: _fade,
-                child: SlideTransition(
-                  position: _slideUp,
-                  child: Image.asset(
-                    'assets/images/only_text.png',
-                    width: 200,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // === SUBTITLE WITH SHIMMER ===
-              FadeTransition(
-                opacity: _fade,
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    // shimmer effect
-                    final shimmerValue =
-                        (0.5 + (0.5 * (1 + sin(_controller.value * 6.28))));
-                    return Opacity(
-                      opacity: shimmerValue,
-                      child: Text(
-                        'PASSENGER',
-                        style: TextStyle(
-                          fontSize: 14,
-                          letterSpacing: 4,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.9),
+                      // === BUS ICON ===
+                      FadeTransition(
+                        opacity: _fade,
+                        child: SlideTransition(
+                          position: _slideUp,
+                          child: Image.asset(
+                            'assets/images/only_bus.png',
+                            width: logoSize,
+                            height: logoSize,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
 
-              const Spacer(flex: 2),
+                      SizedBox(height: spacing),
 
-              // === PULSE LOADING INDICATOR ===
-              FadeTransition(
-                opacity: _fade,
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: 0.9 + (0.1 * sin(_controller.value * 6.28)),
-                      child: Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.85),
+                      // === APP NAME ===
+                      FadeTransition(
+                        opacity: _fade,
+                        child: SlideTransition(
+                          position: _slideUp,
+                          child: Image.asset(
+                            'assets/images/only_text.png',
+                            width: textWidth,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
 
-              const SizedBox(height: 30),
+                      SizedBox(height: spacing * 0.4),
 
-              // VERSION
-              FadeTransition(
-                opacity: _fade,
-                child: Text(
-                  'V2.6.3 • © 2026 BusLounge',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.6),
+                      // === SUBTITLE WITH SHIMMER ===
+                      FadeTransition(
+                        opacity: _fade,
+                        child: AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, child) {
+                            // shimmer effect
+                            final shimmerValue =
+                                (0.65 + (0.35 * sin(_controller.value * 2 * pi))).clamp(0.0, 1.0);
+                            return Opacity(
+                              opacity: shimmerValue,
+                              child: Text(
+                                'PASSENGER',
+                                style: TextStyle(
+                                  fontSize: (screenHeight * 0.018).clamp(11.0, 14.0),
+                                  letterSpacing: 4,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withOpacity(0.9),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      SizedBox(height: spacing * 3),
+
+                      // === PULSE LOADING INDICATOR ===
+                      FadeTransition(
+                        opacity: _fade,
+                        child: AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, child) {
+                            final double dotSize = (screenHeight * 0.018).clamp(10.0, 14.0);
+                            return Transform.scale(
+                              scale: 0.9 + (0.1 * sin(_controller.value * 6.28)),
+                              child: Container(
+                                width: dotSize,
+                                height: dotSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.85),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      SizedBox(height: spacing * 1.5),
+
+                      // VERSION
+                      FadeTransition(
+                        opacity: _fade,
+                        child: Text(
+                          'V2.6.3 • © 2026 BusLounge',
+                          style: TextStyle(
+                            fontSize: (screenHeight * 0.015).clamp(10.0, 12.0),
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: spacing),
+                    ],
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-            ],
+              );
+            },
           ),
         ),
       ),
