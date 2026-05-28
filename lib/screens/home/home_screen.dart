@@ -2582,11 +2582,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           const SizedBox(height: 16),
 
           // Upcoming Bookings Section
+          /*
           if (_upcomingBookings.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildUpcomingBookingsSection(),
             ),
+          */
 
           const SizedBox(height: 12),
 
