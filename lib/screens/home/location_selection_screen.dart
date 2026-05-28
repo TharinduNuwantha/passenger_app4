@@ -39,7 +39,7 @@ class LocationSelectionScreen extends StatefulWidget {
 }
 
 class _LocationSelectionScreenState extends State<LocationSelectionScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -48,26 +48,45 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   bool _isGettingLocation = false;
   Timer? _debounceTimer;
 
-  late final AnimationController _fadeController;
+  late final AnimationController _slideController;
+  late final AnimationController _pulseController;
+  late final Animation<Offset> _slideAnimation;
   late final Animation<double> _fadeAnimation;
+  late final Animation<double> _pulseAnimation;
+
+  // Centralized SmartTransit brand colors
+  Color get _accentColor => AppColors.primary;
+  Color get _accentColorLight => AppColors.primarySurface;
+  Color get _gradientEnd => AppColors.primaryLight;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
+
+    _slideController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 450),
     );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+
     _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
+      parent: _slideController,
       curve: Curves.easeOut,
     );
-    _fadeController.forward();
 
-    // Auto-focus the search field after the animation
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _searchFocusNode.requestFocus();
-    });
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _slideController.forward();
 
     _searchController.addListener(_onSearchChanged);
   }
@@ -78,7 +97,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _fadeController.dispose();
+    _slideController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -87,7 +107,6 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   void _onSearchChanged() {
     final text = _searchController.text.trim();
 
-    // Debounce to avoid too many API calls
     _debounceTimer?.cancel();
     if (text.length < 2) {
       setState(() {
@@ -152,7 +171,6 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     }
   }
 
-  // Fetch coordinates from a place_id then return
   Future<void> _selectPlace(Map<String, dynamic> place) async {
     HapticFeedback.selectionClick();
     final placeId = place['place_id'] as String;
@@ -182,30 +200,25 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       }
     } catch (_) {}
 
-    // Fallback: return without coordinates
     Navigator.pop(context, {'address': description, 'lat': null, 'lng': null});
   }
 
   String _getCleanAddress(List<dynamic> results) {
     if (results.isEmpty) return '';
 
-    // 1. Try to find the first result whose formatted_address does NOT contain a plus code and is not just "Sri Lanka"
     for (var result in results) {
       final addr = result['formatted_address'] as String? ?? '';
       final trimmed = addr.trim();
-      if (!addr.contains('+') && 
-          trimmed != 'Sri Lanka' && 
-          trimmed != 'Sri Lanka,' && 
+      if (!addr.contains('+') &&
+          trimmed != 'Sri Lanka' &&
+          trimmed != 'Sri Lanka,' &&
           trimmed.isNotEmpty) {
         return addr;
       }
     }
 
-    // 2. If all results contain a plus code or are just "Sri Lanka", try to extract the locality/neighborhood/POI from components
     for (var result in results) {
       final components = result['address_components'] as List<dynamic>? ?? [];
-      
-      // Check preferred component types in order of specificity
       final preferredTypes = [
         'point_of_interest',
         'establishment',
@@ -214,7 +227,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
         'sublocality',
         'locality',
         'administrative_area_level_3',
-        'administrative_area_level_2'
+        'administrative_area_level_2',
       ];
 
       for (var type in preferredTypes) {
@@ -230,7 +243,6 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       }
     }
 
-    // 3. Fallback to the first formatted address if nothing else is available
     return results[0]['formatted_address'] as String? ?? '';
   }
 
@@ -256,7 +268,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       String address = 'Your Location';
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['status'] == 'OK' && data['results'] != null && (data['results'] as List).isNotEmpty) {
+        if (data['status'] == 'OK' &&
+            data['results'] != null &&
+            (data['results'] as List).isNotEmpty) {
           address = _getCleanAddress(data['results']);
         }
       }
@@ -272,9 +286,17 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       if (mounted) {
         setState(() => _isGettingLocation = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not get current location'),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.location_off_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Text('Could not get current location'),
+              ],
+            ),
             backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -285,7 +307,6 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
 
   Future<void> _chooseOnMap() async {
     HapticFeedback.lightImpact();
-    // Unfocus keyboard before pushing map screen
     _searchFocusNode.unfocus();
 
     if (widget.selectOnMapIsPop) {
@@ -322,8 +343,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
 
   void _selectFromHistory(Map<String, String> item) {
     HapticFeedback.selectionClick();
-    final address =
-        widget.isPickup ? item['pickup']! : item['drop']!;
+    final address = widget.isPickup ? item['pickup']! : item['drop']!;
     Navigator.pop(context, {'address': address, 'lat': null, 'lng': null});
   }
 
@@ -332,183 +352,349 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final isSearching = _searchController.text.trim().isNotEmpty;
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            // ── Custom App Bar ───────────────────────────────────────────
-            _buildAppBar(topPadding),
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          backgroundColor: const Color(0xFFF8F9FB),
+          body: Column(
+            children: [
+              // ── Header with Gradient ──────────────────────────────────
+              _buildHeader(topPadding, isKeyboardVisible),
 
-            // ── Quick Actions ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickActionButton(
-                      icon: Icons.my_location_rounded,
-                      label: _isGettingLocation
-                          ? 'Getting location...'
-                          : 'Use current location',
-                      color: AppColors.primary,
-                      onTap: _isGettingLocation ? null : _useCurrentLocation,
-                      isLoading: _isGettingLocation,
-                    ),
+              // ── Quick Action Buttons ──────────────────────────────────
+              if (!isKeyboardVisible)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildQuickActionButton(
+                          icon: Icons.my_location_rounded,
+                          label: _isGettingLocation
+                              ? 'Locating...'
+                              : 'Current Location',
+                          sublabel: 'Use GPS',
+                          color: _accentColor,
+                          bgColor: _accentColorLight,
+                          onTap: _isGettingLocation ? null : _useCurrentLocation,
+                          isLoading: _isGettingLocation,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildQuickActionButton(
+                          icon: Icons.map_rounded,
+                          label: 'Pick on Map',
+                          sublabel: 'Drop a pin',
+                          color: _accentColor,
+                          bgColor: _accentColorLight,
+                          onTap: _chooseOnMap,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildQuickActionButton(
-                      icon: Icons.map_rounded,
-                      label: 'Choose on map',
-                      color: const Color(0xFFFF6B35),
-                      onTap: _chooseOnMap,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
 
-            const SizedBox(height: 20),
+              if (!isKeyboardVisible) const SizedBox(height: 20),
 
-            // ── Section label ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    _searchController.text.trim().isEmpty
-                        ? 'RECENT SEARCHES'
-                        : 'SUGGESTIONS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade500,
-                      letterSpacing: 1.2,
-                    ),
+              // ── Section Divider Label ─────────────────────────────────
+              if (!isKeyboardVisible)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _accentColor.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isSearching
+                                  ? Icons.search_rounded
+                                  : Icons.history_rounded,
+                              size: 13,
+                              color: _accentColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isSearching ? 'SUGGESTIONS' : 'RECENT SEARCHES',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: _accentColor,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                _accentColor.withOpacity(0.2),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Divider(color: Colors.grey.shade200, thickness: 1),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
+                ),
+              if (!isKeyboardVisible) const SizedBox(height: 4),
 
-            // ── Suggestions / History List ────────────────────────────────
-            Expanded(child: _buildList()),
-          ],
+              // ── Suggestions / History List ────────────────────────────
+              Expanded(child: _buildList()),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildAppBar(double topPadding) {
+  Widget _buildHeader(double topPadding, bool isKeyboardVisible) {
     return Container(
-      padding: EdgeInsets.fromLTRB(8, topPadding + 12, 16, 16),
+      padding: EdgeInsets.fromLTRB(0, topPadding, 0, 0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [AppColors.primaryDark, _accentColor, _gradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: _accentColor.withOpacity(0.30),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-            color: Colors.black87,
-            onPressed: () => Navigator.pop(context),
+          // Decorative background circles
+          Positioned(
+            top: -10,
+            right: -20,
+            child: Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.07),
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Hero(
-              tag: widget.isPickup ? 'search_pickup' : 'search_drop',
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.grey.shade200,
-                      width: 1.2,
+          Positioned(
+            top: 30,
+            right: 60,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
+              ),
+            ),
+          ),
+          // Content
+          Padding(
+            padding: EdgeInsets.fromLTRB(8, 12, 12, isKeyboardVisible ? 12 : 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Back button + label row
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 4),
+                    // Pill badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.isPickup
+                                ? Icons.trip_origin_rounded
+                                : Icons.location_on_rounded,
+                            size: 13,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            widget.isPickup ? 'Pickup Point' : 'Drop Point',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                isKeyboardVisible
+                    ? const SizedBox(height: 8)
+                    : const SizedBox(height: 10),
+                isKeyboardVisible
+                    ? const SizedBox.shrink()
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          widget.isPickup
+                              ? 'Where are you\nstarting from?'
+                              : 'Where are\nyou going?',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1.2,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                isKeyboardVisible
+                    ? const SizedBox.shrink()
+                    : const SizedBox(height: 16),
+                // Search Bar
+                Padding(
+                  key: const ValueKey('search_bar_padding'),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Hero(
+                    tag: widget.isPickup ? 'search_pickup' : 'search_drop',
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.12),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Icon(
+                                Icons.search_rounded,
+                                color: _accentColor,
+                                size: 22,
+                              ),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                focusNode: _searchFocusNode,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                  letterSpacing: 0.1,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: widget.isPickup
+                                      ? 'Search pickup location...'
+                                      : 'Search destination...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 17),
+                                ),
+                                textInputAction: TextInputAction.search,
+                                cursorColor: _accentColor,
+                              ),
+                            ),
+                            if (_isLoadingSuggestions)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 16),
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+                                  ),
+                                ),
+                              )
+                            else if (_searchController.text.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _suggestions = [];
+                                    _isLoadingSuggestions = false;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 14),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      size: 14,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Icon(
-                          Icons.search_rounded,
-                          color: Colors.grey.shade400,
-                          size: 22,
-                        ),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                            letterSpacing: 0.2,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: widget.isPickup
-                                ? 'Where from?'
-                                : 'Where to?',
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          textInputAction: TextInputAction.search,
-                          cursorColor: AppColors.primary,
-                        ),
-                      ),
-                      if (_searchController.text.isNotEmpty)
-                        GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            setState(() {
-                              _suggestions = [];
-                              _isLoadingSuggestions = false;
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 14,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -519,52 +705,74 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   Widget _buildQuickActionButton({
     required IconData icon,
     required String label,
+    required String sublabel,
     required Color color,
+    required Color bgColor,
     required VoidCallback? onTap,
     bool isLoading = false,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withOpacity(0.15), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 8,
+              color: color.withOpacity(0.08),
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isLoading)
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                ),
-              )
-            else
-              Icon(icon, color: color, size: 22),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: isLoading
+                  ? Padding(
+                      padding: const EdgeInsets.all(11),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                      ),
+                    )
+                  : Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    sublabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -576,48 +784,24 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   Widget _buildList() {
     final isSearching = _searchController.text.trim().isNotEmpty;
 
-    if (_isLoadingSuggestions) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(
-              strokeWidth: 2.5,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Searching locations...',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-            ),
-          ],
-        ),
-      );
-    }
-
     if (isSearching && _suggestions.isNotEmpty) {
-      return ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _suggestions.length,
-        separatorBuilder: (_, __) =>
-            Divider(height: 1, color: Colors.grey.shade100),
         itemBuilder: (context, index) {
-          return _buildSuggestionTile(_suggestions[index]);
+          return _buildSuggestionTile(_suggestions[index], index);
         },
       );
     }
 
-    if (isSearching && _suggestions.isEmpty) {
+    if (isSearching && _suggestions.isEmpty && !_isLoadingSuggestions) {
       return _buildEmptySearchState();
     }
 
-    // Show search history when not typing
     if (widget.searchHistory.isNotEmpty) {
-      return ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: widget.searchHistory.length,
-        separatorBuilder: (_, __) =>
-            Divider(height: 1, color: Colors.grey.shade100),
         itemBuilder: (context, index) {
           return _buildHistoryTile(widget.searchHistory[index], index);
         },
@@ -627,142 +811,233 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     return _buildEmptyHistoryState();
   }
 
-  Widget _buildSuggestionTile(Map<String, dynamic> suggestion) {
+  Widget _buildSuggestionTile(Map<String, dynamic> suggestion, int index) {
     final mainText = suggestion['main_text'] as String;
     final secondaryText = suggestion['secondary_text'] as String;
 
-    return InkWell(
-      onTap: () => _selectPlace(suggestion),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 200 + index * 40),
+      curve: Curves.easeOut,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, (1 - value) * 10),
+          child: child,
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => _selectPlace(suggestion),
+            borderRadius: BorderRadius.circular(16),
+            splashColor: _accentColor.withOpacity(0.06),
+            highlightColor: _accentColor.withOpacity(0.03),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.location_on_rounded,
-                color: Colors.black87,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mainText,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  if (secondaryText.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      secondaryText,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _accentColorLight,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
+                    child: Icon(
+                      Icons.location_on_rounded,
+                      color: _accentColor,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mainText,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (secondaryText.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            secondaryText,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: _accentColorLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.arrow_outward_rounded,
+                      size: 16,
+                      color: _accentColor,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            Icon(
-              Icons.arrow_outward_rounded,
-              size: 18,
-              color: Colors.grey.shade400,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHistoryTile(Map<String, String> item, int index) {
-    final displayText =
-        widget.isPickup ? item['pickup']! : item['drop']!;
-    final otherText =
-        widget.isPickup ? item['drop']! : item['pickup']!;
+    final displayText = widget.isPickup ? item['pickup']! : item['drop']!;
+    final otherText = widget.isPickup ? item['drop']! : item['pickup']!;
 
-    return InkWell(
-      onTap: () => _selectFromHistory(item),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 180 + index * 50),
+      curve: Curves.easeOut,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, (1 - value) * 8),
+          child: child,
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => _selectFromHistory(item),
+            borderRadius: BorderRadius.circular(16),
+            splashColor: Colors.grey.withOpacity(0.06),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade200, width: 1),
-              ),
-              child: Icon(
-                Icons.history_rounded,
-                color: Colors.grey.shade500,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayText,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.swap_horiz_rounded, size: 14, color: Colors.grey.shade400),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          otherText,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade500,
-                            fontWeight: FontWeight.w400,
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.history_rounded,
+                      color: Colors.grey.shade500,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayText,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.swap_horiz_rounded,
+                                    size: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 160),
+                                    child: Text(
+                                      otherText,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    Icons.north_east_rounded,
+                    size: 18,
+                    color: Colors.grey.shade400,
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            Icon(
-              Icons.arrow_outward_rounded,
-              size: 18,
-              color: Colors.grey.shade400,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -770,71 +1045,152 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
 
   Widget _buildEmptySearchState() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _accentColor.withOpacity(0.12),
+                    _accentColor.withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Icon(
+                Icons.search_off_rounded,
+                size: 40,
+                color: _accentColor.withOpacity(0.6),
+              ),
             ),
-            child: Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'No locations found',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
+            const SizedBox(height: 20),
+            const Text(
+              'No locations found',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.black87,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Try a different search or use the map',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Try a different keyword or use\n"Pick on Map" to pin your location',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w500,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            GestureDetector(
+              onTap: _chooseOnMap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_accentColor, _gradientEnd],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _accentColor.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.map_rounded, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Open Map',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildEmptyHistoryState() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.05),
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: _pulseAnimation,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      _accentColor.withOpacity(0.15),
+                      _accentColor.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Icon(
+                  widget.isPickup
+                      ? Icons.trip_origin_rounded
+                      : Icons.location_on_rounded,
+                  size: 44,
+                  color: _accentColor.withOpacity(0.7),
+                ),
+              ),
             ),
-            child: Icon(
-              Icons.location_on_rounded,
-              size: 48,
-              color: AppColors.primary.withOpacity(0.8),
+            const SizedBox(height: 20),
+            Text(
+              widget.isPickup
+                  ? 'Where are you starting from?'
+                  : 'Where are you going?',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: Colors.black87,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            widget.isPickup
-                ? 'Where are you starting from?'
-                : 'Where are you going?',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.black87,
-              letterSpacing: -0.5,
+            const SizedBox(height: 8),
+            Text(
+              'Search for a location above or use\nthe quick actions to get started',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w500,
+                height: 1.5,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Search for a location or use quick actions',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
