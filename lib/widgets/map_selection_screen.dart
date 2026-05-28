@@ -7,7 +7,7 @@ import 'dart:convert';
 import '../theme/app_colors.dart';
 import '../screens/home/location_selection_screen.dart';
 
-// Modern Map Selection Screen supporting Single Location & Complete Route selection
+// Complete Premium Redesigned Map Selection Screen
 class MapSelectionScreen extends StatefulWidget {
   final String apiKey;
   final bool isRouteSelection;
@@ -24,7 +24,7 @@ class MapSelectionScreen extends StatefulWidget {
   const MapSelectionScreen({
     super.key,
     required this.apiKey,
-    this.isRouteSelection = false,
+    this.isRouteSelection = false, // defaults to false for legacy compatibility
     this.initialPickupAddress,
     this.initialPickupLat,
     this.initialPickupLng,
@@ -38,7 +38,7 @@ class MapSelectionScreen extends StatefulWidget {
   State<MapSelectionScreen> createState() => _MapSelectionScreenState();
 }
 
-class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTickerProviderStateMixin {
+class _MapSelectionScreenState extends State<MapSelectionScreen> with TickerProviderStateMixin {
   GoogleMapController? _mapController;
   
   // --- State for Single Location Mode ---
@@ -56,10 +56,24 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
   bool _isLoading = false;
   bool _isMoving = false;
 
+  // --- Animations ---
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
   @override
   void initState() {
     super.initState();
     _isSelectingPickup = widget.startWithPickup;
+
+    // Pulse animation for custom center map pin ripple effect
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+    
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeOut),
+    );
 
     if (widget.isRouteSelection) {
       if (widget.initialPickupLat != null && widget.initialPickupLng != null) {
@@ -71,7 +85,6 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
         _dropAddress = widget.initialDropAddress ?? 'Selected Destination';
       }
       
-      // Focus map on the active initial location or request GPS
       if (_isSelectingPickup && _pickupLocation != null) {
         _selectedLocation = _pickupLocation!;
       } else if (!_isSelectingPickup && _dropLocation != null) {
@@ -89,6 +102,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
         _getCurrentLocation();
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   // Retrieve current location of user
@@ -147,14 +166,13 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
   void _fitMapToRoute() {
     if (_mapController == null || _pickupLocation == null || _dropLocation == null) return;
 
-    final LatLngBounds bounds;
     if (_pickupLocation!.latitude == _dropLocation!.latitude &&
         _pickupLocation!.longitude == _dropLocation!.longitude) {
       _mapController!.animateCamera(CameraUpdate.newLatLngZoom(_pickupLocation!, 15));
       return;
     }
 
-    bounds = LatLngBounds(
+    final bounds = LatLngBounds(
       southwest: LatLng(
         _pickupLocation!.latitude < _dropLocation!.latitude ? _pickupLocation!.latitude : _dropLocation!.latitude,
         _pickupLocation!.longitude < _dropLocation!.longitude ? _pickupLocation!.longitude : _dropLocation!.longitude,
@@ -166,7 +184,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     );
 
     _mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(bounds, 80),
+      CameraUpdate.newLatLngBounds(bounds, 90),
     );
   }
 
@@ -251,26 +269,40 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
   Future<void> _openSearchOverlay({required bool isPickup}) async {
     HapticFeedback.lightImpact();
     
-    // Open full-screen typing autocomplete search page as a modal
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
-      MaterialPageRoute(
-        builder: (_) => LocationSelectionScreen(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => LocationSelectionScreen(
           isPickup: isPickup,
           googleMapsApiKey: widget.apiKey,
-          selectOnMapIsPop: true, // pops directly so user returns here to pick on map
+          selectOnMapIsPop: true,
         ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.fastOutSlowIn;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
       ),
     );
 
     if (result != null && mounted) {
       if (result['select_on_map'] == true) {
-        // Just switch the active field state to let them select on map directly
         setState(() {
           _isSelectingPickup = isPickup;
+          if (isPickup) {
+            _pickupLocation = null;
+            _pickupAddress = null;
+          } else {
+            _dropLocation = null;
+            _dropAddress = null;
+          }
         });
         
-        // Panning camera to currently set coordinate
         final currentPos = isPickup ? _pickupLocation : _dropLocation;
         if (currentPos != null) {
           _mapController?.animateCamera(CameraUpdate.newLatLng(currentPos));
@@ -289,7 +321,6 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
             if (isPickup) {
               _pickupAddress = address;
               _pickupLocation = latLng;
-              // Auto progression to Destination
               _isSelectingPickup = false;
               _openSearchOverlay(isPickup: false);
             } else {
@@ -344,16 +375,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
           );
           return;
         }
-        // Save pickup, auto advance to Destination
         setState(() {
           _isSelectingPickup = false;
         });
         
         if (_dropLocation != null) {
           _moveMapToLocation(_dropLocation!);
-        } else {
-          // Open search overlay for destination automatically
-          _openSearchOverlay(isPickup: false);
         }
       } else {
         if (_dropLocation == null) {
@@ -364,14 +391,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
         }
 
         if (_pickupLocation == null) {
-          // Fallback to select pickup if not set
           setState(() {
             _isSelectingPickup = true;
           });
           return;
         }
 
-        // Complete selection, return both
         Navigator.pop(context, {
           'pickupAddress': _pickupAddress,
           'pickupLat': _pickupLocation!.latitude,
@@ -382,7 +407,6 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
         });
       }
     } else {
-      // Single selection mode
       Navigator.pop(context, {
         'address': _selectedAddress,
         'lat': _selectedLocation.latitude,
@@ -391,28 +415,41 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     }
   }
 
+  // Clear text inside specific inputs
+  void _clearInput({required bool isPickup}) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      if (isPickup) {
+        _pickupAddress = null;
+        _pickupLocation = null;
+      } else {
+        _dropAddress = null;
+        _dropLocation = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Generate Markers
     Set<Marker> markers = {};
-    
     if (widget.isRouteSelection) {
-      if (_pickupLocation != null) {
+      // Show fixed green pickup marker if set and we are NOT actively picking it
+      if (_pickupLocation != null && !_isSelectingPickup) {
         markers.add(
           Marker(
             markerId: const MarkerId('pickup_marker'),
             position: _pickupLocation!,
-            infoWindow: InfoWindow(title: 'Pickup: $_pickupAddress'),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           ),
         );
       }
-      if (_dropLocation != null) {
+      // Show fixed red destination marker if set and we are NOT actively picking it
+      if (_dropLocation != null && _isSelectingPickup) {
         markers.add(
           Marker(
             markerId: const MarkerId('drop_marker'),
             position: _dropLocation!,
-            infoWindow: InfoWindow(title: 'Destination: $_dropAddress'),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           ),
         );
@@ -427,21 +464,20 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
           polylineId: const PolylineId('route_line'),
           points: [_pickupLocation!, _dropLocation!],
           color: AppColors.primary,
-          width: 4,
+          width: 5,
           geodesic: true,
-          patterns: [PatternItem.dash(12), PatternItem.gap(8)],
+          patterns: [PatternItem.dash(12), PatternItem.gap(6)],
         ),
       );
     }
 
-    // Colors
     final Color themeColor = _isSelectingPickup ? AppColors.pickupGreen : AppColors.dropRed;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // 1. Immediate Background Map
+          // 1. Full-screen background Google Map (Primary UI layer)
           Positioned.fill(
             child: GoogleMap(
               initialCameraPosition: CameraPosition(
@@ -487,55 +523,68 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
               mapToolbarEnabled: false,
               markers: markers,
               polylines: polylines,
-              padding: const EdgeInsets.only(bottom: 230, top: 120),
+              padding: const EdgeInsets.only(bottom: 240, top: 180),
             ),
           ),
 
-          // 2. Animated Center Bouncing Pin (Only visible when placing a pin)
-          if (!_isMoving && !widget.isRouteSelection || 
-              (widget.isRouteSelection && 
-               ((_isSelectingPickup && _pickupLocation != null) || 
-                (!_isSelectingPickup && _dropLocation != null))))
-            IgnorePointer(
+          // 2. Animated Center Bouncing Pin & Pulsing Ripple Ring
+          IgnorePointer(
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Animated ripple/pulse ring on the map ground
+                    AnimatedBuilder(
+                      animation: _pulseAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          width: 48 * _pulseAnimation.value,
+                          height: 18 * _pulseAnimation.value,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: themeColor.withOpacity(1.0 - _pulseAnimation.value),
+                              width: 2.2,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    
+                    // The premium bouncing pin
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      padding: EdgeInsets.only(bottom: _isMoving ? 24 : 0),
+                      padding: EdgeInsets.only(bottom: _isMoving ? 28 : 0),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          if (_isMoving)
-                            Container(
-                              width: 14,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.2),
-                                borderRadius: const BorderRadius.all(Radius.elliptical(14, 6)),
-                              ),
-                            ),
                           Transform.translate(
                             offset: const Offset(0, -22),
                             child: Icon(
                               Icons.location_on_rounded,
-                              size: 48,
+                              size: 52,
                               color: widget.isRouteSelection ? themeColor : AppColors.primary,
+                              shadows: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.18),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 18),
                   ],
                 ),
               ),
             ),
 
-          // 3. Top Floating Search Section (Premium Glassmorphism Overlay)
+          // 3. Floating Modern Top Search Card
           Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
+            top: MediaQuery.of(context).padding.top + 12,
             left: 16,
             right: 16,
             child: widget.isRouteSelection 
@@ -543,38 +592,42 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
                 : _buildSingleTopSearchCard(context),
           ),
 
-          // 4. Modern Map Interaction Controls (Floating on right side)
+          // 4. Floating Circular Map FAB Buttons
           Positioned(
             right: 16,
-            bottom: widget.isRouteSelection ? 240 : 180,
+            bottom: widget.isRouteSelection ? 250 : 190,
             child: Column(
               children: [
                 _buildMapFloatingButton(
-                  icon: Icons.my_location_rounded,
+                  icon: Icons.gps_fixed_rounded,
                   onTap: _getCurrentLocation,
+                  heroTag: 'my_loc_btn',
                 ),
                 const SizedBox(height: 12),
                 _buildMapFloatingButton(
                   icon: Icons.add_rounded,
                   onTap: () => _mapController?.animateCamera(CameraUpdate.zoomIn()),
+                  heroTag: 'zoom_in_btn',
                 ),
                 const SizedBox(height: 12),
                 _buildMapFloatingButton(
                   icon: Icons.remove_rounded,
                   onTap: () => _mapController?.animateCamera(CameraUpdate.zoomOut()),
+                  heroTag: 'zoom_out_btn',
                 ),
                 if (widget.isRouteSelection && _pickupLocation != null && _dropLocation != null) ...[
                   const SizedBox(height: 12),
                   _buildMapFloatingButton(
                     icon: Icons.zoom_out_map_rounded,
                     onTap: _fitMapToRoute,
+                    heroTag: 'fit_route_btn',
                   ),
                 ],
               ],
             ),
           ),
 
-          // 5. Modern Premium Bottom Sheet Panel
+          // 5. Draggable Bottom Sheet Panel (Uber/PickMe Styled)
           Positioned(
             bottom: 0,
             left: 0,
@@ -586,55 +639,76 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     );
   }
 
-  // Builds the Top Search Section for selecting route ("From" & "To")
+  // Redesigns the Top Floating Route Search Card
   Widget _buildRouteTopSearchCard(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100, width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
+            blurRadius: 28,
+            spreadRadius: -2,
             offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
-          // Left side indicators (green circle, line, orange square)
+          // Elegant left timeline column
           Column(
             children: [
               Container(
-                width: 10,
-                height: 10,
+                width: 14,
+                height: 14,
                 decoration: BoxDecoration(
-                  color: AppColors.pickupGreen,
+                  color: AppColors.pickupGreen.withOpacity(0.15),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
-                  boxShadow: [BoxShadow(color: AppColors.pickupGreen.withOpacity(0.3), blurRadius: 4)],
+                ),
+                child: Center(
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: AppColors.pickupGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: CustomPaint(
+                  size: const Size(2, 45),
+                  painter: DottedLinePainter(),
                 ),
               ),
               Container(
-                width: 2,
-                height: 35,
-                color: Colors.grey.shade200,
-              ),
-              Container(
-                width: 10,
-                height: 10,
+                width: 12,
+                height: 12,
                 decoration: BoxDecoration(
-                  color: Colors.orange,
+                  color: AppColors.dropRed.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(2),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.dropRed,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(width: 16),
 
-          // Inputs for FROM and TO
+          // Search Inputs fields
           Expanded(
             child: Column(
               children: [
@@ -645,28 +719,31 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
                   isActive: _isSelectingPickup,
                   activeColor: AppColors.pickupGreen,
                   onTap: () => _openSearchOverlay(isPickup: true),
+                  onClear: () => _clearInput(isPickup: true),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _buildRouteInputBlock(
                   label: 'TO',
                   displayText: _dropAddress,
                   placeholder: 'Choose destination',
                   isActive: !_isSelectingPickup,
-                  activeColor: Colors.orange,
+                  activeColor: AppColors.dropRed,
                   onTap: () => _openSearchOverlay(isPickup: false),
+                  onClear: () => _clearInput(isPickup: false),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
 
-          // Swap & Back Button Column
+          // Actions Column
           Column(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87, size: 22),
                 onPressed: () => Navigator.pop(context),
               ),
+              const SizedBox(height: 6),
               IconButton(
                 icon: const Icon(Icons.swap_vert_rounded, color: AppColors.primary, size: 24),
                 onPressed: _swapLocations,
@@ -678,45 +755,42 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     );
   }
 
-  // Single Input Top Search bar (For lounge selection backward compatibility)
+  // Single Input Top Card (For lounge selection backward compatibility)
   Widget _buildSingleTopSearchCard(BuildContext context) {
     return Container(
-      height: 60,
+      height: 56,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade100, width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 16,
+            blurRadius: 24,
             offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Row(
         children: [
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Colors.black87),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Colors.black87),
             onPressed: () => Navigator.pop(context),
           ),
           Expanded(
             child: GestureDetector(
               onTap: () => _openSearchOverlay(isPickup: true),
               behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                child: Text(
-                  _selectedAddress.isEmpty ? 'Search for a location...' : _selectedAddress,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: _selectedAddress.isEmpty ? Colors.grey.shade400 : Colors.black87,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              child: Text(
+                _selectedAddress.isEmpty ? 'Search for a location...' : _selectedAddress,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _selectedAddress.isEmpty ? Colors.grey.shade400 : Colors.black87,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
@@ -727,7 +801,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     );
   }
 
-  // Helper widget for a single route input field inside the top card
+  // Individual Input panel with animation focus states and clear triggers
   Widget _buildRouteInputBlock({
     required String label,
     required String? displayText,
@@ -735,46 +809,55 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     required bool isActive,
     required Color activeColor,
     required VoidCallback onTap,
+    required VoidCallback onClear,
   }) {
     final hasText = displayText != null && displayText.isNotEmpty;
     
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        duration: const Duration(milliseconds: 250),
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: isActive ? activeColor.withOpacity(0.05) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
+          color: isActive ? activeColor.withOpacity(0.04) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isActive ? activeColor.withOpacity(0.4) : Colors.grey.shade200,
-            width: isActive ? 1.5 : 1,
+            color: isActive ? activeColor.withOpacity(0.45) : Colors.grey.shade200,
+            width: isActive ? 1.6 : 1.0,
           ),
+          boxShadow: isActive ? [
+            BoxShadow(
+              color: activeColor.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ] : [],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isActive ? activeColor.withOpacity(0.15) : Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(6),
+                color: isActive ? activeColor.withOpacity(0.12) : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.w800,
                   color: isActive ? activeColor : Colors.grey.shade600,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.6,
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 hasText ? displayText : placeholder,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: hasText ? FontWeight.w700 : FontWeight.w500,
                   color: hasText ? Colors.black87 : Colors.grey.shade400,
                 ),
@@ -782,23 +865,41 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (hasText)
+              GestureDetector(
+                onTap: () {
+                  onClear();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close_rounded, size: 12, color: Colors.black54),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  // Floating Action controls on the map
-  Widget _buildMapFloatingButton({required IconData icon, required VoidCallback onTap}) {
+  // Floating map circular button builder
+  Widget _buildMapFloatingButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required String heroTag,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -808,15 +909,15 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
           onTap: onTap,
           borderRadius: BorderRadius.circular(30),
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Icon(icon, color: AppColors.primary, size: 22),
+            padding: const EdgeInsets.all(14),
+            child: Icon(icon, color: AppColors.primary, size: 24),
           ),
         ),
       ),
     );
   }
 
-  // Modern Bottom Confirmation Panel
+  // Uber/PickMe Draggable-Style Bottom sheet panel
   Widget _buildBottomConfirmPanel(BuildContext context) {
     String headingText = 'Selected Location';
     String currentAddress = _selectedAddress;
@@ -824,10 +925,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     if (widget.isRouteSelection) {
       if (_isSelectingPickup) {
         headingText = 'SET PICKUP POINT';
-        currentAddress = _pickupAddress ?? 'Tap map to set pickup...';
+        currentAddress = _pickupAddress ?? 'Tap map to choose pickup...';
       } else {
         headingText = 'SET DESTINATION';
-        currentAddress = _dropAddress ?? 'Tap map to set destination...';
+        currentAddress = _dropAddress ?? 'Tap map to choose destination...';
       }
     }
 
@@ -836,14 +937,14 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
         : AppColors.primary;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 34),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.12),
-            blurRadius: 24,
+            blurRadius: 28,
             offset: const Offset(0, -6),
           ),
         ],
@@ -852,20 +953,26 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Centered handlebar
+          // Draggable indicator bar
           Center(
             child: Container(
-              width: 38,
-              height: 4,
+              width: 44,
+              height: 5,
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
-          // Details section
+          // Route info stats (if both set)
+          if (widget.isRouteSelection && _pickupLocation != null && _dropLocation != null) ...[
+            _buildRouteInfoSection(),
+            const SizedBox(height: 16),
+          ],
+
+          // Details preview block
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -873,9 +980,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: themeColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.location_on_rounded, color: themeColor, size: 26),
+                child: Icon(Icons.location_on_rounded, color: themeColor, size: 28),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -885,22 +992,22 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
                     Text(
                       headingText,
                       style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
                         color: themeColor,
-                        letterSpacing: 1.0,
+                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 6),
                     _isLoading 
-                      ? _buildShimmerText()
+                      ? const ShimmerLoader()
                       : Text(
                           currentAddress,
                           style: const TextStyle(
                             fontWeight: FontWeight.w800,
-                            fontSize: 16,
+                            fontSize: 15,
                             color: Colors.black87,
-                            height: 1.3,
+                            height: 1.35,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -912,7 +1019,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
           ),
           const SizedBox(height: 24),
 
-          // Primary Confirmation Button
+          // Large premium CTA button
           SizedBox(
             width: double.infinity,
             height: 54,
@@ -928,17 +1035,17 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
               ),
               child: _isLoading
                   ? const SizedBox(
-                      width: 24,
-                      height: 24,
+                      width: 22,
+                      height: 22,
                       child: CircularProgressIndicator(
                         color: Colors.white,
-                        strokeWidth: 2.5,
+                        strokeWidth: 2.2,
                       ),
                     )
                   : Text(
                       widget.isRouteSelection 
                           ? (_isSelectingPickup 
-                              ? 'CONFIRM PICKUP LOCATION' 
+                              ? 'CONFIRM PICKUP POINT' 
                               : (_pickupLocation != null && _dropLocation != null ? 'CONFIRM ROUTE & BOOK' : 'CONFIRM DESTINATION'))
                           : 'CONFIRM LOCATION',
                       style: const TextStyle(
@@ -954,29 +1061,117 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> with SingleTick
     );
   }
 
-  // Shimmer animation fallback for loading addresses
-  Widget _buildShimmerText() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          height: 16,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(4),
+  // Custom route preview overview
+  Widget _buildRouteInfoSection() {
+    double distance = 0.0;
+    if (_pickupLocation != null && _dropLocation != null) {
+      distance = Geolocator.distanceBetween(
+        _pickupLocation!.latitude,
+        _pickupLocation!.longitude,
+        _dropLocation!.latitude,
+        _dropLocation!.longitude,
+      ) / 1000.0;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withOpacity(0.12), width: 1),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.directions_outlined, color: AppColors.primary, size: 20),
+          const SizedBox(width: 10),
+          const Text(
+            'Direct Distance:',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black54),
           ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          width: 150,
-          height: 16,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(4),
+          const Spacer(),
+          Text(
+            '${distance.toStringAsFixed(1)} km',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primary),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+// Custom Painter to draw a clean timeline dotted vertical line
+class DottedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    double dashHeight = 5, dashSpace = 4, startY = 0;
+    final paint = Paint()
+      ..color = Colors.grey.shade300
+      ..strokeWidth = 2;
+    while (startY < size.height) {
+      canvas.drawLine(Offset(0, startY), Offset(0, startY + dashHeight), paint);
+      startY += dashHeight + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+// Premium Shimmer skeleton loader widget
+class ShimmerLoader extends StatefulWidget {
+  const ShimmerLoader({super.key});
+
+  @override
+  State<ShimmerLoader> createState() => _ShimmerLoaderState();
+}
+
+class _ShimmerLoaderState extends State<ShimmerLoader> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _opacity = Tween<double>(begin: 0.35, end: 0.85).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: 180,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
