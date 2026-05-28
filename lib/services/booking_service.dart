@@ -180,6 +180,66 @@ class BookingService {
     }
   }
 
+  /// Get completed bookings only
+  ///
+  /// Returns list of [BookingListItem] where booking or bus trip is completed
+  Future<List<BookingListItem>> getCompletedBookings() async {
+    try {
+      _logger.i('Fetching completed bookings');
+
+      final response = await _apiService.get('/api/v1/bookings/completed');
+
+      _logger.d('Completed bookings response: ${response.data}');
+
+      final bookings =
+          (response.data['bookings'] as List<dynamic>?)
+              ?.map((e) => BookingListItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      _logger.i('Fetched ${bookings.length} completed bookings');
+
+      return bookings;
+    } on DioException catch (e) {
+      _logger.e('Failed to get completed bookings: ${e.message}');
+      throw ErrorHandler.handleError(e);
+    } catch (e) {
+      _logger.e('Unexpected error getting completed bookings: $e');
+      throw Exception('Failed to get completed bookings: $e');
+    }
+  }
+
+  /// Get cancelled and expired bookings
+  ///
+  /// Returns list of [BookingListItem] where booking is cancelled OR
+  /// where scheduled_trips.departure_datetime < NOW() and trip is not completed
+  Future<List<BookingListItem>> getCancelledBookings() async {
+    try {
+      _logger.i('Fetching cancelled/expired bookings');
+
+      final response = await _apiService.get('/api/v1/bookings/cancelled');
+
+      _logger.d('Cancelled bookings response: ${response.data}');
+
+      final bookings =
+          (response.data['bookings'] as List<dynamic>?)
+              ?.map((e) => BookingListItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      _logger.i('Fetched ${bookings.length} cancelled/expired bookings');
+
+      return bookings;
+    } on DioException catch (e) {
+      _logger.e('Failed to get cancelled bookings: ${e.message}');
+      throw ErrorHandler.handleError(e);
+    } catch (e) {
+      _logger.e('Unexpected error getting cancelled bookings: $e');
+      throw Exception('Failed to get cancelled bookings: $e');
+    }
+  }
+
+
   /// Get booking details by ID
   ///
   /// [bookingId] - The booking ID

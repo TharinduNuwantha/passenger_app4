@@ -269,6 +269,59 @@ func (h *AppBookingHandler) GetUpcomingBookings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"bookings": bookings})
 }
 
+// GetCompletedBookings retrieves completed bookings for the authenticated user
+// @Summary Get completed bookings
+// @Description Get completed bookings for the authenticated passenger
+// @Tags App Bookings
+// @Produce json
+// @Success 200 {array} models.BookingListItem "List of completed bookings"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Security BearerAuth
+// @Router /api/v1/bookings/completed [get]
+func (h *AppBookingHandler) GetCompletedBookings(c *gin.Context) {
+	userCtx, exists := middleware.GetUserContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	bookings, err := h.bookingRepo.GetCompletedBookingsByUserID(userCtx.UserID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get completed bookings", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"bookings": bookings})
+}
+
+// GetExpiredOrCancelledBookings retrieves cancelled and expired bookings for the authenticated user
+// @Summary Get cancelled/expired bookings
+// @Description Get explicitly cancelled bookings and expired trips (departure_datetime < NOW()) for the authenticated passenger
+// @Tags App Bookings
+// @Produce json
+// @Success 200 {array} models.BookingListItem "List of cancelled/expired bookings"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Security BearerAuth
+// @Router /api/v1/bookings/cancelled [get]
+func (h *AppBookingHandler) GetExpiredOrCancelledBookings(c *gin.Context) {
+	userCtx, exists := middleware.GetUserContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	bookings, err := h.bookingRepo.GetExpiredOrCancelledBookingsByUserID(userCtx.UserID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get cancelled bookings", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"bookings": bookings})
+}
+
+
 // GetBookingByID retrieves a specific booking
 // @Summary Get booking by ID
 // @Description Get booking details by ID

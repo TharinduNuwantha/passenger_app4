@@ -858,6 +858,10 @@ func main() {
 			appBookings.GET("", appBookingHandler.GetMyBookings)
 			logger.Info("  ✅ GET /api/v1/bookings/upcoming - Get upcoming bookings")
 			appBookings.GET("/upcoming", appBookingHandler.GetUpcomingBookings)
+			logger.Info("  ✅ GET /api/v1/bookings/completed - Get completed bookings")
+			appBookings.GET("/completed", appBookingHandler.GetCompletedBookings)
+			logger.Info("  ✅ GET /api/v1/bookings/cancelled - Get cancelled/expired bookings")
+			appBookings.GET("/cancelled", appBookingHandler.GetExpiredOrCancelledBookings)
 			logger.Info("  ✅ GET /api/v1/bookings/:id - Get booking by ID")
 			appBookings.GET("/:id", appBookingHandler.GetBookingByID)
 			logger.Info("  ✅ GET /api/v1/bookings/reference/:reference - Get booking by reference")
@@ -870,6 +874,7 @@ func main() {
 			appBookings.GET("/:id/qr", appBookingHandler.GetBookingQR)
 		}
 		logger.Info("📱 App Booking routes registered successfully")
+
 
 		// ============================================================================
 		// ACTIVE TRIP TRACKING ROUTES (Passenger bus tracking)

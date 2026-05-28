@@ -72,90 +72,37 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       _errorCancelled = null;
     });
 
-    try {
-      final allBookings = await _bookingService.getMyBookings(limit: 200);
-      // Use UTC now to avoid timezone comparison issues
-      final nowUtc = DateTime.now().toUtc();
+    // Run all three API calls in parallel for performance
+    final results = await Future.wait([
+      _bookingService.getUpcomingBookings(limit: 100).catchError((e) {
+        _logger.e('Failed to load upcoming bookings: $e');
+        return <BookingListItem>[];
+      }),
+      _bookingService.getCompletedBookings().catchError((e) {
+        _logger.e('Failed to load completed bookings: $e');
+        return <BookingListItem>[];
+      }),
+      _bookingService.getCancelledBookings().catchError((e) {
+        _logger.e('Failed to load cancelled bookings: $e');
+        return <BookingListItem>[];
+      }),
+    ]);
 
-      _logger.d('Total bookings fetched: ${allBookings.length}');
-      for (final b in allBookings) {
-        _logger.d(
-          'Booking ${b.bookingReference}: '
-          'status=${b.bookingStatus}, busStatus=${b.busStatus}, '
-          'departure=${b.departureDatetime?.toUtc()}, '
-          'isPast=${b.departureDatetime != null ? b.departureDatetime!.toUtc().isBefore(nowUtc) : "null"}',
-        );
-      }
+    setState(() {
+      _upcomingBookings = results[0];
+      _pastBookings = results[1];
+      _cancelledBookings = results[2];
+      _isLoadingUpcoming = false;
+      _isLoadingPast = false;
+      _isLoadingCancelled = false;
+      _hasLoaded = true;
+    });
 
-      final upcoming = allBookings.where((b) {
-        // Must have a departure datetime to be upcoming
-        if (b.departureDatetime == null) return false;
-
-        // Convert to UTC for reliable comparison
-        final departureUtc = b.departureDatetime!.toUtc();
-        final isFuture = departureUtc.isAfter(nowUtc);
-
-        final isCompleted =
-            b.bookingStatus == MasterBookingStatus.completed ||
-            b.busStatus == BusBookingStatus.completed;
-        final isCancelled =
-            b.bookingStatus == MasterBookingStatus.cancelled ||
-            b.busStatus == BusBookingStatus.cancelled ||
-            b.bookingStatus == MasterBookingStatus.partialCancel;
-
-        return isFuture && !isCompleted && !isCancelled;
-      }).toList();
-
-      final completed = allBookings.where((b) {
-        return b.bookingStatus == MasterBookingStatus.completed ||
-            b.busStatus == BusBookingStatus.completed;
-      }).toList();
-
-      final cancelled = allBookings.where((b) {
-        final isCancelled =
-            b.bookingStatus == MasterBookingStatus.cancelled ||
-            b.busStatus == BusBookingStatus.cancelled ||
-            b.bookingStatus == MasterBookingStatus.partialCancel;
-
-        // A trip whose departure has passed and isn't completed => treat as expired/cancelled
-        bool isExpired = false;
-        if (b.departureDatetime != null) {
-          final departureUtc = b.departureDatetime!.toUtc();
-          final isPast = departureUtc.isBefore(nowUtc);
-          final isCompleted =
-              b.bookingStatus == MasterBookingStatus.completed ||
-              b.busStatus == BusBookingStatus.completed;
-          isExpired = isPast && !isCompleted && !isCancelled;
-        }
-
-        return isCancelled || isExpired;
-      }).toList();
-
-      setState(() {
-        _upcomingBookings = upcoming;
-        _pastBookings = completed;
-        _cancelledBookings = cancelled;
-        _isLoadingUpcoming = false;
-        _isLoadingPast = false;
-        _isLoadingCancelled = false;
-        _hasLoaded = true;
-      });
-      _logger.i(
-        'Distributed bookings: ${upcoming.length} upcoming, '
-        '${completed.length} completed, ${cancelled.length} cancelled/expired',
-      );
-    } catch (e) {
-      _logger.e('Failed to load bookings: $e');
-      setState(() {
-        final errorMsg = e.toString().replaceAll('Exception: ', '');
-        _errorUpcoming = errorMsg;
-        _errorPast = errorMsg;
-        _errorCancelled = errorMsg;
-        _isLoadingUpcoming = false;
-        _isLoadingPast = false;
-        _isLoadingCancelled = false;
-      });
-    }
+    _logger.i(
+      'Loaded: ${results[0].length} upcoming, '
+      '${results[1].length} completed, '
+      '${results[2].length} cancelled/expired',
+    );
   }
 
 
