@@ -905,7 +905,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   Future<void> _doUseCurrentLocation({required bool isPickup}) async {
     try {
       // Permission and Service status is already enforced by LocationGatekeeper
-      
+
       // Get current position
 
       // Show loading indicator
@@ -1031,12 +1031,19 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           apiKey: googleMapsApiKey,
           isRouteSelection: true,
           startWithPickup: isPickup,
-          initialPickupAddress: pickupController.text == 'Your Location' && _resolvedPickupAddress != null
+          initialPickupAddress:
+              pickupController.text == 'Your Location' &&
+                  _resolvedPickupAddress != null
               ? _resolvedPickupAddress
-              : (pickupController.text.isNotEmpty && pickupController.text != 'Your Location' ? pickupController.text : null),
+              : (pickupController.text.isNotEmpty &&
+                        pickupController.text != 'Your Location'
+                    ? pickupController.text
+                    : null),
           initialPickupLat: pickupLat,
           initialPickupLng: pickupLng,
-          initialDropAddress: dropController.text.isNotEmpty ? dropController.text : null,
+          initialDropAddress: dropController.text.isNotEmpty
+              ? dropController.text
+              : null,
           initialDropLat: dropLat,
           initialDropLng: dropLng,
         ),
@@ -1047,7 +1054,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       final pickupAddress = result['pickupAddress'] as String?;
       final pLat = (result['pickupLat'] as num?)?.toDouble();
       final pLng = (result['pickupLng'] as num?)?.toDouble();
-      
+
       final dropAddress = result['dropAddress'] as String?;
       final dLat = (result['dropLat'] as num?)?.toDouble();
       final dLng = (result['dropLng'] as num?)?.toDouble();
@@ -1065,7 +1072,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           dropLng = dLng;
         }
       });
-      
+
       // Auto-navigate to booking if both fields filled
       _autoNavigateToBooking();
     }
@@ -1076,8 +1083,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   Widget _buildLocationInputCard() {
     final bool fromFilled = pickupController.text.isNotEmpty;
     final bool toFilled = dropController.text.isNotEmpty;
-    final bool isYourLocation =
-        pickupController.text == 'Your Location';
+    final bool isYourLocation = pickupController.text == 'Your Location';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1097,10 +1103,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(
-          color: Colors.grey.withOpacity(0.06),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.grey.withOpacity(0.06), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1215,9 +1218,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     // ── FROM field ──────────────────────────────────────
                     _buildLocationDisplayBlock(
                       label: 'FROM',
-                      displayText: fromFilled
-                          ? pickupController.text
-                          : null,
+                      displayText: fromFilled ? pickupController.text : null,
                       placeholder: 'Choose pickup location',
                       isFilled: fromFilled,
                       isPickup: true,
@@ -1285,7 +1286,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   Widget _buildModernSearchButton() {
-    final bool isReady = pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
+    final bool isReady =
+        pickupController.text.isNotEmpty && dropController.text.isNotEmpty;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       height: 56,
@@ -1329,7 +1331,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ),
                 if (isReady) ...[
                   const SizedBox(width: 10),
-                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ],
               ],
             ),
@@ -1350,8 +1356,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     required VoidCallback onTap,
     required VoidCallback onClear,
   }) {
-    final Color accentColor =
-        isPickup ? AppColors.primary : const Color(0xFFFF6B35);
+    final Color accentColor = isPickup
+        ? AppColors.primary
+        : const Color(0xFFFF6B35);
 
     return GestureDetector(
       onTap: onTap,
@@ -1485,8 +1492,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   // _buildPremiumField removed — replaced by _buildLocationDisplayBlock inside _buildLocationInputCard
-
-
 
   void _onItemTapped(int index) {
     setState(() {
