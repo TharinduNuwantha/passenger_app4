@@ -361,6 +361,7 @@ func (r *AppBookingRepository) GetBookingsByUserID(userID string, limit, offset 
 }
 
 // GetUpcomingBookingsByUserID retrieves upcoming bookings for a user
+// Only returns bookings where the trip departs in the future and is not completed/cancelled
 func (r *AppBookingRepository) GetUpcomingBookingsByUserID(userID string) ([]models.BookingListItem, error) {
 	query := `
 		SELECT 
@@ -377,7 +378,9 @@ func (r *AppBookingRepository) GetUpcomingBookingsByUserID(userID string) ([]mod
 		LEFT JOIN bus_owner_routes bor ON bor.id = st.bus_owner_route_id
 		WHERE b.user_id = $1
 		  AND b.booking_status IN ('pending', 'confirmed', 'in_progress')
-		  AND (st.departure_datetime IS NULL OR st.departure_datetime >= NOW())
+		  AND bb.status NOT IN ('cancelled', 'completed', 'no_show')
+		  AND st.departure_datetime IS NOT NULL
+		  AND st.departure_datetime > NOW()
 		ORDER BY st.departure_datetime ASC`
 
 	var bookings []models.BookingListItem

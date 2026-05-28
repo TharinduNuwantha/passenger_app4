@@ -33,12 +33,14 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
   String? _errorPast;
   String? _errorCancelled;
 
+  bool _hasLoaded = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
-    _loadUpcomingBookings();
+    _loadAllBookings();
   }
 
   @override
@@ -50,97 +52,112 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      switch (_tabController.index) {
-        case 0:
-          if (_upcomingBookings.isEmpty && !_isLoadingUpcoming) {
-            _loadUpcomingBookings();
-          }
-          break;
-        case 1:
-          if (_pastBookings.isEmpty && !_isLoadingPast) {
-            _loadPastBookings();
-          }
-          break;
-        case 2:
-          if (_cancelledBookings.isEmpty && !_isLoadingCancelled) {
-            _loadCancelledBookings();
-          }
-          break;
+      if (!_hasLoaded && !_isLoadingUpcoming) {
+        _loadAllBookings();
       }
     }
   }
 
-  Future<void> _loadUpcomingBookings() async {
+  Future<void> _loadUpcomingBookings() => _loadAllBookings();
+  Future<void> _loadPastBookings() => _loadAllBookings();
+  Future<void> _loadCancelledBookings() => _loadAllBookings();
+
+  Future<void> _loadAllBookings() async {
     setState(() {
       _isLoadingUpcoming = true;
-      _errorUpcoming = null;
-    });
-
-    try {
-      final bookings = await _bookingService.getUpcomingBookings(limit: 20);
-      setState(() {
-        _upcomingBookings = bookings;
-        _isLoadingUpcoming = false;
-      });
-      _logger.i('Loaded ${bookings.length} upcoming bookings');
-    } catch (e) {
-      _logger.e('Failed to load upcoming bookings: $e');
-      setState(() {
-        _errorUpcoming = e.toString().replaceAll('Exception: ', '');
-        _isLoadingUpcoming = false;
-      });
-    }
-  }
-
-  Future<void> _loadPastBookings() async {
-    setState(() {
       _isLoadingPast = true;
-      _errorPast = null;
-    });
-
-    try {
-      final bookings = await _bookingService.getMyBookings(
-        status: 'completed',
-        limit: 50,
-      );
-      setState(() {
-        _pastBookings = bookings;
-        _isLoadingPast = false;
-      });
-      _logger.i('Loaded ${bookings.length} past bookings');
-    } catch (e) {
-      _logger.e('Failed to load past bookings: $e');
-      setState(() {
-        _errorPast = e.toString().replaceAll('Exception: ', '');
-        _isLoadingPast = false;
-      });
-    }
-  }
-
-  Future<void> _loadCancelledBookings() async {
-    setState(() {
       _isLoadingCancelled = true;
+      _errorUpcoming = null;
+      _errorPast = null;
       _errorCancelled = null;
     });
 
     try {
-      final bookings = await _bookingService.getMyBookings(
-        status: 'cancelled',
-        limit: 50,
-      );
+      final allBookings = await _bookingService.getMyBookings(limit: 200);
+      // Use UTC now to avoid timezone comparison issues
+      final nowUtc = DateTime.now().toUtc();
+
+      _logger.d('Total bookings fetched: ${allBookings.length}');
+      for (final b in allBookings) {
+        _logger.d(
+          'Booking ${b.bookingReference}: '
+          'status=${b.bookingStatus}, busStatus=${b.busStatus}, '
+          'departure=${b.departureDatetime?.toUtc()}, '
+          'isPast=${b.departureDatetime != null ? b.departureDatetime!.toUtc().isBefore(nowUtc) : "null"}',
+        );
+      }
+
+      final upcoming = allBookings.where((b) {
+        // Must have a departure datetime to be upcoming
+        if (b.departureDatetime == null) return false;
+
+        // Convert to UTC for reliable comparison
+        final departureUtc = b.departureDatetime!.toUtc();
+        final isFuture = departureUtc.isAfter(nowUtc);
+
+        final isCompleted =
+            b.bookingStatus == MasterBookingStatus.completed ||
+            b.busStatus == BusBookingStatus.completed;
+        final isCancelled =
+            b.bookingStatus == MasterBookingStatus.cancelled ||
+            b.busStatus == BusBookingStatus.cancelled ||
+            b.bookingStatus == MasterBookingStatus.partialCancel;
+
+        return isFuture && !isCompleted && !isCancelled;
+      }).toList();
+
+      final completed = allBookings.where((b) {
+        return b.bookingStatus == MasterBookingStatus.completed ||
+            b.busStatus == BusBookingStatus.completed;
+      }).toList();
+
+      final cancelled = allBookings.where((b) {
+        final isCancelled =
+            b.bookingStatus == MasterBookingStatus.cancelled ||
+            b.busStatus == BusBookingStatus.cancelled ||
+            b.bookingStatus == MasterBookingStatus.partialCancel;
+
+        // A trip whose departure has passed and isn't completed => treat as expired/cancelled
+        bool isExpired = false;
+        if (b.departureDatetime != null) {
+          final departureUtc = b.departureDatetime!.toUtc();
+          final isPast = departureUtc.isBefore(nowUtc);
+          final isCompleted =
+              b.bookingStatus == MasterBookingStatus.completed ||
+              b.busStatus == BusBookingStatus.completed;
+          isExpired = isPast && !isCompleted && !isCancelled;
+        }
+
+        return isCancelled || isExpired;
+      }).toList();
+
       setState(() {
-        _cancelledBookings = bookings;
+        _upcomingBookings = upcoming;
+        _pastBookings = completed;
+        _cancelledBookings = cancelled;
+        _isLoadingUpcoming = false;
+        _isLoadingPast = false;
         _isLoadingCancelled = false;
+        _hasLoaded = true;
       });
-      _logger.i('Loaded ${bookings.length} cancelled bookings');
+      _logger.i(
+        'Distributed bookings: ${upcoming.length} upcoming, '
+        '${completed.length} completed, ${cancelled.length} cancelled/expired',
+      );
     } catch (e) {
-      _logger.e('Failed to load cancelled bookings: $e');
+      _logger.e('Failed to load bookings: $e');
       setState(() {
-        _errorCancelled = e.toString().replaceAll('Exception: ', '');
+        final errorMsg = e.toString().replaceAll('Exception: ', '');
+        _errorUpcoming = errorMsg;
+        _errorPast = errorMsg;
+        _errorCancelled = errorMsg;
+        _isLoadingUpcoming = false;
+        _isLoadingPast = false;
         _isLoadingCancelled = false;
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +329,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
             MaterialPageRoute(
               builder: (context) => BookingDetailScreen(bookingId: booking.id),
             ),
-          );
+          ).then((_) => _loadAllBookings());
         },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -335,7 +352,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _buildStatusChip(booking.bookingStatus),
+                  _buildStatusChip(booking),
                 ],
               ),
               const SizedBox(height: 12),
@@ -438,41 +455,52 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
     );
   }
 
-  Widget _buildStatusChip(MasterBookingStatus status) {
+  Widget _buildStatusChip(BookingListItem booking) {
     Color bgColor;
     Color textColor;
     String text;
 
-    switch (status) {
-      case MasterBookingStatus.confirmed:
-        bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
-        textColor = const Color(0xFF4CAF50);
-        text = 'Confirmed';
-        break;
-      case MasterBookingStatus.pending:
-        bgColor = Colors.orange.withOpacity(0.1);
-        textColor = Colors.orange;
-        text = 'Pending';
-        break;
-      case MasterBookingStatus.completed:
-        bgColor = Colors.blue.withOpacity(0.1);
-        textColor = Colors.blue;
-        text = 'Completed';
-        break;
-      case MasterBookingStatus.cancelled:
-        bgColor = Colors.red.withOpacity(0.1);
-        textColor = Colors.red;
-        text = 'Cancelled';
-        break;
-      case MasterBookingStatus.inProgress:
-        bgColor = Colors.purple.withOpacity(0.1);
-        textColor = Colors.purple;
-        text = 'In Progress';
-        break;
-      default:
-        bgColor = Colors.grey.withOpacity(0.1);
-        textColor = Colors.grey;
-        text = status.displayName;
+    final now = DateTime.now();
+    final isExpired = booking.departureDatetime != null && booking.departureDatetime!.isBefore(now);
+    final isCompleted = booking.bookingStatus == MasterBookingStatus.completed || 
+                        booking.busStatus == BusBookingStatus.completed;
+
+    if (isExpired && !isCompleted && booking.bookingStatus != MasterBookingStatus.cancelled && booking.busStatus != BusBookingStatus.cancelled) {
+      bgColor = Colors.grey.withOpacity(0.1);
+      textColor = Colors.grey;
+      text = 'Expired';
+    } else {
+      switch (booking.bookingStatus) {
+        case MasterBookingStatus.confirmed:
+          bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
+          textColor = const Color(0xFF4CAF50);
+          text = 'Confirmed';
+          break;
+        case MasterBookingStatus.pending:
+          bgColor = Colors.orange.withOpacity(0.1);
+          textColor = Colors.orange;
+          text = 'Pending';
+          break;
+        case MasterBookingStatus.completed:
+          bgColor = Colors.blue.withOpacity(0.1);
+          textColor = Colors.blue;
+          text = 'Completed';
+          break;
+        case MasterBookingStatus.cancelled:
+          bgColor = Colors.red.withOpacity(0.1);
+          textColor = Colors.red;
+          text = 'Cancelled';
+          break;
+        case MasterBookingStatus.inProgress:
+          bgColor = Colors.purple.withOpacity(0.1);
+          textColor = Colors.purple;
+          text = 'In Progress';
+          break;
+        default:
+          bgColor = Colors.grey.withOpacity(0.1);
+          textColor = Colors.grey;
+          text = booking.bookingStatus.displayName;
+      }
     }
 
     return Container(
