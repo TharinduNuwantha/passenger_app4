@@ -1027,35 +1027,47 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
-        builder: (_) => LocationSelectionScreen(
-          isPickup: isPickup,
-          googleMapsApiKey: googleMapsApiKey,
-          searchHistory: _searchHistory,
+        builder: (_) => MapSelectionScreen(
+          apiKey: googleMapsApiKey,
+          isRouteSelection: true,
+          startWithPickup: isPickup,
+          initialPickupAddress: pickupController.text == 'Your Location' && _resolvedPickupAddress != null
+              ? _resolvedPickupAddress
+              : (pickupController.text.isNotEmpty && pickupController.text != 'Your Location' ? pickupController.text : null),
+          initialPickupLat: pickupLat,
+          initialPickupLng: pickupLng,
+          initialDropAddress: dropController.text.isNotEmpty ? dropController.text : null,
+          initialDropLat: dropLat,
+          initialDropLng: dropLng,
         ),
       ),
     );
 
     if (result != null && mounted) {
-      final address = result['address'] as String?;
-      final lat = (result['lat'] as num?)?.toDouble();
-      final lng = (result['lng'] as num?)?.toDouble();
+      final pickupAddress = result['pickupAddress'] as String?;
+      final pLat = (result['pickupLat'] as num?)?.toDouble();
+      final pLng = (result['pickupLng'] as num?)?.toDouble();
+      
+      final dropAddress = result['dropAddress'] as String?;
+      final dLat = (result['dropLat'] as num?)?.toDouble();
+      final dLng = (result['dropLng'] as num?)?.toDouble();
 
-      if (address != null && address.isNotEmpty) {
-        setState(() {
-          if (isPickup) {
-            pickupController.text = address;
-            pickupLat = lat;
-            pickupLng = lng;
-            _resolvedPickupAddress = address;
-          } else {
-            dropController.text = address;
-            dropLat = lat;
-            dropLng = lng;
-          }
-        });
-        // Auto-navigate to booking if both fields filled
-        _autoNavigateToBooking();
-      }
+      setState(() {
+        if (pickupAddress != null) {
+          pickupController.text = pickupAddress;
+          pickupLat = pLat;
+          pickupLng = pLng;
+          _resolvedPickupAddress = pickupAddress;
+        }
+        if (dropAddress != null) {
+          dropController.text = dropAddress;
+          dropLat = dLat;
+          dropLng = dLng;
+        }
+      });
+      
+      // Auto-navigate to booking if both fields filled
+      _autoNavigateToBooking();
     }
   }
 

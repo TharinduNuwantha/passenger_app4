@@ -88,10 +88,51 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
       }),
     ]);
 
+    final now = DateTime.now();
+    final List<BookingListItem> rawUpcoming = results[0];
+    final List<BookingListItem> rawCompleted = results[1];
+    final List<BookingListItem> rawCancelled = results[2];
+
+    final List<BookingListItem> filteredUpcoming = [];
+    final List<BookingListItem> filteredCompleted = List.from(rawCompleted);
+    final List<BookingListItem> filteredCancelled = List.from(rawCancelled);
+
+    for (final booking in rawUpcoming) {
+      final isExpired = booking.departureDatetime != null &&
+          booking.departureDatetime!.isBefore(now);
+      
+      final isCompleted = booking.bookingStatus == MasterBookingStatus.completed ||
+          booking.busStatus == BusBookingStatus.completed;
+
+      if (isExpired) {
+        if (isCompleted) {
+          if (!filteredCompleted.any((b) => b.id == booking.id)) {
+            filteredCompleted.add(booking);
+          }
+        } else {
+          if (!filteredCancelled.any((b) => b.id == booking.id)) {
+            filteredCancelled.add(booking);
+          }
+        }
+      } else {
+        filteredUpcoming.add(booking);
+      }
+    }
+
+    // Sort all lists descending by createdAt (or departureDatetime for upcoming)
+    filteredUpcoming.sort((a, b) {
+      if (a.departureDatetime != null && b.departureDatetime != null) {
+        return a.departureDatetime!.compareTo(b.departureDatetime!);
+      }
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    filteredCompleted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    filteredCancelled.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
     setState(() {
-      _upcomingBookings = results[0];
-      _pastBookings = results[1];
-      _cancelledBookings = results[2];
+      _upcomingBookings = filteredUpcoming;
+      _pastBookings = filteredCompleted;
+      _cancelledBookings = filteredCancelled;
       _isLoadingUpcoming = false;
       _isLoadingPast = false;
       _isLoadingCancelled = false;
@@ -99,9 +140,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen>
     });
 
     _logger.i(
-      'Loaded: ${results[0].length} upcoming, '
-      '${results[1].length} completed, '
-      '${results[2].length} cancelled/expired',
+      'Loaded & Filtered: ${filteredUpcoming.length} upcoming, '
+      '${filteredCompleted.length} completed, '
+      '${filteredCancelled.length} cancelled/expired',
     );
   }
 

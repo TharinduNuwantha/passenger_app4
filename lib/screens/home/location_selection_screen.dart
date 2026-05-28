@@ -22,11 +22,15 @@ class LocationSelectionScreen extends StatefulWidget {
   /// Recent search history to show as quick suggestions.
   final List<Map<String, String>> searchHistory;
 
+  /// If true, choosing on map will pop back instead of pushing MapSelectionScreen.
+  final bool selectOnMapIsPop;
+
   const LocationSelectionScreen({
     super.key,
     required this.isPickup,
     required this.googleMapsApiKey,
     this.searchHistory = const [],
+    this.selectOnMapIsPop = false,
   });
 
   @override
@@ -283,6 +287,11 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     HapticFeedback.lightImpact();
     // Unfocus keyboard before pushing map screen
     _searchFocusNode.unfocus();
+
+    if (widget.selectOnMapIsPop) {
+      Navigator.pop(context, {'select_on_map': true});
+      return;
+    }
 
     final result = await Navigator.push(
       context,
