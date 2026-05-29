@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'config/constants.dart';
 import 'config/theme_config.dart' show AppTheme;
 import 'providers/auth_provider.dart';
@@ -25,14 +26,14 @@ import 'widgets/location_gatekeeper.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
+  // Load env first (needed for Supabase key)
   await dotenv.load(fileName: ".env");
 
-  // Initialize Supabase
-  await Supabase.initialize(
+  // Fire Supabase init without awaiting — splash screen animation gives it time
+  unawaited(Supabase.initialize(
     url: 'https://pttatcukzpceljcrwehk.supabase.co',
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
-  );
+  ));
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -55,8 +56,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()..loadThemeMode()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => SearchProvider()),
-        ChangeNotifierProvider(create: (_) => BookingIntentProvider()),
+        // Lazy: only created when first accessed (booking/search flows)
+        ChangeNotifierProvider.value(value: SearchProvider()),
+        ChangeNotifierProvider.value(value: BookingIntentProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

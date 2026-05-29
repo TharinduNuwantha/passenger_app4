@@ -59,7 +59,6 @@ class NotificationService {
             .map((notif) => NotificationModel.fromJson(notif))
             .toList();
       } else {
-        print('Failed to load notifications (status: ${response.statusCode}), falling back to mock data');
         notifications = _getMockNotifications();
       }
 
@@ -68,7 +67,6 @@ class NotificationService {
         userId: userId,
       );
     } catch (e) {
-      print('Error fetching notifications: $e');
       // Return mock data for development/testing
       return await _filterAndSyncNotifications(
         _getMockNotifications(),
@@ -160,10 +158,10 @@ class NotificationService {
       ).timeout(ApiConfig.sendTimeout);
 
       if (response.statusCode != 200) {
-        print('Failed to mark notification as read on server: ${response.statusCode}');
+        // Server sync failed silently — local state already updated
       }
     } catch (e) {
-      print('Error marking notification as read: $e');
+      // Silently fail — local state already updated
     }
   }
 
@@ -189,10 +187,10 @@ class NotificationService {
       ).timeout(ApiConfig.sendTimeout);
 
       if (response.statusCode != 200) {
-        print('Failed to mark all notifications as read on server: ${response.statusCode}');
+        // Server sync failed silently
       }
     } catch (e) {
-      print('Error marking all notifications as read: $e');
+      // Silently fail — local state already updated
     }
   }
 
@@ -203,7 +201,6 @@ class NotificationService {
       final notifications = await fetchNotifications(userId);
       return notifications.where((n) => !n.read).length;
     } catch (e) {
-      print('Error fetching unread count: $e');
       return 0;
     }
   }
@@ -227,10 +224,10 @@ class NotificationService {
       ).timeout(ApiConfig.sendTimeout);
 
       if (response.statusCode != 200) {
-        print('Failed to delete notification on server: ${response.statusCode}');
+        // Server delete failed silently — local state already updated
       }
     } catch (e) {
-      print('Error deleting notification: $e');
+      // Silently fail — local state already updated
     }
   }
 
@@ -273,7 +270,6 @@ class NotificationService {
           .map(NotificationModel.fromJson)
           .toList();
     } catch (e) {
-      print('Error loading local notifications: $e');
       await prefs.remove(_localCacheKey);
       return [];
     }

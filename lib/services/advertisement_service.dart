@@ -24,7 +24,6 @@ class AdvertisementService {
         throw Exception('Failed to load advertisements');
       }
     } catch (e) {
-      print('Error fetching advertisements: $e');
       return [];
     }
   }

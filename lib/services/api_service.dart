@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import '../config/api_config.dart';
 import '../utils/error_handler.dart';
@@ -51,82 +52,54 @@ class ApiService {
           final skipAuthHeader =
               isPublicAuthEndpoint || isPublicLoungeTransportOptions;
 
-          print('🔐 [API] Request to: ${options.path}');
-          print('🔐 [API] Is public: $skipAuthHeader');
-
           // Add access token to headers if available (except for public endpoints)
           if (!skipAuthHeader) {
             final token = await _storage.getAccessToken();
-            print('🔐 [API] Token check: ${token != null ? "EXISTS (${token.length} chars)" : "NULL"}');
-            _logger.i('🔑 TOKEN CHECK for ${options.path}: token=${token != null ? "EXISTS (${token.length} chars)" : "NULL"}');
             if (token != null && token.isNotEmpty) {
               options.headers['Authorization'] = 'Bearer $token';
-              print('🔐 [API] ✅ Authorization header added');
-              _logger.i('✅ Added auth token to request: ${options.path}');
             } else {
-              print('🔐 [API] ❌ NO TOKEN - Protected endpoint without auth!');
-              _logger.e('❌ NO ACCESS TOKEN for protected endpoint: ${options.path}');
-              // Also check what's in storage
-              final refreshToken = await _storage.getRefreshToken();
-              final hasValidTokens = await _storage.hasValidTokens();
-              print('🔐 [API] Storage: refresh=${refreshToken != null ? "EXISTS" : "NULL"}, valid=$hasValidTokens');
-              _logger.e('❌ Storage state: refreshToken=${refreshToken != null ? "EXISTS" : "NULL"}, hasValidTokens=$hasValidTokens');
+              _logger.w('No access token for protected endpoint: ${options.path}');
             }
           } else {
             // Ensure no Authorization header for public endpoints
             options.headers.remove('Authorization');
-            print('🔐 [API] Skipping auth for public endpoint');
-            _logger.d(
-              'Skipping auth token for public endpoint: ${options.path}',
-            );
           }
 
           // Add device information headers
           final deviceHeaders = _deviceInfo.getDeviceHeaders();
           options.headers.addAll(deviceHeaders);
-          _logger.d('Added device headers to request: ${options.path}');
 
           _logger.d('Request: ${options.method} ${options.path}');
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          _logger.d('Response [${response.statusCode}]: ${response.data}');
           return handler.next(response);
         },
         onError: (error, handler) async {
           _logger.e('Error [${error.response?.statusCode}]: ${error.message}');
-          print('🔐 [API] ❌ Error ${error.response?.statusCode} for ${error.requestOptions.path}');
-          print('🔐 [API] Error response: ${error.response?.data}');
 
           // If 401 Unauthorized, try to refresh token
           if (error.response?.statusCode == 401 && !_isRefreshing) {
-            print('🔐 [API] Got 401 - will try to refresh token');
             _isRefreshing = true;
 
             try {
               // Try to refresh token
               final refreshed = await _refreshToken();
-              print('🔐 [API] Token refresh result: $refreshed');
 
               if (refreshed) {
                 // Retry the original request
                 _logger.i('Token refreshed, retrying request');
-                print('🔐 [API] Retrying original request');
                 final response = await _retry(error.requestOptions);
                 _isRefreshing = false;
                 return handler.resolve(response);
               } else {
-                print('🔐 [API] Token refresh FAILED');
                 _logger.w('Token refresh failed');
               }
             } catch (e) {
-              print('🔐 [API] Token refresh EXCEPTION: $e');
               _logger.e('Error during token refresh: $e');
             } finally {
               _isRefreshing = false;
             }
-          } else if (error.response?.statusCode == 401) {
-            print('🔐 [API] Got 401 but _isRefreshing=$_isRefreshing (skipping refresh)');
           }
 
           return handler.next(error);
@@ -134,32 +107,31 @@ class ApiService {
       ),
     );
 
-    // Add logging interceptor (only in debug mode)
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        error: true,
-        logPrint: (obj) => _logger.d(obj),
-      ),
-    );
+    // Add logging interceptor only in debug mode
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: false,
+          responseBody: false,
+          error: true,
+          logPrint: (obj) => _logger.d(obj),
+        ),
+      );
+    }
   }
 
   // Refresh token
   Future<bool> _refreshToken() async {
     try {
       final refreshToken = await _storage.getRefreshToken();
-      print('🔐 [REFRESH] Starting refresh, token=${refreshToken != null ? "EXISTS (${refreshToken.length} chars)" : "NULL"}');
 
       if (refreshToken == null || refreshToken.isEmpty) {
-        print('🔐 [REFRESH] No refresh token available!');
         _logger.w('No refresh token available');
         await _clearTokensOnAuthFailure();
         return false;
       }
 
       _logger.i('Attempting to refresh token');
-      print('🔐 [REFRESH] Calling ${ApiConfig.refreshTokenEndpoint}');
 
       final response = await _dio.post(
         ApiConfig.refreshTokenEndpoint,
@@ -172,8 +144,6 @@ class ApiService {
           validateStatus: (status) => status != null && status < 500,
         ),
       );
-
-      print('🔐 [REFRESH] Response: ${response.statusCode} - ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -188,21 +158,18 @@ class ApiService {
           expiresIn: expiresIn,
         );
 
-        print('🔐 [REFRESH] ✅ Token refreshed and saved!');
         _logger.i('Token refreshed successfully');
         return true;
       }
 
       // If 401 on refresh, clear tokens - refresh token is invalid
       if (response.statusCode == 401) {
-        print('🔐 [REFRESH] ❌ 401 on refresh - clearing tokens');
         _logger.w('Refresh token rejected (401) - clearing tokens');
         await _clearTokensOnAuthFailure();
       }
 
       return false;
     } catch (e) {
-      print('🔐 [REFRESH] ❌ Exception: $e');
       _logger.e('Token refresh error: $e');
       // On any error, clear tokens to force re-login
       await _clearTokensOnAuthFailure();

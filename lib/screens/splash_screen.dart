@@ -41,14 +41,13 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuthStatus() async {
-    // Wait for splash animation
-    await Future.delayed(const Duration(milliseconds: 2500));
-
-    if (!mounted) return;
-
-    // Check authentication status
+    // Run auth check and minimum branding time in parallel
+    // This saves ~1s compared to waiting 2500ms THEN checking auth
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.checkAuthStatus();
+    await Future.wait([
+      authProvider.checkAuthStatus(),
+      Future.delayed(const Duration(milliseconds: 1500)),
+    ]);
 
     if (!mounted) return;
 
@@ -57,12 +56,10 @@ class _SplashScreenState extends State<SplashScreen>
       // Check if profile is complete
       final user = authProvider.user;
       if (user != null && !user.profileCompleted) {
-        // Profile not complete - go to complete profile screen
         Navigator.of(
           context,
         ).pushReplacementNamed(AppConstants.completeProfileRoute);
       } else {
-        // Profile complete - go to home
         Navigator.of(context).pushReplacementNamed(AppConstants.homeRoute);
       }
     } else {

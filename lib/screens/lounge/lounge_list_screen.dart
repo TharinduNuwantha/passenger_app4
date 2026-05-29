@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/lounge_booking_models.dart';
 import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
@@ -8,6 +9,7 @@ import '../../widgets/blue_header.dart';
 
 /// Main lounge marketplace screen - displays available lounges
 /// Loads full lounge catalog and allows search by state
+/// Uses client-side pagination to render 20 items at a time for performance
 class LoungeListScreen extends StatefulWidget {
   const LoungeListScreen({super.key});
 
@@ -15,20 +17,64 @@ class LoungeListScreen extends StatefulWidget {
   State<LoungeListScreen> createState() => _LoungeListScreenState();
 }
 
-class _LoungeListScreenState extends State<LoungeListScreen> {
+class _LoungeListScreenState extends State<LoungeListScreen>
+    with AutomaticKeepAliveClientMixin {
   final LoungeBookingService _loungeService = LoungeBookingService();
+  final ScrollController _scrollController = ScrollController();
 
-  List<Lounge> _lounges = [];
+  // All data from API
+  List<Lounge> _allLounges = [];
   List<String> _availableStates = [];
   String? _selectedState;
   bool _isLoading = true;
   bool _isSearching = false;
   String? _error;
 
+  // Client-side pagination
+  static const int _pageSize = 20;
+  int _displayedCount = _pageSize;
+  bool _isLoadingMore = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 300 &&
+        !_isLoadingMore &&
+        _displayedCount < _allLounges.length) {
+      _loadMoreItems();
+    }
+  }
+
+  void _loadMoreItems() {
+    setState(() {
+      _isLoadingMore = true;
+    });
+    // Small delay for smooth UX
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        setState(() {
+          _displayedCount =
+              (_displayedCount + _pageSize).clamp(0, _allLounges.length);
+          _isLoadingMore = false;
+        });
+      }
+    });
   }
 
   /// Load initial data: full lounge list + available states for dropdown
@@ -46,8 +92,9 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
       ]);
 
       setState(() {
-        _lounges = results[0] as List<Lounge>;
+        _allLounges = results[0] as List<Lounge>;
         _availableStates = results[1] as List<String>;
+        _displayedCount = _pageSize.clamp(0, _allLounges.length);
         _isLoading = false;
       });
     } catch (e) {
@@ -73,9 +120,15 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
       );
 
       setState(() {
-        _lounges = lounges;
+        _allLounges = lounges;
+        _displayedCount = _pageSize.clamp(0, _allLounges.length);
         _isSearching = false;
       });
+
+      // Scroll to top on new search
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -86,9 +139,10 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: Colors.white, // Standardize to white background
+      backgroundColor: Colors.white,
       body: SafeArea(
         top: false,
         child: Column(
@@ -253,9 +307,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return _buildShimmerList();
     }
 
     if (_error != null) {
@@ -294,7 +346,7 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
       );
     }
 
-    if (_lounges.isEmpty) {
+    if (_allLounges.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -337,6 +389,9 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
       );
     }
 
+    final displayedLounges = _allLounges.take(_displayedCount).toList();
+    final hasMore = _displayedCount < _allLounges.length;
+
     return RefreshIndicator(
       onRefresh: () => _searchByState(_selectedState),
       color: AppColors.primary,
@@ -348,26 +403,156 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               _selectedState != null
-                  ? '${_lounges.length} lounge(s) in $_selectedState'
-                  : 'Showing ${_lounges.length} lounges',
+                  ? '${_allLounges.length} lounge(s) in $_selectedState'
+                  : 'Showing ${_allLounges.length} lounges',
               style: const TextStyle(
                 color: Colors.grey,
                 fontSize: 14,
-              ), // Changed from white70 to grey
+              ),
             ),
           ),
 
-          // Lounge list
+          // Lounge list with pagination
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: _lounges.length,
+              cacheExtent: 300, // Pre-render items 300px ahead
+              itemCount: displayedLounges.length + (hasMore ? 1 : 0),
               itemBuilder: (context, index) {
-                return _LoungeCard(
-                  lounge: _lounges[index],
-                  onTap: () => _navigateToDetail(_lounges[index]),
+                if (index >= displayedLounges.length) {
+                  // Loading indicator at bottom
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return RepaintBoundary(
+                  child: LoungeCard(
+                    lounge: displayedLounges[index],
+                    onTap: () => _navigateToDetail(displayedLounges[index]),
+                  ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shimmer loading skeleton while data loads
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      itemCount: 4,
+      itemBuilder: (context, index) {
+        return _buildShimmerCard();
+      },
+    );
+  }
+
+  Widget _buildShimmerCard() {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      color: Colors.white,
+      surfaceTintColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image placeholder
+          Container(
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.grey[300],
+                ),
+              ),
+            ),
+          ),
+          // Content placeholder
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 18,
+                  width: 180,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  height: 14,
+                  width: 250,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: List.generate(
+                    3,
+                    (i) => Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      height: 28,
+                      width: 70,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      height: 22,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    Container(
+                      height: 28,
+                      width: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -386,17 +571,18 @@ class _LoungeListScreenState extends State<LoungeListScreen> {
 }
 
 /// Card widget for displaying lounge in list
-class _LoungeCard extends StatelessWidget {
+/// Extracted as top-level widget for better rebuild isolation
+class LoungeCard extends StatelessWidget {
   final Lounge lounge;
   final VoidCallback onTap;
 
-  const _LoungeCard({required this.lounge, required this.onTap});
+  const LoungeCard({super.key, required this.lounge, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      color: Colors.white, // Explicitly white background
+      color: Colors.white,
       surfaceTintColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
@@ -406,18 +592,21 @@ class _LoungeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
+            // Image — cached with memory-limited thumbnails
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
               child: lounge.primaryImage != null
-                  ? Image.network(
-                      lounge.primaryImage!,
+                  ? CachedNetworkImage(
+                      imageUrl: lounge.primaryImage!,
                       height: 150,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                      memCacheHeight: 300, // 2x display for retina
+                      fadeInDuration: const Duration(milliseconds: 200),
+                      placeholder: (_, __) => _buildImagePlaceholder(),
+                      errorWidget: (_, __, ___) => _buildPlaceholderImage(),
                     )
                   : _buildPlaceholderImage(),
             ),
@@ -536,6 +725,25 @@ class _LoungeCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Shimmer-like placeholder while image loads
+  Widget _buildImagePlaceholder() {
+    return Container(
+      height: 150,
+      width: double.infinity,
+      color: Colors.grey[200],
+      child: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.grey[400],
+          ),
         ),
       ),
     );
