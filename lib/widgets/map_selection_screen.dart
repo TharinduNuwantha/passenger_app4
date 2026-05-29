@@ -52,6 +52,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   LatLng? _dropLocation;
   String? _dropAddress;
   bool _isSelectingPickup = true;
+  bool _isSelectingFrom = false;
+  bool _isSelectingTo = false;
+  bool _hasUserConfirmedSelection = false;
+  bool _isNavigatingToSearch = false;
 
   // --- Common States ---
   bool _isLoading = false;
@@ -251,6 +255,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   void initState() {
     super.initState();
     _isSelectingPickup = widget.startWithPickup;
+    _isSelectingFrom = widget.startWithPickup;
+    _isSelectingTo = !widget.startWithPickup;
+    _hasUserConfirmedSelection = false;
+    _isNavigatingToSearch = false;
     _initBusMarkers();
 
     if (widget.isRouteSelection) {
@@ -465,109 +473,118 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   // Handles clicking a text block to open search overlay
   Future<void> _openSearchOverlay({required bool isPickup}) async {
+    if (_isNavigatingToSearch) return;
+    setState(() {
+      _isNavigatingToSearch = true;
+      _isSelectingPickup = isPickup;
+      _isSelectingFrom = isPickup;
+      _isSelectingTo = !isPickup;
+    });
     HapticFeedback.lightImpact();
 
-    final result = await Navigator.push<Map<String, dynamic>>(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            LocationSelectionScreen(
-              isPickup: isPickup,
-              googleMapsApiKey: widget.apiKey,
-              selectOnMapIsPop: true,
-            ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(0.0, 1.0);
-          const end = Offset.zero;
-          const curve = Curves.fastOutSlowIn;
-          var tween = Tween(
-            begin: begin,
-            end: end,
-          ).chain(CurveTween(curve: curve));
-          return SlideTransition(
-            position: animation.drive(tween),
-            child: child,
-          );
-        },
-      ),
-    );
+    try {
+      final result = await Navigator.push<Map<String, dynamic>>(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              LocationSelectionScreen(
+                isPickup: isPickup,
+                googleMapsApiKey: widget.apiKey,
+                selectOnMapIsPop: true,
+              ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(0.0, 1.0);
+            const end = Offset.zero;
+            const curve = Curves.fastOutSlowIn;
+            var tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: curve));
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: child,
+            );
+          },
+        ),
+      );
 
-    if (result != null && mounted) {
-      if (result['select_on_map'] == true) {
-        setState(() {
-          _isSelectingPickup = isPickup;
-          if (isPickup) {
-            _pickupLocation = null;
-            _pickupAddress = null;
-          } else {
-            _dropLocation = null;
-            _dropAddress = null;
-          }
-        });
-        return;
-      }
-
-      final address = result['address'] as String?;
-      double? lat = (result['lat'] as num?)?.toDouble();
-      double? lng = (result['lng'] as num?)?.toDouble();
-
-      if (address != null) {
-        // Resolve coordinates via Geocoding API if not provided
-        if (lat == null || lng == null) {
-          final url = 'https://maps.googleapis.com/maps/api/geocode/json'
-              '?address=${Uri.encodeComponent(address)}&key=${widget.apiKey}';
-          try {
-            final response = await http.get(Uri.parse(url));
-            if (response.statusCode == 200) {
-              final data = json.decode(response.body);
-              if (data['status'] == 'OK' &&
-                  data['results'] != null &&
-                  (data['results'] as List).isNotEmpty) {
-                final loc = data['results'][0]['geometry']['location'];
-                lat = (loc['lat'] as num).toDouble();
-                lng = (loc['lng'] as num).toDouble();
-              }
-            }
-          } catch (e) {
-            debugPrint('Error geocoding fallback: $e');
-          }
-        }
-
-        if (lat != null && lng != null) {
-          final latLng = LatLng(lat, lng);
-
-          // 1) Set the correct selection mode so onCameraMove/center pin
-          //    both track the right field from this point forward.
+      if (result != null && mounted) {
+        if (result['select_on_map'] == true) {
           setState(() {
-            if (widget.isRouteSelection) {
-              _isSelectingPickup = isPickup;
-              if (isPickup) {
-                _pickupAddress = address;
-                _pickupLocation = latLng;
-              } else {
-                _dropAddress = address;
-                _dropLocation = latLng;
-              }
+            _isSelectingPickup = isPickup;
+            _isSelectingFrom = isPickup;
+            _isSelectingTo = !isPickup;
+            if (isPickup) {
+              _pickupLocation = null;
+              _pickupAddress = null;
             } else {
-              _selectedAddress = address;
-              _selectedLocation = latLng;
+              _dropLocation = null;
+              _dropAddress = null;
             }
           });
+          return;
+        }
 
-          // 2) Always animate camera to the SELECTED location so the
-          //    center overlay pin lands exactly on it.
-          _animateCameraTo(latLng);
+        final address = result['address'] as String?;
+        double? lat = (result['lat'] as num?)?.toDouble();
+        double? lng = (result['lng'] as num?)?.toDouble();
 
-          // 3) If pickup was just set, switch to drop mode and auto-open
-          //    destination search after the camera animation settles.
-          if (widget.isRouteSelection && isPickup) {
-            Future.delayed(const Duration(milliseconds: 400), () {
-              if (!mounted) return;
-              setState(() => _isSelectingPickup = false);
-              _openSearchOverlay(isPickup: false);
+        if (address != null) {
+          // Resolve coordinates via Geocoding API if not provided
+          if (lat == null || lng == null) {
+            final url = 'https://maps.googleapis.com/maps/api/geocode/json'
+                '?address=${Uri.encodeComponent(address)}&key=${widget.apiKey}';
+            try {
+              final response = await http.get(Uri.parse(url));
+              if (response.statusCode == 200) {
+                final data = json.decode(response.body);
+                if (data['status'] == 'OK' &&
+                    data['results'] != null &&
+                    (data['results'] as List).isNotEmpty) {
+                  final loc = data['results'][0]['geometry']['location'];
+                  lat = (loc['lat'] as num).toDouble();
+                  lng = (loc['lng'] as num).toDouble();
+                }
+              }
+            } catch (e) {
+              debugPrint('Error geocoding fallback: $e');
+            }
+          }
+
+          if (lat != null && lng != null) {
+            final latLng = LatLng(lat, lng);
+
+            // 1) Set the correct selection mode so onCameraMove/center pin
+            //    both track the right field from this point forward.
+            setState(() {
+              if (widget.isRouteSelection) {
+                _isSelectingPickup = isPickup;
+                _isSelectingFrom = isPickup;
+                _isSelectingTo = !isPickup;
+                if (isPickup) {
+                  _pickupAddress = address;
+                  _pickupLocation = latLng;
+                } else {
+                  _dropAddress = address;
+                  _dropLocation = latLng;
+                }
+              } else {
+                _selectedAddress = address;
+                _selectedLocation = latLng;
+              }
             });
+
+            // 2) Always animate camera to the SELECTED location so the
+            //    center overlay pin lands exactly on it.
+            _animateCameraTo(latLng);
           }
         }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isNavigatingToSearch = false;
+        });
       }
     }
   }
@@ -608,6 +625,8 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         }
         setState(() {
           _isSelectingPickup = false;
+          _isSelectingFrom = false;
+          _isSelectingTo = true;
         });
 
         if (_dropLocation != null) {
@@ -624,9 +643,15 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         if (_pickupLocation == null) {
           setState(() {
             _isSelectingPickup = true;
+            _isSelectingFrom = true;
+            _isSelectingTo = false;
           });
           return;
         }
+
+        setState(() {
+          _hasUserConfirmedSelection = true;
+        });
 
         Navigator.pop(context, {
           'pickupAddress': _pickupAddress,
@@ -638,6 +663,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         });
       }
     } else {
+      setState(() {
+        _hasUserConfirmedSelection = true;
+      });
       Navigator.pop(context, {
         'address': _selectedAddress,
         'lat': _selectedLocation.latitude,
@@ -942,7 +970,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   label: 'FROM',
                   displayText: _pickupAddress,
                   placeholder: 'Choose pickup point',
-                  isActive: _isSelectingPickup,
+                  isActive: _isSelectingFrom,
                   activeColor: AppColors.pickupGreen,
                   onTap: () => _openSearchOverlay(isPickup: true),
                   onClear: () => _clearInput(isPickup: true),
@@ -952,7 +980,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   label: 'TO',
                   displayText: _dropAddress,
                   placeholder: 'Choose destination',
-                  isActive: !_isSelectingPickup,
+                  isActive: _isSelectingTo,
                   activeColor: AppColors.dropRed,
                   onTap: () => _openSearchOverlay(isPickup: false),
                   onClear: () => _clearInput(isPickup: false),
@@ -1175,7 +1203,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     String currentAddress = _selectedAddress;
 
     if (widget.isRouteSelection) {
-      if (_isSelectingPickup) {
+      if (_hasUserConfirmedSelection) {
+        headingText = 'CONFIRMING JOURNEY...';
+      } else if (_isSelectingPickup) {
         headingText = 'SET PICKUP POINT';
         currentAddress = _pickupAddress ?? 'Tap map to choose pickup...';
       } else {

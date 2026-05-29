@@ -49,7 +49,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   bool _isGettingLocation = false;
   Timer? _debounceTimer;
   List<Map<String, String>> _searchHistory = [];
-  List<Map<String, dynamic>> _savedLocations = [];
+  List<Map<String, dynamic>> _savedLocations = [];                                                                        
   final Map<String, bool> _savingLocationMap = {};
 
   late final AnimationController _slideController;
