@@ -49,6 +49,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   bool _isGettingLocation = false;
   Timer? _debounceTimer;
   List<Map<String, String>> _searchHistory = [];
+  List<Map<String, dynamic>> _savedLocations = [];
+  final Map<String, bool> _savingLocationMap = {};
 
   late final AnimationController _slideController;
   late final AnimationController _pulseController;
@@ -92,6 +94,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
 
     _searchController.addListener(_onSearchChanged);
     _loadHistory();
+    _loadSavedLocations();
   }
 
   Future<void> _loadHistory() async {
@@ -113,6 +116,128 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       }
     } catch (e) {
       debugPrint('Error loading search history: $e');
+    }
+  }
+
+  Future<void> _loadSavedLocations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedJson = prefs.getString('savedLocations');
+      if (savedJson != null) {
+        final List<dynamic> decoded = json.decode(savedJson);
+        if (mounted) {
+          setState(() {
+            _savedLocations = List<Map<String, dynamic>>.from(decoded);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading saved locations: $e');
+    }
+  }
+
+  Future<void> _toggleSaveLocation(Map<String, dynamic> locationData) async {
+    try {
+      final address = locationData['address'] as String;
+      final prefs = await SharedPreferences.getInstance();
+
+      final isAlreadySaved = _savedLocations.any((loc) => loc['address'] == address);
+
+      if (isAlreadySaved) {
+        _savedLocations.removeWhere((loc) => loc['address'] == address);
+      } else {
+        // Enforce the limit of 10 saved locations
+        if (_savedLocations.length >= 10) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Limit of 10 saved locations reached. Unsave an existing one first.'),
+                backgroundColor: Colors.amber,
+              ),
+            );
+          }
+          return;
+        }
+        _savedLocations.add(locationData);
+      }
+
+      await prefs.setString('savedLocations', json.encode(_savedLocations));
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('Error toggling saved location: $e');
+    }
+  }
+
+  Future<void> _resolveAndSave(Map<String, dynamic> tileData, {required bool isSuggestion}) async {
+    final String address = isSuggestion ? tileData['description']! : (widget.isPickup ? tileData['pickup']! : tileData['drop']!);
+    final String mainText = isSuggestion ? tileData['main_text']! : address.split(',')[0];
+    final String secondaryText = isSuggestion ? tileData['secondary_text']! : (address.contains(',') ? address.substring(address.indexOf(',') + 1).trim() : '');
+
+    // Check if already saved
+    final isAlreadySaved = _savedLocations.any((loc) => loc['address'] == address);
+    if (isAlreadySaved) {
+      // Toggle off directly without geocoding
+      await _toggleSaveLocation({'address': address});
+      return;
+    }
+
+    if (_savingLocationMap[address] == true) return;
+
+    setState(() {
+      _savingLocationMap[address] = true;
+    });
+
+    double? lat;
+    double? lng;
+
+    try {
+      if (isSuggestion) {
+        // Resolve via Place Details
+        final placeId = tileData['place_id'] as String;
+        final url = 'https://maps.googleapis.com/maps/api/place/details/json'
+            '?place_id=$placeId&fields=geometry,formatted_address&key=${widget.googleMapsApiKey}';
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['status'] == 'OK') {
+            final loc = data['result']['geometry']['location'];
+            lat = (loc['lat'] as num).toDouble();
+            lng = (loc['lng'] as num).toDouble();
+          }
+        }
+      } else {
+        // Resolve via Geocoding
+        final url = 'https://maps.googleapis.com/maps/api/geocode/json'
+            '?address=${Uri.encodeComponent(address)}&key=${widget.googleMapsApiKey}';
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['status'] == 'OK' && data['results'] != null && (data['results'] as List).isNotEmpty) {
+            final loc = data['results'][0]['geometry']['location'];
+            lat = (loc['lat'] as num).toDouble();
+            lng = (loc['lng'] as num).toDouble();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error resolving coordinates for saving: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _savingLocationMap[address] = false;
+      });
+
+      // Save it
+      await _toggleSaveLocation({
+        'address': address,
+        'main_text': mainText,
+        'secondary_text': secondaryText,
+        'lat': lat,
+        'lng': lng,
+      });
     }
   }
 
@@ -459,7 +584,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
               if (!isKeyboardVisible) const SizedBox(height: 20),
 
               // ── Section Divider Label ─────────────────────────────────
-              if (!isKeyboardVisible)
+              if (!isKeyboardVisible && isSearching)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -477,15 +602,13 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isSearching
-                                  ? Icons.search_rounded
-                                  : Icons.history_rounded,
+                              Icons.search_rounded,
                               size: 13,
                               color: _accentColor,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              isSearching ? 'SUGGESTIONS' : 'RECENT SEARCHES',
+                              'SUGGESTIONS',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -865,17 +988,236 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
 
     final history = _searchHistory.isNotEmpty ? _searchHistory : widget.searchHistory;
 
-    if (history.isNotEmpty) {
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: history.length,
-        itemBuilder: (context, index) {
-          return _buildHistoryTile(history[index], index);
-        },
-      );
+    if (_savedLocations.isEmpty && history.isEmpty) {
+      return _buildEmptyHistoryState();
     }
 
-    return _buildEmptyHistoryState();
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      children: [
+        // --- Saved Locations Section ---
+        if (_savedLocations.isNotEmpty) ...[
+          _buildSectionHeader(title: 'SAVED LOCATIONS', icon: Icons.star_rounded),
+          const SizedBox(height: 10),
+          ...List.generate(
+            _savedLocations.length,
+            (index) => _buildSavedLocationTile(_savedLocations[index], index),
+          ),
+          const SizedBox(height: 20),
+        ],
+
+        // --- Recent Searches Section ---
+        if (history.isNotEmpty) ...[
+          _buildSectionHeader(title: 'RECENT SEARCHES', icon: Icons.history_rounded),
+          const SizedBox(height: 10),
+          ...List.generate(
+            history.length,
+            (index) => _buildHistoryTile(history[index], index),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader({required String title, required IconData icon}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: _accentColor.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 13,
+                color: _accentColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: _accentColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _accentColor.withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStarButton({
+    required String address,
+    required VoidCallback onTap,
+  }) {
+    final isSaved = _savedLocations.any((loc) => loc['address'] == address);
+    final isSaving = _savingLocationMap[address] == true;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isSaving ? null : onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: isSaving
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+                  ),
+                )
+              : Icon(
+                  isSaved ? Icons.star_rounded : Icons.star_outline_rounded,
+                  size: 20,
+                  color: isSaved ? Colors.amber.shade600 : Colors.grey.shade400,
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSavedLocationTile(Map<String, dynamic> item, int index) {
+    final mainText = item['main_text'] as String? ?? item['address'] as String;
+    final secondaryText = item['secondary_text'] as String? ?? '';
+    final address = item['address'] as String;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 180 + index * 40),
+      curve: Curves.easeOut,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, (1 - value) * 10),
+          child: child,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              Navigator.pop(context, {
+                'address': address,
+                'lat': item['lat'],
+                'lng': item['lng'],
+              });
+            },
+            borderRadius: BorderRadius.circular(16),
+            splashColor: _accentColor.withOpacity(0.06),
+            highlightColor: _accentColor.withOpacity(0.03),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.star_rounded,
+                      color: Colors.amber.shade600,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mainText,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (secondaryText.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            secondaryText,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildStarButton(
+                    address: address,
+                    onTap: () => _toggleSaveLocation(item),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: _accentColorLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.arrow_outward_rounded,
+                      size: 16,
+                      color: _accentColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSuggestionTile(Map<String, dynamic> suggestion, int index) {
@@ -964,6 +1306,11 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
+                  _buildStarButton(
+                    address: suggestion['description'] as String,
+                    onTap: () => _resolveAndSave(suggestion, isSuggestion: true),
+                  ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
@@ -1056,40 +1403,39 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.swap_horiz_rounded,
-                                    size: 12,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 160,
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.swap_horiz_rounded,
+                                      size: 12,
+                                      color: Colors.grey.shade500,
                                     ),
-                                    child: Text(
-                                      otherText,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade500,
-                                        fontWeight: FontWeight.w500,
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        otherText,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade500,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -1098,6 +1444,11 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                     ),
                   ),
                   const SizedBox(width: 10),
+                  _buildStarButton(
+                    address: displayText,
+                    onTap: () => _resolveAndSave(item, isSuggestion: false),
+                  ),
+                  const SizedBox(width: 8),
                   Icon(
                     Icons.north_east_rounded,
                     size: 18,
