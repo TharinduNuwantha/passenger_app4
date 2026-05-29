@@ -93,8 +93,15 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     _slideController.forward();
 
     _searchController.addListener(_onSearchChanged);
+    _searchFocusNode.addListener(_onFocusChanged);
     _loadHistory();
     _loadSavedLocations();
+  }
+
+  void _onFocusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadHistory() async {
@@ -245,6 +252,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   void dispose() {
     _debounceTimer?.cancel();
     _searchController.removeListener(_onSearchChanged);
+    _searchFocusNode.removeListener(_onFocusChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
     _slideController.dispose();
@@ -783,14 +791,23 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                     tag: widget.isPickup ? 'search_pickup' : 'search_drop',
                     child: Material(
                       color: Colors.transparent,
-                      child: Container(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
                         height: 54,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _searchFocusNode.hasFocus
+                                ? _accentColor
+                                : Colors.grey.shade200,
+                            width: _searchFocusNode.hasFocus ? 1.6 : 1.0,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.12),
+                              color: _searchFocusNode.hasFocus
+                                  ? _accentColor.withOpacity(0.08)
+                                  : Colors.black.withOpacity(0.06),
                               blurRadius: 16,
                               offset: const Offset(0, 4),
                             ),
@@ -819,6 +836,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                   letterSpacing: 0.1,
                                 ),
                                 decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.white,
                                   hintText: widget.isPickup
                                       ? 'Search pickup location...'
                                       : 'Search destination...',
@@ -828,6 +847,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                     fontWeight: FontWeight.w400,
                                   ),
                                   border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
                                   isDense: true,
                                   contentPadding: const EdgeInsets.symmetric(
                                     vertical: 17,

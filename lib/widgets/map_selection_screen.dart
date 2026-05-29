@@ -1060,7 +1060,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.grey.shade100, width: 1.2),
+        border: Border.all(color: Colors.grey.shade200, width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -1118,13 +1118,13 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: isActive ? activeColor.withOpacity(0.04) : Colors.grey.shade50,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isActive
-                ? activeColor.withOpacity(0.45)
+                ? activeColor
                 : Colors.grey.shade200,
-            width: isActive ? 1.6 : 1.0,
+            width: isActive ? 1.5 : 1.0,
           ),
           boxShadow: isActive
               ? [
