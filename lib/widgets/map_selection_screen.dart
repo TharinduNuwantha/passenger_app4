@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:ui' as ui;
 import '../theme/app_colors.dart';
 import '../screens/home/location_selection_screen.dart';
 
@@ -55,10 +56,198 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   // --- Common States ---
   bool _isLoading = false;
 
+  // --- Custom Bus Marker Bitmaps ---
+  BitmapDescriptor? _busMarkerGreen;
+  BitmapDescriptor? _busMarkerRed;
+
+  // ─── Custom bus marker bitmap builder ───────────────────────────────────
+  /// Renders a bus-themed marker badge onto a [ui.Canvas] and returns
+  /// a [BitmapDescriptor] that can be used directly as a Google Maps marker.
+  Future<BitmapDescriptor> _buildBusMarkerIcon(Color baseColor) async {
+    const double scale = 3.0; // pixel density multiplier
+    const double w = 72.0;
+    const double h = 90.0;
+    const double tipH = 16.0;   // height of the pointed tail
+    const double bodyH = h - tipH;
+    const double radius = 18.0;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    final paint = Paint()..isAntiAlias = true;
+
+    // ── Drop shadow ──
+    paint
+      ..color = Colors.black.withOpacity(0.22)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(4, 4, w - 8, bodyH),
+        const Radius.circular(radius),
+      ),
+      paint,
+    );
+    paint.maskFilter = null;
+
+    // ── Badge body gradient ──
+    final gradient = ui.Gradient.linear(
+      Offset(w / 2, 0),
+      Offset(w / 2, bodyH),
+      [baseColor, Color.lerp(baseColor, Colors.black, 0.28)!],
+    );
+    paint.shader = gradient;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w, bodyH),
+        const Radius.circular(radius),
+      ),
+      paint,
+    );
+    paint.shader = null;
+
+    // ── Pointer tip (centred below badge) ──
+    final tipPath = Path()
+      ..moveTo(w / 2 - 10, bodyH - 1)
+      ..lineTo(w / 2 + 10, bodyH - 1)
+      ..lineTo(w / 2, h - 2)
+      ..close();
+    paint.color = Color.lerp(baseColor, Colors.black, 0.28)!;
+    canvas.drawPath(tipPath, paint);
+
+    // ── Inner white circle ──
+    paint.color = Colors.white.withOpacity(0.15);
+    canvas.drawCircle(Offset(w / 2, bodyH * 0.42), 22, paint);
+
+    // ── Bus icon (drawn as simple geometric shapes for pure Canvas) ──
+    // Bus body
+    final busPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
+    // Bus silhouette — front rect
+    const double busX = 18.0;
+    const double busY = 14.0;
+    const double busW = 36.0;
+    const double busBodyH = 22.0;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(busX, busY, busW, busBodyH),
+        const Radius.circular(4.5),
+      ),
+      busPaint,
+    );
+
+    // Windows row (3 small rects inside bus body)
+    final windowPaint = Paint()
+      ..color = baseColor.withOpacity(0.85)
+      ..isAntiAlias = true;
+    for (int i = 0; i < 3; i++) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(busX + 4 + i * 11.0, busY + 4, 8, 8),
+          const Radius.circular(2),
+        ),
+        windowPaint,
+      );
+    }
+
+    // Wheels (2 circles)
+    final wheelPaint = Paint()
+      ..color = Colors.white
+      ..isAntiAlias = true;
+    canvas.drawCircle(Offset(busX + 8, busY + busBodyH + 1), 5, wheelPaint);
+    canvas.drawCircle(Offset(busX + busW - 8, busY + busBodyH + 1), 5, wheelPaint);
+
+    // Wheel hubs
+    final hubPaint = Paint()
+      ..color = baseColor.withOpacity(0.85)
+      ..isAntiAlias = true;
+    canvas.drawCircle(Offset(busX + 8, busY + busBodyH + 1), 2.5, hubPaint);
+    canvas.drawCircle(Offset(busX + busW - 8, busY + busBodyH + 1), 2.5, hubPaint);
+
+    // ── White border ring ──
+    paint
+      ..color = Colors.white.withOpacity(0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(1, 1, w - 2, bodyH - 2),
+        const Radius.circular(radius - 1),
+      ),
+      paint,
+    );
+    paint.style = PaintingStyle.fill;
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      (w * scale).toInt(),
+      (h * scale).toInt(),
+    );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
+  }
+
+  // ─── Static center overlay bus pin (Flutter Widget) ──────────────────────
+  Widget _buildBusCenterPin(Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Badge
+        Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                color,
+                Color.lerp(color, Colors.black, 0.28)!,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.45),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+            border: Border.all(
+              color: Colors.white.withOpacity(0.30),
+              width: 1.2,
+            ),
+          ),
+          child: const Icon(
+            Icons.directions_bus_rounded,
+            color: Colors.white,
+            size: 32,
+          ),
+        ),
+        // Pointer tip
+        CustomPaint(
+          size: const Size(20, 12),
+          painter: _PointerTipPainter(
+            color: Color.lerp(color, Colors.black, 0.28)!,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _isSelectingPickup = widget.startWithPickup;
+    _initBusMarkers();
 
     if (widget.isRouteSelection) {
       if (widget.initialPickupLat != null && widget.initialPickupLng != null) {
@@ -92,6 +281,17 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       } else {
         _getCurrentLocation();
       }
+    }
+  }
+
+  Future<void> _initBusMarkers() async {
+    final green = await _buildBusMarkerIcon(AppColors.pickupGreen);
+    final red = await _buildBusMarkerIcon(AppColors.dropRed);
+    if (mounted) {
+      setState(() {
+        _busMarkerGreen = green;
+        _busMarkerRed = red;
+      });
     }
   }
 
@@ -447,9 +647,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           Marker(
             markerId: const MarkerId('pickup_marker'),
             position: _pickupLocation!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueGreen,
-            ),
+            icon: _busMarkerGreen ??
+                BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueGreen,
+                ),
+            anchor: const Offset(0.5, 1.0),
           ),
         );
       }
@@ -459,9 +661,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           Marker(
             markerId: const MarkerId('drop_marker'),
             position: _dropLocation!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueRed,
-            ),
+            icon: _busMarkerRed ??
+                BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueRed,
+                ),
+            anchor: const Offset(0.5, 1.0),
           ),
         );
       }
@@ -545,24 +749,13 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             ),
           ),
 
-          // 2. Static Center Pin
+          // 2. Static Bus-themed Center Pin
           IgnorePointer(
             child: Center(
               child: Transform.translate(
-                offset: const Offset(0, -22),
-                child: Icon(
-                  Icons.location_on_rounded,
-                  size: 52,
-                  color: widget.isRouteSelection
-                      ? themeColor
-                      : AppColors.primary,
-                  shadows: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                offset: const Offset(0, -35),
+                child: _buildBusCenterPin(
+                  widget.isRouteSelection ? themeColor : AppColors.primary,
                 ),
               ),
             ),
@@ -1217,4 +1410,29 @@ class _ShimmerLoaderState extends State<ShimmerLoader>
       ),
     );
   }
+}
+
+/// Draws a downward-pointing triangle used as the pin tail on [_buildBusCenterPin].
+class _PointerTipPainter extends CustomPainter {
+  final Color color;
+  const _PointerTipPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..isAntiAlias = true
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_PointerTipPainter old) => old.color != color;
 }

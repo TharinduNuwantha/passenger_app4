@@ -72,10 +72,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
 
     _fadeAnimation = CurvedAnimation(
       parent: _slideController,
@@ -296,7 +296,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
             ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -382,7 +384,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                           sublabel: 'Use GPS',
                           color: _accentColor,
                           bgColor: _accentColorLight,
-                          onTap: _isGettingLocation ? null : _useCurrentLocation,
+                          onTap: _isGettingLocation
+                              ? null
+                              : _useCurrentLocation,
                           isLoading: _isGettingLocation,
                         ),
                       ),
@@ -515,7 +519,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
           ),
           // Content
           Padding(
-            padding: EdgeInsets.fromLTRB(8, 12, 12, isKeyboardVisible ? 12 : 20),
+            padding: EdgeInsets.fromLTRB(
+              8,
+              12,
+              12,
+              isKeyboardVisible ? 12 : 20,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -616,7 +625,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                         child: Row(
                           children: [
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               child: Icon(
                                 Icons.search_rounded,
                                 color: _accentColor,
@@ -644,8 +655,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                   ),
                                   border: InputBorder.none,
                                   isDense: true,
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(vertical: 17),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 17,
+                                  ),
                                 ),
                                 textInputAction: TextInputAction.search,
                                 cursorColor: _accentColor,
@@ -659,7 +671,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      _accentColor,
+                                    ),
                                   ),
                                 ),
                               )
@@ -1008,7 +1022,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                   ),
                                   const SizedBox(width: 4),
                                   ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 160),
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 160,
+                                    ),
                                     child: Text(
                                       otherText,
                                       style: TextStyle(
