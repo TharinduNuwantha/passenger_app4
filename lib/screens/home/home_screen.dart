@@ -150,7 +150,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     _loadNotifications(silent: true);
 
     // Auto-detect current location for pickup
-    _useCurrentLocation(isPickup: true);
+    _useCurrentLocation(isPickup: true, silent: true);
   }
 
   void _startRefreshTimer() {
@@ -882,13 +882,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   // Get current location and populate search field
-  Future<void> _useCurrentLocation({required bool isPickup}) async {
+  Future<void> _useCurrentLocation({required bool isPickup, bool silent = false}) async {
     if (isPickup) {
       pickupController.text = 'Your Location';
       setState(() {
         _isFindingLocation = true;
       });
-      _locationFetchFuture = _doUseCurrentLocation(isPickup: true).whenComplete(
+      _locationFetchFuture = _doUseCurrentLocation(isPickup: true, silent: silent).whenComplete(
         () {
           if (mounted)
             setState(() {
@@ -898,18 +898,18 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       );
       return _locationFetchFuture;
     } else {
-      return _doUseCurrentLocation(isPickup: false);
+      return _doUseCurrentLocation(isPickup: false, silent: silent);
     }
   }
 
-  Future<void> _doUseCurrentLocation({required bool isPickup}) async {
+  Future<void> _doUseCurrentLocation({required bool isPickup, bool silent = false}) async {
     try {
       // Permission and Service status is already enforced by LocationGatekeeper
 
       // Get current position
 
       // Show loading indicator
-      if (mounted) {
+      if (!silent && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Row(
@@ -993,7 +993,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             }
           });
 
-          if (mounted) {
+          if (!silent && mounted) {
             FocusScope.of(context).unfocus();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -1009,7 +1009,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       }
     } catch (e) {
       print('Error getting current location: $e');
-      if (mounted) {
+      if (!silent && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to get current location'),
