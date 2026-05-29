@@ -341,11 +341,37 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     }
   }
 
-  // ── Recent history quick select ───────────────────────────────────────────
-
-  void _selectFromHistory(Map<String, String> item) {
+  Future<void> _selectFromHistory(Map<String, String> item) async {
     HapticFeedback.selectionClick();
     final address = widget.isPickup ? item['pickup']! : item['drop']!;
+
+    // Resolve coordinates using Geocoding API so the map pointer can center on it
+    final url =
+        'https://maps.googleapis.com/maps/api/geocode/json'
+        '?address=${Uri.encodeComponent(address)}'
+        '&key=${widget.googleMapsApiKey}';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'OK' &&
+            data['results'] != null &&
+            (data['results'] as List).isNotEmpty) {
+          final loc = data['results'][0]['geometry']['location'];
+          Navigator.pop(context, {
+            'address': address,
+            'lat': (loc['lat'] as num).toDouble(),
+            'lng': (loc['lng'] as num).toDouble(),
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error geocoding history item: $e');
+    }
+
+    // Fallback if geocoding fails
     Navigator.pop(context, {'address': address, 'lat': null, 'lng': null});
   }
 

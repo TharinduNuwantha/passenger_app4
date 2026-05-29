@@ -55,6 +55,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   // --- Common States ---
   bool _isLoading = false;
+  /// Tracks how many programmatic camera moves are in-flight.
+  /// While > 0, onCameraMove won't overwrite coordinates and
+  /// onCameraIdle won't reverse-geocode.
+  int _programmaticMoveCount = 0;
 
   // --- Custom Bus Marker Bitmaps ---
   BitmapDescriptor? _busMarkerGreen;
@@ -327,7 +331,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           }
         });
 
-        _moveMapToLocation(currentLatLng);
+        _animateCameraTo(currentLatLng);
         _getAddressFromLatLng(currentLatLng);
       }
     } catch (e) {
@@ -335,19 +339,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     }
   }
 
-  void _moveMapToLocation(LatLng position) {
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(position, 16));
-    setState(() {
-      if (widget.isRouteSelection) {
-        if (_isSelectingPickup) {
-          _pickupLocation = position;
-        } else {
-          _dropLocation = position;
-        }
-      } else {
-        _selectedLocation = position;
-      }
-    });
+  /// Animates the camera to [position] **without** updating
+  /// any address/location state. Increments _programmaticMoveCount
+  /// so that onCameraMove/onCameraIdle ignore the resulting events.
+  void _animateCameraTo(LatLng position, {double zoom = 16}) {
+    _programmaticMoveCount++;
+    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(position, zoom));
   }
 
   // Fits map bounds to show both pickup and destination locations
@@ -507,43 +504,69 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             _dropAddress = null;
           }
         });
-
-        final currentPos = isPickup ? _pickupLocation : _dropLocation;
-        if (currentPos != null) {
-          _mapController?.animateCamera(CameraUpdate.newLatLng(currentPos));
-        }
         return;
       }
 
       final address = result['address'] as String?;
-      final lat = (result['lat'] as num?)?.toDouble();
-      final lng = (result['lng'] as num?)?.toDouble();
+      double? lat = (result['lat'] as num?)?.toDouble();
+      double? lng = (result['lng'] as num?)?.toDouble();
 
-      if (address != null && lat != null && lng != null) {
-        final latLng = LatLng(lat, lng);
-        setState(() {
-          if (widget.isRouteSelection) {
-            if (isPickup) {
-              _pickupAddress = address;
-              _pickupLocation = latLng;
-              _isSelectingPickup = false;
-              _openSearchOverlay(isPickup: false);
-            } else {
-              _dropAddress = address;
-              _dropLocation = latLng;
+      if (address != null) {
+        // Resolve coordinates via Geocoding API if not provided
+        if (lat == null || lng == null) {
+          final url = 'https://maps.googleapis.com/maps/api/geocode/json'
+              '?address=${Uri.encodeComponent(address)}&key=${widget.apiKey}';
+          try {
+            final response = await http.get(Uri.parse(url));
+            if (response.statusCode == 200) {
+              final data = json.decode(response.body);
+              if (data['status'] == 'OK' &&
+                  data['results'] != null &&
+                  (data['results'] as List).isNotEmpty) {
+                final loc = data['results'][0]['geometry']['location'];
+                lat = (loc['lat'] as num).toDouble();
+                lng = (loc['lng'] as num).toDouble();
+              }
             }
-          } else {
-            _selectedAddress = address;
-            _selectedLocation = latLng;
+          } catch (e) {
+            debugPrint('Error geocoding fallback: $e');
           }
-        });
+        }
 
-        if (widget.isRouteSelection &&
-            _pickupLocation != null &&
-            _dropLocation != null) {
-          _fitMapToRoute();
-        } else {
-          _moveMapToLocation(latLng);
+        if (lat != null && lng != null) {
+          final latLng = LatLng(lat, lng);
+
+          // 1) Set the correct selection mode so onCameraMove/center pin
+          //    both track the right field from this point forward.
+          setState(() {
+            if (widget.isRouteSelection) {
+              _isSelectingPickup = isPickup;
+              if (isPickup) {
+                _pickupAddress = address;
+                _pickupLocation = latLng;
+              } else {
+                _dropAddress = address;
+                _dropLocation = latLng;
+              }
+            } else {
+              _selectedAddress = address;
+              _selectedLocation = latLng;
+            }
+          });
+
+          // 2) Always animate camera to the SELECTED location so the
+          //    center overlay pin lands exactly on it.
+          _animateCameraTo(latLng);
+
+          // 3) If pickup was just set, switch to drop mode and auto-open
+          //    destination search after the camera animation settles.
+          if (widget.isRouteSelection && isPickup) {
+            Future.delayed(const Duration(milliseconds: 400), () {
+              if (!mounted) return;
+              setState(() => _isSelectingPickup = false);
+              _openSearchOverlay(isPickup: false);
+            });
+          }
         }
       }
     }
@@ -562,11 +585,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     });
 
     if (_pickupLocation != null && _dropLocation != null) {
+      _programmaticMoveCount++;
       _fitMapToRoute();
     } else if (_isSelectingPickup && _pickupLocation != null) {
-      _moveMapToLocation(_pickupLocation!);
+      _animateCameraTo(_pickupLocation!);
     } else if (!_isSelectingPickup && _dropLocation != null) {
-      _moveMapToLocation(_dropLocation!);
+      _animateCameraTo(_dropLocation!);
     }
   }
 
@@ -587,7 +611,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         });
 
         if (_dropLocation != null) {
-          _moveMapToLocation(_dropLocation!);
+          _animateCameraTo(_dropLocation!);
         }
       } else {
         if (_dropLocation == null) {
@@ -716,6 +740,8 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 }
               },
               onCameraMove: (position) {
+                // Skip coordinate updates during programmatic animations
+                if (_programmaticMoveCount > 0) return;
                 if (widget.isRouteSelection) {
                   if (_isSelectingPickup) {
                     _pickupLocation = position.target;
@@ -727,6 +753,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 }
               },
               onCameraIdle: () {
+                if (_programmaticMoveCount > 0) {
+                  _programmaticMoveCount--;
+                  setState(() {});
+                  return;
+                }
                 setState(() {});
                 final currentPos = widget.isRouteSelection
                     ? (_isSelectingPickup ? _pickupLocation : _dropLocation)
@@ -736,7 +767,19 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 }
               },
               onTap: (position) {
-                _moveMapToLocation(position);
+                // User tapped the map — update state directly, then animate
+                setState(() {
+                  if (widget.isRouteSelection) {
+                    if (_isSelectingPickup) {
+                      _pickupLocation = position;
+                    } else {
+                      _dropLocation = position;
+                    }
+                  } else {
+                    _selectedLocation = position;
+                  }
+                });
+                _animateCameraTo(position);
                 _getAddressFromLatLng(position);
               },
               myLocationEnabled: true,
