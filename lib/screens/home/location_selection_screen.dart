@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../../theme/app_colors.dart';
@@ -47,6 +48,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
   bool _isLoadingSuggestions = false;
   bool _isGettingLocation = false;
   Timer? _debounceTimer;
+  List<Map<String, String>> _searchHistory = [];
 
   late final AnimationController _slideController;
   late final AnimationController _pulseController;
@@ -89,6 +91,29 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
     _slideController.forward();
 
     _searchController.addListener(_onSearchChanged);
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyJson = prefs.getString('searchHistory');
+      if (historyJson != null) {
+        final List<dynamic> decoded = json.decode(historyJson);
+        if (mounted) {
+          setState(() {
+            _searchHistory = decoded.map((item) {
+              return {
+                'pickup': (item['pickup'] ?? '').toString(),
+                'drop': (item['drop'] ?? '').toString(),
+              };
+            }).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading search history: $e');
+    }
   }
 
   @override
@@ -838,12 +863,14 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
       return _buildEmptySearchState();
     }
 
-    if (widget.searchHistory.isNotEmpty) {
+    final history = _searchHistory.isNotEmpty ? _searchHistory : widget.searchHistory;
+
+    if (history.isNotEmpty) {
       return ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: widget.searchHistory.length,
+        itemCount: history.length,
         itemBuilder: (context, index) {
-          return _buildHistoryTile(widget.searchHistory[index], index);
+          return _buildHistoryTile(history[index], index);
         },
       );
     }

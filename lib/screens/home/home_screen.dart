@@ -93,7 +93,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   // Search service for fuzzy matching
   final SearchService _searchService = SearchService();
 
-  // Search History (last 3 searches)
+  // Search History (last 5 searches)
   List<Map<String, String>> _searchHistory = [];
 
   String? firstName;
@@ -232,7 +232,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     await prefs.setString('searchHistory', json.encode(_searchHistory));
   }
 
-  // Add search to history (limit to 3)
+  // Add search to history (limit to 5)
   Future<void> _addToSearchHistory(String pickup, String drop) async {
     // Check if this combination already exists
     _searchHistory.removeWhere(
@@ -242,9 +242,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     // Add to beginning of list
     _searchHistory.insert(0, {'pickup': pickup, 'drop': drop});
 
-    // Keep only last 3 searches
-    if (_searchHistory.length > 3) {
-      _searchHistory = _searchHistory.sublist(0, 3);
+    // Keep only last 5 searches
+    if (_searchHistory.length > 5) {
+      _searchHistory = _searchHistory.sublist(0, 5);
     }
 
     await _saveSearchHistory();
