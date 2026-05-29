@@ -114,14 +114,20 @@ class CombinedBookingsService {
       }
 
       // Defensive filter: ensure only exact upcoming or inProgress items are included when status is upcoming
+      // Defensive filter: ensure only exact upcoming or inProgress items are included when status is upcoming
       if (status == 'upcoming') {
         unified.retainWhere((b) => b.status == UnifiedBookingStatus.upcoming || b.status == UnifiedBookingStatus.inProgress);
+      }
+
+      // Defensive filter: ensure only exact notCompleted items are included when status is not_completed
+      if (status == 'not_completed') {
+        unified.retainWhere((b) => b.status == UnifiedBookingStatus.notCompleted);
       }
 
       // Sort based on status semantics
       if (status == 'upcoming') {
         unified.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-      } else if (status == 'completed') {
+      } else if (status == 'completed' || status == 'not_completed') {
         unified.sort((a, b) => b.dateTime.compareTo(a.dateTime));
       } else {
         unified.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -166,6 +172,21 @@ class CombinedBookingsService {
   }) async {
     final result = await getPagedBookings(
       status: 'completed',
+      busPage: page,
+      loungePage: page,
+      limit: limit,
+    );
+    return result.bookings;
+  }
+
+  /// Get not completed bookings (both bus and lounge) - first page
+  /// Sorted by datetime descending (most recent first)
+  Future<List<UnifiedBooking>> getNotCompletedBookings({
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final result = await getPagedBookings(
+      status: 'not_completed',
       busPage: page,
       loungePage: page,
       limit: limit,

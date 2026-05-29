@@ -954,12 +954,13 @@ func (h *LoungeBookingHandler) GetMyLoungeBookings(c *gin.Context) {
 
 	if statusFilter != "" {
 		validStatuses := map[string]bool{
-			"pending":    true,
-			"confirmed":  true,
-			"checked_in": true,
-			"completed":  true,
-			"cancelled":  true,
-			"no_show":    true,
+			"pending":       true,
+			"confirmed":     true,
+			"checked_in":    true,
+			"completed":     true,
+			"cancelled":     true,
+			"no_show":       true,
+			"not_completed": true,
 		}
 
 		if !validStatuses[statusFilter] {
@@ -974,7 +975,9 @@ func (h *LoungeBookingHandler) GetMyLoungeBookings(c *gin.Context) {
 	var bookings []models.LoungeBookingListItem
 	var err error
 
-	if statusFilter != "" {
+	if statusFilter == "not_completed" {
+		bookings, err = h.bookingRepo.GetNotCompletedLoungeBookingsByUserID(userCtx.UserID, limit, offset)
+	} else if statusFilter != "" {
 		// Filter by specific status
 		bookings, err = h.bookingRepo.GetLoungeBookingsByUserIDAndStatus(userCtx.UserID, statusFilter, limit, offset)
 	} else {

@@ -35,7 +35,8 @@ enum UnifiedBookingStatus {
   upcoming,
   inProgress,
   completed,
-  cancelled;
+  cancelled,
+  notCompleted;
 
   String get displayName {
     switch (this) {
@@ -47,6 +48,8 @@ enum UnifiedBookingStatus {
         return 'Completed';
       case UnifiedBookingStatus.cancelled:
         return 'Cancelled';
+      case UnifiedBookingStatus.notCompleted:
+        return 'Not Completed';
     }
   }
 }
@@ -104,7 +107,7 @@ class UnifiedBooking {
     if (isCompleted) {
       mappedStatus = UnifiedBookingStatus.completed;
     } else if (isExpired && booking.bookingStatus != MasterBookingStatus.cancelled && booking.busStatus != BusBookingStatus.cancelled) {
-      mappedStatus = UnifiedBookingStatus.cancelled;
+      mappedStatus = UnifiedBookingStatus.notCompleted;
     } else {
       mappedStatus = _mapBusStatus(booking.bookingStatus);
     }
@@ -134,7 +137,7 @@ class UnifiedBooking {
     if (isCompleted) {
       mappedStatus = UnifiedBookingStatus.completed;
     } else if (isExpired && booking.bookingStatus != LoungeBookingStatus.cancelled && booking.bookingStatus != LoungeBookingStatus.noShow) {
-      mappedStatus = UnifiedBookingStatus.cancelled;
+      mappedStatus = UnifiedBookingStatus.notCompleted;
     } else {
       mappedStatus = _mapLoungeStatus(booking.bookingStatus);
     }

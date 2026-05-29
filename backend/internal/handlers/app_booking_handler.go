@@ -233,6 +233,8 @@ func (h *AppBookingHandler) GetMyBookings(c *gin.Context) {
 
 	if status == "upcoming" {
 		bookings, err = h.bookingRepo.GetUpcomingBookingsByUserID(userCtx.UserID.String(), limit, offset)
+	} else if status == "not_completed" {
+		bookings, err = h.bookingRepo.GetNotCompletedBookingsByUserID(userCtx.UserID.String(), limit, offset)
 	} else if status == "completed" {
 		bookings, err = h.bookingRepo.GetCompletedBookingsByUserID(userCtx.UserID.String(), limit, offset)
 	} else if status == "cancelled" {

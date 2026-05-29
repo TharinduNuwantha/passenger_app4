@@ -26,6 +26,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   static const int _pageSize = 20;
 
   final ScrollController _upcomingController = ScrollController();
+  final ScrollController _notCompletedController = ScrollController();
   final ScrollController _completedController = ScrollController();
   final ScrollController _cancelledController = ScrollController();
 
@@ -33,6 +34,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   int _upcomingLoungePage = 1;
   bool _hasMoreUpcomingBus = true;
   bool _hasMoreUpcomingLounge = true;
+
+  int _notCompletedBusPage = 1;
+  int _notCompletedLoungePage = 1;
+  bool _hasMoreNotCompletedBus = true;
+  bool _hasMoreNotCompletedLounge = true;
 
   int _completedBusPage = 1;
   int _completedLoungePage = 1;
@@ -45,27 +51,32 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   bool _hasMoreCancelledLounge = true;
 
   List<UnifiedBooking> _upcomingBookings = [];
+  List<UnifiedBooking> _notCompletedBookings = [];
   List<UnifiedBooking> _completedBookings = [];
   List<UnifiedBooking> _cancelledBookings = [];
 
   bool _isLoadingUpcoming = true;
+  bool _isLoadingNotCompleted = false;
   bool _isLoadingCompleted = false;
   bool _isLoadingCancelled = false;
 
   bool _isLoadingUpcomingMore = false;
+  bool _isLoadingNotCompletedMore = false;
   bool _isLoadingCompletedMore = false;
   bool _isLoadingCancelledMore = false;
 
   String? _errorUpcoming;
+  String? _errorNotCompleted;
   String? _errorCompleted;
   String? _errorCancelled;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
     _upcomingController.addListener(_onUpcomingScroll);
+    _notCompletedController.addListener(_onNotCompletedScroll);
     _completedController.addListener(_onCompletedScroll);
     _cancelledController.addListener(_onCancelledScroll);
     _loadUpcomingBookings();
@@ -76,9 +87,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _upcomingController.removeListener(_onUpcomingScroll);
+    _notCompletedController.removeListener(_onNotCompletedScroll);
     _completedController.removeListener(_onCompletedScroll);
     _cancelledController.removeListener(_onCancelledScroll);
     _upcomingController.dispose();
+    _notCompletedController.dispose();
     _completedController.dispose();
     _cancelledController.dispose();
     super.dispose();
@@ -95,13 +108,20 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
           }
           break;
         case 1:
+          if (_notCompletedBookings.isEmpty &&
+              !_isLoadingNotCompleted &&
+              _errorNotCompleted == null) {
+            _loadNotCompletedBookings();
+          }
+          break;
+        case 2:
           if (_completedBookings.isEmpty &&
               !_isLoadingCompleted &&
               _errorCompleted == null) {
             _loadCompletedBookings();
           }
           break;
-        case 2:
+        case 3:
           if (_cancelledBookings.isEmpty &&
               !_isLoadingCancelled &&
               _errorCancelled == null) {
@@ -116,6 +136,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
       (_hasMoreUpcomingBus || _hasMoreUpcomingLounge) &&
       !_isLoadingUpcomingMore &&
       !_isLoadingUpcoming;
+
+  bool _canLoadMoreNotCompleted() =>
+      (_hasMoreNotCompletedBus || _hasMoreNotCompletedLounge) &&
+      !_isLoadingNotCompletedMore &&
+      !_isLoadingNotCompleted;
 
   bool _canLoadMoreCompleted() =>
       (_hasMoreCompletedBus || _hasMoreCompletedLounge) &&
@@ -133,6 +158,15 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                 200 &&
         _canLoadMoreUpcoming()) {
       _loadUpcomingBookings(loadMore: true);
+    }
+  }
+
+  void _onNotCompletedScroll() {
+    if (_notCompletedController.position.pixels >=
+            _notCompletedController.position.maxScrollExtent -
+                200 &&
+        _canLoadMoreNotCompleted()) {
+      _loadNotCompletedBookings(loadMore: true);
     }
   }
 
@@ -206,6 +240,62 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         _errorUpcoming = e.toString().replaceAll('Exception: ', '');
         _isLoadingUpcoming = false;
         _isLoadingUpcomingMore = false;
+      });
+    }
+  }
+
+  Future<void> _loadNotCompletedBookings({bool loadMore = false}) async {
+    if (loadMore && !_canLoadMoreNotCompleted()) return;
+
+    if (!loadMore) {
+      _notCompletedBusPage = 1;
+      _notCompletedLoungePage = 1;
+      _hasMoreNotCompletedBus = true;
+      _hasMoreNotCompletedLounge = true;
+      _notCompletedBookings = [];
+    }
+
+    setState(() {
+      if (loadMore) {
+        _isLoadingNotCompletedMore = true;
+      } else {
+        _isLoadingNotCompleted = true;
+        _errorNotCompleted = null;
+      }
+    });
+
+    try {
+      final result = await _bookingsService.getPagedBookings(
+        status: 'not_completed',
+        busPage: _notCompletedBusPage,
+        loungePage: _notCompletedLoungePage,
+        limit: _pageSize,
+      );
+
+      final merged = [
+        ..._notCompletedBookings,
+        ...result.bookings,
+      ];
+      _sortBookings(merged, 'not_completed');
+
+      setState(() {
+        _notCompletedBookings = merged;
+        _isLoadingNotCompleted = false;
+        _isLoadingNotCompletedMore = false;
+        _hasMoreNotCompletedBus = result.hasMoreBus;
+        _hasMoreNotCompletedLounge = result.hasMoreLounge;
+        if (result.hasMoreBus) _notCompletedBusPage += 1;
+        if (result.hasMoreLounge) _notCompletedLoungePage += 1;
+      });
+      _logger.i(
+        'Loaded ${result.bookings.length} not completed bookings (total ${merged.length})',
+      );
+    } catch (e) {
+      _logger.e('Failed to load not completed bookings: $e');
+      setState(() {
+        _errorNotCompleted = e.toString().replaceAll('Exception: ', '');
+        _isLoadingNotCompleted = false;
+        _isLoadingNotCompletedMore = false;
       });
     }
   }
@@ -407,6 +497,16 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              Icon(Icons.warning_amber_rounded, size: 14),
+                              SizedBox(width: 3),
+                              Text('Not Completed'),
+                            ],
+                          ),
+                        ),
+                        Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
                               Icon(Icons.check_circle_outline, size: 14),
                               SizedBox(width: 3),
                               Text('Completed'),
@@ -457,6 +557,19 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                       controller: _upcomingController,
                       canLoadMore:
                           _hasMoreUpcomingBus || _hasMoreUpcomingLounge,
+                    ),
+                    _buildBookingsList(
+                      bookings: _notCompletedBookings,
+                      isLoading: _isLoadingNotCompleted,
+                      isLoadingMore: _isLoadingNotCompletedMore,
+                      error: _errorNotCompleted,
+                      onRefresh: _loadNotCompletedBookings,
+                      emptyTitle: 'No pending trips',
+                      emptySubtitle: 'Expired but incomplete trips appear here',
+                      emptyIcon: Icons.warning_amber_rounded,
+                      controller: _notCompletedController,
+                      canLoadMore:
+                          _hasMoreNotCompletedBus || _hasMoreNotCompletedLounge,
                     ),
                     _buildBookingsList(
                       bookings: _completedBookings,
@@ -874,6 +987,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         bgColor = const Color(0xFFFEE2E2);
         textColor = const Color(0xFF991B1B);
         text = 'Cancelled';
+        break;
+      case UnifiedBookingStatus.notCompleted:
+        bgColor = const Color(0xFFFEF3C7); // Amber background (similar to inProgress/warning)
+        textColor = const Color(0xFFB45309); // Dark amber text
+        text = 'Not Completed';
         break;
     }
 

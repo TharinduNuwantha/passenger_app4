@@ -693,6 +693,26 @@ func (r *LoungeBookingRepository) GetUpcomingLoungeBookingsByUserID(userID uuid.
 	return bookings, err
 }
 
+// GetNotCompletedLoungeBookingsByUserID returns past confirmed bookings for a user
+func (r *LoungeBookingRepository) GetNotCompletedLoungeBookingsByUserID(userID uuid.UUID, limit, offset int) ([]models.LoungeBookingListItem, error) {
+	var bookings []models.LoungeBookingListItem
+	query := `
+		SELECT 
+			lb.id, lb.booking_reference, lb.lounge_id, l.lounge_name,
+			lb.booking_type, lb.scheduled_arrival, lb.number_of_guests,
+			lb.total_amount, lb.status, lb.payment_status, lb.created_at
+		FROM lounge_bookings lb
+		JOIN lounges l ON lb.lounge_id = l.id
+		WHERE lb.user_id = $1 
+		  AND lb.status IN ('confirmed')
+		  AND lb.scheduled_arrival <= NOW()
+		ORDER BY lb.scheduled_arrival DESC
+		LIMIT $2 OFFSET $3
+	`
+	err := r.db.Select(&bookings, query, userID, limit, offset)
+	return bookings, err
+}
+
 // GetLoungeBookingsByUserIDAndStatus returns bookings for a user filtered by status
 func (r *LoungeBookingRepository) GetLoungeBookingsByUserIDAndStatus(userID uuid.UUID, status string, limit, offset int) ([]models.LoungeBookingListItem, error) {
 	var bookings []models.LoungeBookingListItem

@@ -440,10 +440,37 @@ func (r *AppBookingRepository) GetExpiredOrCancelledBookingsByUserID(userID stri
 			-- Explicitly cancelled by user or system
 			b.booking_status IN ('cancelled', 'partial_cancel')
 			OR bb.status IN ('cancelled', 'no_show')
-			-- OR expired: departure has passed and trip was not completed
-			OR (st.departure_datetime IS NOT NULL AND st.departure_datetime < NOW())
 		  )
 		ORDER BY b.created_at DESC
+		LIMIT $2 OFFSET $3`
+
+	var bookings []models.BookingListItem
+	err := r.db.Select(&bookings, query, userID, limit, offset)
+	return bookings, err
+}
+
+// GetNotCompletedBookingsByUserID retrieves past confirmed bookings where
+// scheduled_trips.departure_datetime < NOW() and not completed.
+// This is used for the Not Completed tab in the passenger app.
+func (r *AppBookingRepository) GetNotCompletedBookingsByUserID(userID string, limit, offset int) ([]models.BookingListItem, error) {
+	query := `
+		SELECT 
+			b.id, b.booking_reference, b.booking_type,
+			b.total_amount, b.payment_status, b.booking_status,
+			b.passenger_name, b.created_at,
+			bor.custom_route_name as route_name, 
+			st.departure_datetime, 
+			bb.number_of_seats,
+			bb.status as bus_status, bb.qr_code_data
+		FROM bookings b
+		INNER JOIN bus_bookings bb ON bb.booking_id = b.id
+		INNER JOIN scheduled_trips st ON st.id = bb.scheduled_trip_id
+		LEFT JOIN bus_owner_routes bor ON bor.id = st.bus_owner_route_id
+		WHERE b.user_id = $1
+		  AND b.booking_status NOT IN ('cancelled', 'completed', 'partial_cancel')
+		  AND bb.status NOT IN ('cancelled', 'completed', 'no_show')
+		  AND st.departure_datetime <= NOW()
+		ORDER BY st.departure_datetime DESC
 		LIMIT $2 OFFSET $3`
 
 	var bookings []models.BookingListItem
