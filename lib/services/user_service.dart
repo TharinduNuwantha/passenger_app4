@@ -62,6 +62,8 @@ class UserService {
         'address': (address != null && address.isNotEmpty) ? address : 'N/A',
         'city': (city != null && city.isNotEmpty) ? city : 'N/A',
         'postal_code': (postalCode != null && postalCode.isNotEmpty) ? postalCode : '00000',
+        'nic': nic,
+        'date_of_birth': dateOfBirth,
       };
 
       _logger.i('Sending profile update (PUT) to ${ApiConfig.updateProfileEndpoint}');

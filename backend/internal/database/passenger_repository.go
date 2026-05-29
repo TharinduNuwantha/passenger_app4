@@ -187,7 +187,7 @@ func (r *PassengerRepository) SetPassengerProfileCompleted(userID uuid.UUID, com
 }
 
 // UpdatePassengerProfile updates full passenger profile
-func (r *PassengerRepository) UpdatePassengerProfile(userID uuid.UUID, firstName, lastName, email, profilePhotoURL, address, city, postalCode string) error {
+func (r *PassengerRepository) UpdatePassengerProfile(userID uuid.UUID, firstName, lastName, email, profilePhotoURL, address, city, postalCode, nic string, dateOfBirth *time.Time) error {
 	query := `
 		UPDATE passengers
 		SET first_name = $1,
@@ -197,11 +197,23 @@ func (r *PassengerRepository) UpdatePassengerProfile(userID uuid.UUID, firstName
 		    address = $5,
 		    city = $6,
 		    postal_code = $7,
-		    updated_at = $8
-		WHERE user_id = $9
+		    nic = $8,
+		    date_of_birth = $9,
+		    updated_at = $10
+		WHERE user_id = $11
 	`
 
-	result, err := r.db.Exec(query, firstName, lastName, email, profilePhotoURL, address, city, postalCode, time.Now(), userID)
+	var dobVal interface{} = nil
+	if dateOfBirth != nil {
+		dobVal = *dateOfBirth
+	}
+
+	var nicVal interface{} = nil
+	if nic != "" {
+		nicVal = nic
+	}
+
+	result, err := r.db.Exec(query, firstName, lastName, email, profilePhotoURL, address, city, postalCode, nicVal, dobVal, time.Now(), userID)
 
 	if err != nil {
 		return fmt.Errorf("failed to update passenger profile: %w", err)

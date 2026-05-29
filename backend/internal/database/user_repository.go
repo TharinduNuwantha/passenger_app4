@@ -237,7 +237,7 @@ func (r *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 }
 
 // UpdateProfile updates user profile information
-func (r *UserRepository) UpdateProfile(id uuid.UUID, firstName, lastName, email, gender, profilePhotoURL, address, city, postalCode string) error {
+func (r *UserRepository) UpdateProfile(id uuid.UUID, firstName, lastName, email, gender, profilePhotoURL, address, city, postalCode, nic string, dateOfBirth *time.Time) error {
 	query := `
 		UPDATE users
 		SET first_name = $1, 
@@ -248,11 +248,23 @@ func (r *UserRepository) UpdateProfile(id uuid.UUID, firstName, lastName, email,
 		    address = $6,
 		    city = $7,
 		    postal_code = $8,
-		    updated_at = $9
-		WHERE id = $10
+		    nic = $9,
+		    date_of_birth = $10,
+		    updated_at = $11
+		WHERE id = $12
 	`
 
-	result, err := r.db.Exec(query, firstName, lastName, email, gender, profilePhotoURL, address, city, postalCode, time.Now(), id)
+	var dobVal interface{} = nil
+	if dateOfBirth != nil {
+		dobVal = *dateOfBirth
+	}
+
+	var nicVal interface{} = nil
+	if nic != "" {
+		nicVal = nic
+	}
+
+	result, err := r.db.Exec(query, firstName, lastName, email, gender, profilePhotoURL, address, city, postalCode, nicVal, dobVal, time.Now(), id)
 
 	if err != nil {
 		return fmt.Errorf("failed to update profile: %w", err)

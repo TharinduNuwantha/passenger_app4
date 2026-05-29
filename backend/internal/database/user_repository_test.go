@@ -217,15 +217,19 @@ func TestUpdateProfile(t *testing.T) {
 		firstName := "John"
 		lastName := "Doe"
 		email := "john.doe@example.com"
+		gender := "male"
+		profilePhotoURL := "http://example.com/photo.jpg"
 		address := "123 Main Street"
 		city := "Colombo"
 		postalCode := "10100"
+		nic := "199512345678"
+		dob := time.Date(1995, 5, 10, 0, 0, 0, 0, time.UTC)
 
 		mock.ExpectExec(`UPDATE users SET`).
-			WithArgs(firstName, lastName, email, address, city, postalCode, sqlmock.AnyArg(), userID).
+			WithArgs(firstName, lastName, email, gender, profilePhotoURL, address, city, postalCode, nic, dob, sqlmock.AnyArg(), userID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.UpdateProfile(userID, firstName, lastName, email, address, city, postalCode)
+		err := repo.UpdateProfile(userID, firstName, lastName, email, gender, profilePhotoURL, address, city, postalCode, nic, &dob)
 		require.NoError(t, err)
 
 		err = mock.ExpectationsWereMet()
@@ -234,12 +238,13 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("User Not Found", func(t *testing.T) {
 		userID := uuid.New()
+		dob := time.Date(1995, 5, 10, 0, 0, 0, 0, time.UTC)
 
 		mock.ExpectExec(`UPDATE users SET`).
-			WithArgs("John", "Doe", "john@example.com", "123 Main St", "Colombo", "10100", sqlmock.AnyArg(), userID).
+			WithArgs("John", "Doe", "john@example.com", "male", "http://example.com/photo.jpg", "123 Main St", "Colombo", "10100", "199512345678", dob, sqlmock.AnyArg(), userID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		err := repo.UpdateProfile(userID, "John", "Doe", "john@example.com", "123 Main St", "Colombo", "10100")
+		err := repo.UpdateProfile(userID, "John", "Doe", "john@example.com", "male", "http://example.com/photo.jpg", "123 Main St", "Colombo", "10100", "199512345678", &dob)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "user not found")
 
@@ -249,12 +254,13 @@ func TestUpdateProfile(t *testing.T) {
 
 	t.Run("Database Error", func(t *testing.T) {
 		userID := uuid.New()
+		dob := time.Date(1995, 5, 10, 0, 0, 0, 0, time.UTC)
 
 		mock.ExpectExec(`UPDATE users SET`).
-			WithArgs("John", "Doe", "john@example.com", "123 Main St", "Colombo", "10100", sqlmock.AnyArg(), userID).
+			WithArgs("John", "Doe", "john@example.com", "male", "http://example.com/photo.jpg", "123 Main St", "Colombo", "10100", "199512345678", dob, sqlmock.AnyArg(), userID).
 			WillReturnError(fmt.Errorf("database error"))
 
-		err := repo.UpdateProfile(userID, "John", "Doe", "john@example.com", "123 Main St", "Colombo", "10100")
+		err := repo.UpdateProfile(userID, "John", "Doe", "john@example.com", "male", "http://example.com/photo.jpg", "123 Main St", "Colombo", "10100", "199512345678", &dob)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update profile")
 

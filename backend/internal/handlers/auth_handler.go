@@ -977,6 +977,8 @@ type UpdateProfileRequest struct {
 	Address         string `json:"address" binding:"required"`
 	City            string `json:"city"`
 	PostalCode      string `json:"postal_code"`
+	NIC             string `json:"nic"`
+	DateOfBirth     string `json:"date_of_birth"`
 }
 
 // CompleteBasicProfileRequest represents request for completing basic profile (first_name + last_name only)
@@ -1251,7 +1253,20 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Update profile in users table (including gender)
+	var dob *time.Time
+	if req.DateOfBirth != "" {
+		t, err := time.Parse("2006-01-02", req.DateOfBirth)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error:   "invalid_date_format",
+				Message: "Date of Birth must be in YYYY-MM-DD format",
+			})
+			return
+		}
+		dob = &t
+	}
+
+	// Update profile in users table (including gender, nic, date_of_birth)
 	err := h.userRepository.UpdateProfile(
 		userCtx.UserID,
 		req.FirstName,
@@ -1262,6 +1277,8 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		req.Address,
 		req.City,
 		req.PostalCode,
+		req.NIC,
+		dob,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -1293,6 +1310,8 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 			req.Address,
 			req.City,
 			req.PostalCode,
+			req.NIC,
+			dob,
 		)
 		if err != nil {
 			log.Printf("WARNING: Failed to update passenger profile for user %s: %v", user.ID, err)
