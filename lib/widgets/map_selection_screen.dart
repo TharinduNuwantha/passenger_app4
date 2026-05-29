@@ -59,7 +59,6 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
   // --- Common States ---
   bool _isLoading = false;
-
   /// Tracks how many programmatic camera moves are in-flight.
   /// While > 0, onCameraMove won't overwrite coordinates and
   /// onCameraIdle won't reverse-geocode.
@@ -76,7 +75,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     const double scale = 3.0; // pixel density multiplier
     const double w = 72.0;
     const double h = 90.0;
-    const double tipH = 16.0; // height of the pointed tail
+    const double tipH = 16.0;   // height of the pointed tail
     const double bodyH = h - tipH;
     const double radius = 18.0;
 
@@ -167,22 +166,14 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       ..color = Colors.white
       ..isAntiAlias = true;
     canvas.drawCircle(Offset(busX + 8, busY + busBodyH + 1), 5, wheelPaint);
-    canvas.drawCircle(
-      Offset(busX + busW - 8, busY + busBodyH + 1),
-      5,
-      wheelPaint,
-    );
+    canvas.drawCircle(Offset(busX + busW - 8, busY + busBodyH + 1), 5, wheelPaint);
 
     // Wheel hubs
     final hubPaint = Paint()
       ..color = baseColor.withOpacity(0.85)
       ..isAntiAlias = true;
     canvas.drawCircle(Offset(busX + 8, busY + busBodyH + 1), 2.5, hubPaint);
-    canvas.drawCircle(
-      Offset(busX + busW - 8, busY + busBodyH + 1),
-      2.5,
-      hubPaint,
-    );
+    canvas.drawCircle(Offset(busX + busW - 8, busY + busBodyH + 1), 2.5, hubPaint);
 
     // ── White border ring ──
     paint
@@ -220,7 +211,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [color, Color.lerp(color, Colors.black, 0.28)!],
+              colors: [
+                color,
+                Color.lerp(color, Colors.black, 0.28)!,
+              ],
             ),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
@@ -538,8 +532,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         if (address != null) {
           // Resolve coordinates via Geocoding API if not provided
           if (lat == null || lng == null) {
-            final url =
-                'https://maps.googleapis.com/maps/api/geocode/json'
+            final url = 'https://maps.googleapis.com/maps/api/geocode/json'
                 '?address=${Uri.encodeComponent(address)}&key=${widget.apiKey}';
             try {
               final response = await http.get(Uri.parse(url));
@@ -706,8 +699,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           Marker(
             markerId: const MarkerId('pickup_marker'),
             position: _pickupLocation!,
-            icon:
-                _busMarkerGreen ??
+            icon: _busMarkerGreen ??
                 BitmapDescriptor.defaultMarkerWithHue(
                   BitmapDescriptor.hueGreen,
                 ),
@@ -721,9 +713,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
           Marker(
             markerId: const MarkerId('drop_marker'),
             position: _dropLocation!,
-            icon:
-                _busMarkerRed ??
-                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+            icon: _busMarkerRed ??
+                BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueRed,
+                ),
             anchor: const Offset(0.5, 1.0),
           ),
         );
@@ -753,324 +746,304 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
+      body: Stack(
         children: [
-          // --- Premium Structured Top Header Area ---
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+          // 1. Full-screen background Google Map (Primary UI layer)
+          Positioned.fill(
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: widget.isRouteSelection
+                    ? (_isSelectingPickup
+                          ? (_pickupLocation ?? _selectedLocation)
+                          : (_dropLocation ?? _selectedLocation))
+                    : _selectedLocation,
+                zoom: 16,
+              ),
+              onMapCreated: (controller) {
+                _mapController = controller;
+                if (widget.isRouteSelection &&
+                    _pickupLocation != null &&
+                    _dropLocation != null) {
+                  _fitMapToRoute();
+                }
+              },
+              onCameraMove: (position) {
+                // Skip coordinate updates during programmatic animations
+                if (_programmaticMoveCount > 0) return;
+                if (widget.isRouteSelection) {
+                  if (_isSelectingPickup) {
+                    _pickupLocation = position.target;
+                  } else {
+                    _dropLocation = position.target;
+                  }
+                } else {
+                  _selectedLocation = position.target;
+                }
+              },
+              onCameraIdle: () {
+                if (_programmaticMoveCount > 0) {
+                  _programmaticMoveCount--;
+                  setState(() {});
+                  return;
+                }
+                setState(() {});
+                final currentPos = widget.isRouteSelection
+                    ? (_isSelectingPickup ? _pickupLocation : _dropLocation)
+                    : _selectedLocation;
+                if (currentPos != null) {
+                  _getAddressFromLatLng(currentPos);
+                }
+              },
+              onTap: (position) {
+                // User tapped the map — update state directly, then animate
+                setState(() {
+                  if (widget.isRouteSelection) {
+                    if (_isSelectingPickup) {
+                      _pickupLocation = position;
+                    } else {
+                      _dropLocation = position;
+                    }
+                  } else {
+                    _selectedLocation = position;
+                  }
+                });
+                _animateCameraTo(position);
+                _getAddressFromLatLng(position);
+              },
+              myLocationEnabled: true,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              markers: markers,
+              polylines: polylines,
+              padding: const EdgeInsets.only(bottom: 240, top: 180),
             ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 1. Compact Top Bar Section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Row(
-                      children: [
-                        // Back navigation button with large touch target (48x48)
-                        SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: Material(
-                            color: Colors.grey.shade50,
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: Colors.black87,
-                                size: 18,
-                              ),
-                              tooltip: 'Go Back',
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          widget.isRouteSelection ? 'Select Route' : 'Select Location',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black87,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // 2. Centered Container Block for input fields
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 20.0),
-                    child: widget.isRouteSelection
-                        ? _buildRouteInputsRow(context)
-                        : _buildSingleInputRow(context),
-                  ),
-                ],
+          ),
+
+          // 2. Static Bus-themed Center Pin
+          IgnorePointer(
+            child: Center(
+              child: Transform.translate(
+                offset: const Offset(0, -35),
+                child: _buildBusCenterPin(
+                  widget.isRouteSelection ? themeColor : AppColors.primary,
+                ),
               ),
             ),
           ),
 
-          // --- Bottom Map & Controls Area (Fills remaining space) ---
-          Expanded(
-            child: Stack(
+          // 3. Floating Modern Top Search Card
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 16,
+            right: 16,
+            child: widget.isRouteSelection
+                ? _buildRouteTopSearchCard(context)
+                : _buildSingleTopSearchCard(context),
+          ),
+
+          // 4. Floating Circular Map FAB Buttons
+          Positioned(
+            right: 16,
+            bottom: widget.isRouteSelection ? 250 : 190,
+            child: Column(
               children: [
-                // 1. Map View
-                Positioned.fill(
-                  child: GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: widget.isRouteSelection
-                          ? (_isSelectingPickup
-                                ? (_pickupLocation ?? _selectedLocation)
-                                : (_dropLocation ?? _selectedLocation))
-                          : _selectedLocation,
-                      zoom: 16,
-                    ),
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      if (widget.isRouteSelection &&
-                          _pickupLocation != null &&
-                          _dropLocation != null) {
-                        _fitMapToRoute();
-                      }
-                    },
-                    onCameraMove: (position) {
-                      if (_programmaticMoveCount > 0) return;
-                      if (widget.isRouteSelection) {
-                        if (_isSelectingPickup) {
-                          _pickupLocation = position.target;
-                        } else {
-                          _dropLocation = position.target;
-                        }
-                      } else {
-                        _selectedLocation = position.target;
-                      }
-                    },
-                    onCameraIdle: () {
-                      if (_programmaticMoveCount > 0) {
-                        _programmaticMoveCount--;
-                        setState(() {});
-                        return;
-                      }
-                      setState(() {});
-                      final currentPos = widget.isRouteSelection
-                          ? (_isSelectingPickup ? _pickupLocation : _dropLocation)
-                          : _selectedLocation;
-                      if (currentPos != null) {
-                        _getAddressFromLatLng(currentPos);
-                      }
-                    },
-                    onTap: (position) {
-                      setState(() {
-                        if (widget.isRouteSelection) {
-                          if (_isSelectingPickup) {
-                            _pickupLocation = position;
-                          } else {
-                            _dropLocation = position;
-                          }
-                        } else {
-                          _selectedLocation = position;
-                        }
-                      });
-                      _animateCameraTo(position);
-                      _getAddressFromLatLng(position);
-                    },
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    markers: markers,
-                    polylines: polylines,
-                    padding: const EdgeInsets.only(bottom: 240, top: 12),
+                _buildMapFloatingButton(
+                  icon: Icons.gps_fixed_rounded,
+                  onTap: _getCurrentLocation,
+                  heroTag: 'my_loc_btn',
+                ),
+                const SizedBox(height: 12),
+                _buildMapFloatingButton(
+                  icon: Icons.add_rounded,
+                  onTap: () =>
+                      _mapController?.animateCamera(CameraUpdate.zoomIn()),
+                  heroTag: 'zoom_in_btn',
+                ),
+                const SizedBox(height: 12),
+                _buildMapFloatingButton(
+                  icon: Icons.remove_rounded,
+                  onTap: () =>
+                      _mapController?.animateCamera(CameraUpdate.zoomOut()),
+                  heroTag: 'zoom_out_btn',
+                ),
+                if (widget.isRouteSelection &&
+                    _pickupLocation != null &&
+                    _dropLocation != null) ...[
+                  const SizedBox(height: 12),
+                  _buildMapFloatingButton(
+                    icon: Icons.zoom_out_map_rounded,
+                    onTap: _fitMapToRoute,
+                    heroTag: 'fit_route_btn',
                   ),
-                ),
-
-                // 2. Static Center Pin (Bus Theme)
-                IgnorePointer(
-                  child: Center(
-                    child: Transform.translate(
-                      offset: const Offset(0, -35),
-                      child: _buildBusCenterPin(
-                        widget.isRouteSelection ? themeColor : AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 3. Floating Map Controls (Zoom / Recenter)
-                Positioned(
-                  right: 16,
-                  bottom: widget.isRouteSelection ? 250 : 190,
-                  child: Column(
-                    children: [
-                      _buildMapFloatingButton(
-                        icon: Icons.gps_fixed_rounded,
-                        onTap: _getCurrentLocation,
-                        heroTag: 'my_loc_btn',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMapFloatingButton(
-                        icon: Icons.add_rounded,
-                        onTap: () =>
-                            _mapController?.animateCamera(CameraUpdate.zoomIn()),
-                        heroTag: 'zoom_in_btn',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMapFloatingButton(
-                        icon: Icons.remove_rounded,
-                        onTap: () =>
-                            _mapController?.animateCamera(CameraUpdate.zoomOut()),
-                        heroTag: 'zoom_out_btn',
-                      ),
-                      if (widget.isRouteSelection &&
-                          _pickupLocation != null &&
-                          _dropLocation != null) ...[
-                        const SizedBox(height: 12),
-                        _buildMapFloatingButton(
-                          icon: Icons.zoom_out_map_rounded,
-                          onTap: _fitMapToRoute,
-                          heroTag: 'fit_route_btn',
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                // 4. Draggable confirm panel
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: _buildBottomConfirmPanel(context),
-                ),
+                ],
               ],
             ),
+          ),
+
+          // 5. Draggable Bottom Sheet Panel (Uber/PickMe Styled)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _buildBottomConfirmPanel(context),
           ),
         ],
       ),
     );
   }
 
-  // Centered Container Row for Route Inputs (From / To fields)
-  Widget _buildRouteInputsRow(BuildContext context) {
-    return Row(
-      children: [
-        // Elegant left timeline column
-        Column(
-          children: [
-            Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: AppColors.pickupGreen.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Container(
-                  width: 7,
-                  height: 7,
-                  decoration: const BoxDecoration(
-                    color: AppColors.pickupGreen,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: CustomPaint(
-                size: const Size(2, 45),
-                painter: DottedLinePainter(),
-              ),
-            ),
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: AppColors.dropRed.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(2),
-              ),
-              child: Center(
-                child: Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: AppColors.dropRed,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 16),
-
-        // Search Inputs fields (dimensions exactly unchanged)
-        Expanded(
-          child: Column(
+  // Redesigns the Top Floating Route Search Card
+  Widget _buildRouteTopSearchCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 28,
+            spreadRadius: -2,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Elegant left timeline column
+          Column(
             children: [
-              _buildRouteInputBlock(
-                label: 'FROM',
-                displayText: _pickupAddress,
-                placeholder: 'Choose pickup point',
-                isActive: _isSelectingFrom,
-                activeColor: AppColors.pickupGreen,
-                onTap: () => _openSearchOverlay(isPickup: true),
-                onClear: () => _clearInput(isPickup: true),
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: AppColors.pickupGreen.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: AppColors.pickupGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              _buildRouteInputBlock(
-                label: 'TO',
-                displayText: _dropAddress,
-                placeholder: 'Choose destination',
-                isActive: _isSelectingTo,
-                activeColor: AppColors.dropRed,
-                onTap: () => _openSearchOverlay(isPickup: false),
-                onClear: () => _clearInput(isPickup: false),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: CustomPaint(
+                  size: const Size(2, 45),
+                  painter: DottedLinePainter(),
+                ),
+              ),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.dropRed.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.dropRed,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-        ),
-        const SizedBox(width: 12),
+          const SizedBox(width: 16),
 
-        // Swap Locations Button
-        IconButton(
-          icon: const Icon(
-            Icons.swap_vert_rounded,
-            color: AppColors.primary,
-            size: 24,
+          // Search Inputs fields
+          Expanded(
+            child: Column(
+              children: [
+                _buildRouteInputBlock(
+                  label: 'FROM',
+                  displayText: _pickupAddress,
+                  placeholder: 'Choose pickup point',
+                  isActive: _isSelectingFrom,
+                  activeColor: AppColors.pickupGreen,
+                  onTap: () => _openSearchOverlay(isPickup: true),
+                  onClear: () => _clearInput(isPickup: true),
+                ),
+                const SizedBox(height: 12),
+                _buildRouteInputBlock(
+                  label: 'TO',
+                  displayText: _dropAddress,
+                  placeholder: 'Choose destination',
+                  isActive: _isSelectingTo,
+                  activeColor: AppColors.dropRed,
+                  onTap: () => _openSearchOverlay(isPickup: false),
+                  onClear: () => _clearInput(isPickup: false),
+                ),
+              ],
+            ),
           ),
-          tooltip: 'Swap locations',
-          onPressed: _swapLocations,
-        ),
-      ],
+          const SizedBox(width: 12),
+
+          // Actions Column
+          Column(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.black87,
+                  size: 22,
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+              const SizedBox(height: 6),
+              IconButton(
+                icon: const Icon(
+                  Icons.swap_vert_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+                onPressed: _swapLocations,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  // Centered Container Block for Single Location Input
-  Widget _buildSingleInputRow(BuildContext context) {
+  // Single Input Top Card (For lounge selection backward compatibility)
+  Widget _buildSingleTopSearchCard(BuildContext context) {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200, width: 1.2),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.grey.shade100, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
-          const SizedBox(width: 12),
+          const SizedBox(width: 6),
+          IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: Colors.black87,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
           Expanded(
             child: GestureDetector(
               onTap: () => _openSearchOverlay(isPickup: true),
@@ -1081,7 +1054,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                     : _selectedAddress,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: _selectedAddress.isEmpty
                       ? Colors.grey.shade400
                       : Colors.black87,
@@ -1091,6 +1064,8 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               ),
             ),
           ),
+          const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
+          const SizedBox(width: 16),
         ],
       ),
     );
