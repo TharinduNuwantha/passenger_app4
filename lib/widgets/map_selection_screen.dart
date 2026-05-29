@@ -832,14 +832,58 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             ),
           ),
 
-          // 3. Floating Modern Top Search Card
+          // 3. Floating Modern Top Search Card & Back Button
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
             left: 16,
             right: 16,
-            child: widget.isRouteSelection
-                ? _buildRouteTopSearchCard(context)
-                : _buildSingleTopSearchCard(context),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // The main card, slightly offset to allow the back button to overlap on the top-left
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, top: 12),
+                  child: widget.isRouteSelection
+                      ? _buildRouteTopSearchCard(context)
+                      : _buildSingleTopSearchCard(context),
+                ),
+                
+                // Creative overlapping back button
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.grey.shade100,
+                          width: 1.2,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.arrow_back_rounded,
+                          color: Colors.black87,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           // 4. Floating Circular Map FAB Buttons
@@ -992,21 +1036,13 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
           // Actions Column
           Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.black87,
-                  size: 22,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const SizedBox(height: 6),
               IconButton(
                 icon: const Icon(
                   Icons.swap_vert_rounded,
                   color: AppColors.primary,
-                  size: 24,
+                  size: 28,
                 ),
                 onPressed: _swapLocations,
               ),
@@ -1035,15 +1071,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
       ),
       child: Row(
         children: [
-          const SizedBox(width: 6),
-          IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: 16,
-              color: Colors.black87,
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
+          const SizedBox(width: 16),
           Expanded(
             child: GestureDetector(
               onTap: () => _openSearchOverlay(isPickup: true),
