@@ -106,11 +106,13 @@ class _SplashScreenState extends State<SplashScreen>
                   constraints: BoxConstraints(
                     minHeight: screenHeight,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(height: spacing * 2),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(height: spacing * 2),
 
                       // === BUS ICON ===
                       FadeTransition(
@@ -154,13 +156,16 @@ class _SplashScreenState extends State<SplashScreen>
                                 (0.65 + (0.35 * sin(_controller.value * 2 * pi))).clamp(0.0, 1.0);
                             return Opacity(
                               opacity: shimmerValue,
-                              child: Text(
-                                'PASSENGER',
-                                style: TextStyle(
-                                  fontSize: (screenHeight * 0.018).clamp(11.0, 14.0),
-                                  letterSpacing: 4,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withOpacity(0.9),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'PASSENGER',
+                                  style: TextStyle(
+                                    fontSize: (screenHeight * 0.018).clamp(11.0, 14.0),
+                                    letterSpacing: 4,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
                                 ),
                               ),
                             );
@@ -197,11 +202,14 @@ class _SplashScreenState extends State<SplashScreen>
                       // VERSION
                       FadeTransition(
                         opacity: _fade,
-                        child: Text(
-                          'V2.6.3 • © 2026 BusLounge',
-                          style: TextStyle(
-                            fontSize: (screenHeight * 0.015).clamp(10.0, 12.0),
-                            color: Colors.white.withOpacity(0.6),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'V2.6.3 • © 2026 BusLounge',
+                            style: TextStyle(
+                              fontSize: (screenHeight * 0.015).clamp(10.0, 12.0),
+                              color: Colors.white.withOpacity(0.6),
+                            ),
                           ),
                         ),
                       ),
@@ -210,11 +218,12 @@ class _SplashScreenState extends State<SplashScreen>
                     ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
