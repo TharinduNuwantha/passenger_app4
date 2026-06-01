@@ -871,10 +871,10 @@ class _BusListScreenState extends State<BusListScreen> {
                                             : trip.scheduleName ??
                                                   trip.busOwnerName ??
                                                   (trip.displayRouteName == 'Colombo - Kandy' ? 'colombo express' : trip.displayRouteName),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
-                                          color: AppColors.textPrimary,
+                                          color: context.colors.textPrimary,
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -1102,7 +1102,7 @@ class _BusListScreenState extends State<BusListScreen> {
                             fontSize: 10,
                             letterSpacing: 1,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey[500],
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         Row(
@@ -1215,10 +1215,10 @@ class _BusListScreenState extends State<BusListScreen> {
             children: [
               Text(
                 DateFormat('hh:mm').format(trip.departureTime),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -1227,16 +1227,16 @@ class _BusListScreenState extends State<BusListScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[600],
+                  color: context.colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 fromName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -1254,7 +1254,7 @@ class _BusListScreenState extends State<BusListScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[500],
+                  color: context.colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 6),
@@ -1310,10 +1310,10 @@ class _BusListScreenState extends State<BusListScreen> {
             children: [
               Text(
                 DateFormat('hh:mm').format(trip.estimatedArrival),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -1322,16 +1322,16 @@ class _BusListScreenState extends State<BusListScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[600],
+                  color: context.colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 toName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 textAlign: TextAlign.right,
                 maxLines: 2,
@@ -1450,10 +1450,10 @@ class _BusListScreenState extends State<BusListScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -1468,7 +1468,7 @@ class _BusListScreenState extends State<BusListScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey[500],
+                      color: context.colors.textSecondary,
                     ),
                   ),
                   if (distKm > 0 && targetName != null)
@@ -1538,7 +1538,7 @@ class _BusListScreenState extends State<BusListScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[400],
+                      color: context.colors.textSecondary.withOpacity(0.8),
                       fontFamily: 'Inter',
                     ),
                   ),
@@ -1603,7 +1603,7 @@ class _BusListScreenState extends State<BusListScreen> {
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[400],
+            color: context.colors.textSecondary,
           ),
         ),
       ],
@@ -1615,7 +1615,7 @@ class _BusListScreenState extends State<BusListScreen> {
       margin: const EdgeInsets.only(right: 12),
       child: Tooltip(
         message: tooltip,
-        child: Icon(icon, size: 16, color: Colors.grey[400]),
+        child: Icon(icon, size: 16, color: context.colors.iconSecondary),
       ),
     );
   }
@@ -1630,14 +1630,14 @@ class _BusListScreenState extends State<BusListScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.route_outlined, size: 14, color: Colors.grey[600]),
+              Icon(Icons.route_outlined, size: 14, color: context.colors.iconSecondary),
               const SizedBox(width: 6),
               Text(
                 'Route Stops (${trip.routeStops.length})',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[700],
+                  color: context.colors.textSecondary,
                 ),
               ),
             ],
@@ -1726,7 +1726,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                 : FontWeight.normal,
                             color: isMajor
                                 ? AppColors.primary
-                                : Colors.grey[700],
+                                : context.colors.textSecondary,
                           ),
                         ),
                       ),
@@ -1744,12 +1744,12 @@ class _BusListScreenState extends State<BusListScreen> {
   Widget _buildSeatsDisplay(TripResult trip) {
     return Row(
       children: [
-        const Icon(Icons.event_seat, size: 18, color: Colors.grey),
+        Icon(Icons.event_seat, size: 18, color: context.colors.iconSecondary),
         const SizedBox(width: 8),
         Text(
           trip.seatsDisplay,
-          style: const TextStyle(
-            color: Colors.grey,
+          style: TextStyle(
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),

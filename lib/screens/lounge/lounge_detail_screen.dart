@@ -531,7 +531,7 @@ class _LoungeDetailScreenState extends State<LoungeDetailScreen> {
             Text(
               'Menu',
               style: AppTextStyles.h3.copyWith(
-                color: Colors.black87,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),

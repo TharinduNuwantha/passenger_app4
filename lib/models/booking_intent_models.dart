@@ -387,6 +387,7 @@ class LoungeIntentRequest {
   final String? pickupLocation;
   final String? pickupLocationId;
   final double? transportCost;
+  final String? transportTime;
 
   LoungeIntentRequest({
     required this.loungeId,
@@ -406,6 +407,7 @@ class LoungeIntentRequest {
     this.pickupLocation,
     this.pickupLocationId,
     this.transportCost,
+    this.transportTime,
   });
 
   int get guestCount => guests.length;
@@ -431,6 +433,7 @@ class LoungeIntentRequest {
       if (pickupLocation != null) 'pickup_location': pickupLocation,
       if (pickupLocationId != null) 'pickup_location_id': pickupLocationId,
       if (transportCost != null) 'transport_cost': transportCost,
+      if (transportTime != null) 'transport_time': transportTime,
     };
   }
 }

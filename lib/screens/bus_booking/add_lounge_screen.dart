@@ -34,8 +34,8 @@ class SelectedLoungeData {
   final double transportCost; // Cost for transport
   final String pendingGuestName;
   final String pendingGuestPhone;
-
   final bool isExplicitlyBooked; // New field
+  final DateTime? transportDateTime; // Selected pickup date and time
 
   SelectedLoungeData({
     required this.lounge,
@@ -55,6 +55,7 @@ class SelectedLoungeData {
     this.pendingGuestName = '',
     this.pendingGuestPhone = '',
     this.isExplicitlyBooked = true, // Default to true for manual bookings
+    this.transportDateTime,
   });
 
   SelectedLoungeData copyWith({
@@ -75,6 +76,7 @@ class SelectedLoungeData {
     String? pendingGuestName,
     String? pendingGuestPhone,
     bool? isExplicitlyBooked,
+    DateTime? transportDateTime,
   }) {
     return SelectedLoungeData(
       lounge: lounge ?? this.lounge,
@@ -94,6 +96,7 @@ class SelectedLoungeData {
       pendingGuestName: pendingGuestName ?? this.pendingGuestName,
       pendingGuestPhone: pendingGuestPhone ?? this.pendingGuestPhone,
       isExplicitlyBooked: isExplicitlyBooked ?? this.isExplicitlyBooked,
+      transportDateTime: transportDateTime ?? this.transportDateTime,
     );
   }
 
@@ -127,6 +130,9 @@ class SelectedLoungeData {
       pickupLocation: pickupLocation,
       pickupLocationId: pickupLocationId,
       transportCost: transportCost,
+      transportTime: transportDateTime != null
+          ? DateFormat('yyyy-MM-dd HH:mm').format(transportDateTime!)
+          : null,
     );
   }
 }
@@ -1114,10 +1120,10 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                   children: [
                     Text(
                       isPreTrip ? 'Pre-Journey Lounge' : 'Arrival Lounge',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0D47A1),
+                        color: context.colors.textPrimary,
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -1125,7 +1131,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                       isPreTrip ? 'Relax before your trip' : 'Refresh after your journey',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey.shade600,
+                        color: context.colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1180,10 +1186,10 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D47A1).withOpacity(0.04),
+          color: AppColors.primary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xFF0D47A1).withOpacity(0.15),
+            color: AppColors.primary.withOpacity(0.25),
             width: 1.5,
           ),
         ),
@@ -1199,14 +1205,14 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
             else ...[
               Icon(
                 Icons.weekend_rounded,
-                color: const Color(0xFF0D47A1).withOpacity(0.8),
+                color: AppColors.primary,
                 size: 22,
               ),
               const SizedBox(width: 10),
               Text(
                 'Book ${isPreTrip ? "Pre-Journey" : "Arrival"} Lounge',
                 style: TextStyle(
-                  color: const Color(0xFF0D47A1).withOpacity(0.9),
+                  color: AppColors.primary,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
@@ -1277,8 +1283,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
               children: [
                 Text(
                   data.lounge.loungeName,
-                  style: const TextStyle(
-                    color: Color(0xFF0D47A1),
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1289,7 +1295,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                 Text(
                   '${data.guests.length} guest(s) • ${_formatPricingType(data.pricingType)}',
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: context.colors.textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1297,8 +1303,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'LKR ${data.totalPrice.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: Color(0xFF0D47A1),
+                  style: TextStyle(
+                    color: AppColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1320,11 +1326,11 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: data.isExplicitlyBooked
-                      ? Colors.red.shade50
-                      : const Color(0xFF0D47A1).withOpacity(0.1),
+                      ? AppColors.error.withOpacity(0.12)
+                      : AppColors.primary.withOpacity(0.12),
                   foregroundColor: data.isExplicitlyBooked
-                      ? Colors.red.shade700
-                      : const Color(0xFF0D47A1),
+                      ? AppColors.error
+                      : AppColors.primary,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -1370,18 +1376,18 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.grey.shade200, Colors.grey.shade100],
+          colors: [context.colors.inputBackground, context.colors.chipBackground],
         ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.weekend_outlined, size: 40, color: Colors.grey.shade400),
+          Icon(Icons.weekend_outlined, size: 40, color: context.colors.iconSecondary),
           const SizedBox(height: 6),
           Text(
             'Lounge Preview',
             style: TextStyle(
-              color: Colors.grey.shade500,
+              color: context.colors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.5,
@@ -1593,10 +1599,41 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   String? _preTripPickupLocation;
   String? _postTripTransportType;
   String? _postTripPickupLocation;
+  DateTime? _transportDateTime;
 
   List<LoungeTransportLocationOption> _transportOptions = [];
   bool _isLoadingTransport = true;
   String? _transportLoadError;
+
+  void _updateDefaultTransportDateTime() {
+    final type = _selectedPricingType ?? (widget.isPreTrip ? 'until_bus' : '1_hour');
+    if (widget.isPreTrip) {
+      int hoursBefore = 1;
+      if (type == '1_hour') {
+        hoursBefore = 1;
+      } else if (type == '2_hours') {
+        hoursBefore = 2;
+      } else if (type == '3_hours') {
+        hoursBefore = 3;
+      } else if (type == 'until_bus') {
+        hoursBefore = 2;
+      }
+      _transportDateTime = widget.busDepartureTime.subtract(Duration(hours: hoursBefore));
+    } else {
+      final tripDate = widget.busArrivalTime ?? widget.busDepartureTime;
+      int stayHours = 2;
+      if (type == '1_hour') {
+        stayHours = 1;
+      } else if (type == '2_hours') {
+        stayHours = 2;
+      } else if (type == '3_hours') {
+        stayHours = 3;
+      } else if (type == 'until_bus') {
+        stayHours = 5;
+      }
+      _transportDateTime = tripDate.add(Duration(hours: stayHours));
+    }
+  }
 
   static const List<String> _locationIconPool = [
     '📍',
@@ -1624,6 +1661,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           isPrimary: true,
         ),
       );
+      _updateDefaultTransportDateTime();
     }
     _loadProducts();
     _loadTransportOptions();
@@ -1693,6 +1731,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     }
     _guestNameController.text = data.pendingGuestName;
     _guestPhoneController.text = data.pendingGuestPhone;
+    _transportDateTime = data.transportDateTime;
+    if (_transportDateTime == null) {
+      _updateDefaultTransportDateTime();
+    }
   }
 
   void _updateState(VoidCallback changes) {
@@ -1712,12 +1754,26 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   }
 
   SelectedLoungeData _buildDraftData({required bool isExplicitlyBooked}) {
-    final tripDate = widget.isPreTrip
-        ? widget.busDepartureTime
-        : (widget.busArrivalTime ?? widget.busDepartureTime);
-    final checkInTime = DateFormat('HH:mm').format(
-      widget.isPreTrip ? tripDate.subtract(const Duration(hours: 1)) : tripDate,
-    );
+    int stayHours = 1;
+    if (_selectedPricingType == '1_hour') {
+      stayHours = 1;
+    } else if (_selectedPricingType == '2_hours') {
+      stayHours = 2;
+    } else if (_selectedPricingType == '3_hours') {
+      stayHours = 3;
+    } else if (_selectedPricingType == 'until_bus') {
+      stayHours = 2;
+    }
+
+    final DateTime checkInDateTime;
+    if (widget.isPreTrip) {
+      checkInDateTime = _transportDateTime ?? 
+          widget.busDepartureTime.subtract(Duration(hours: stayHours));
+    } else {
+      checkInDateTime = widget.busArrivalTime ?? widget.busDepartureTime;
+    }
+
+    final checkInTime = DateFormat('HH:mm').format(checkInDateTime);
 
     return SelectedLoungeData(
       lounge: widget.lounge,
@@ -1728,7 +1784,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       basePrice: _basePrice,
       preOrderTotal: _preOrderTotal,
       totalPrice: _totalPrice,
-      tripDate: tripDate,
+      tripDate: checkInDateTime,
       checkInTime: checkInTime,
       transportType: widget.isPreTrip
           ? _preTripTransportType
@@ -1743,6 +1799,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       pendingGuestName: _guestNameController.text,
       pendingGuestPhone: _guestPhoneController.text,
       isExplicitlyBooked: isExplicitlyBooked,
+      transportDateTime: _transportDateTime,
     );
   }
 
@@ -1902,18 +1959,26 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       return;
     }
 
-    // Calculate check-in time based on pre-trip or post-trip
-    final DateTime tripDateTime = widget.isPreTrip
-        ? widget.busDepartureTime
-        : (widget.busArrivalTime ?? widget.busDepartureTime);
+    int stayHours = 1;
+    if (_selectedPricingType == '1_hour') {
+      stayHours = 1;
+    } else if (_selectedPricingType == '2_hours') {
+      stayHours = 2;
+    } else if (_selectedPricingType == '3_hours') {
+      stayHours = 3;
+    } else if (_selectedPricingType == 'until_bus') {
+      stayHours = 2;
+    }
 
-    // For pre-trip: check-in 1-2 hours before departure
-    // For post-trip: check-in at arrival time
-    final checkInTime = DateFormat('HH:mm').format(
-      widget.isPreTrip
-          ? tripDateTime.subtract(const Duration(hours: 1))
-          : tripDateTime,
-    );
+    final DateTime checkInDateTime;
+    if (widget.isPreTrip) {
+      checkInDateTime = _transportDateTime ?? 
+          widget.busDepartureTime.subtract(Duration(hours: stayHours));
+    } else {
+      checkInDateTime = widget.busArrivalTime ?? widget.busDepartureTime;
+    }
+
+    final checkInTime = DateFormat('HH:mm').format(checkInDateTime);
 
     final result = SelectedLoungeData(
       lounge: widget.lounge,
@@ -1924,7 +1989,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       basePrice: _basePrice,
       preOrderTotal: _preOrderTotal,
       totalPrice: _totalPrice,
-      tripDate: tripDateTime,
+      tripDate: checkInDateTime,
       checkInTime: checkInTime,
       transportType: widget.isPreTrip
           ? _preTripTransportType
@@ -1939,6 +2004,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       pendingGuestName: _guestNameController.text,
       pendingGuestPhone: _guestPhoneController.text,
       isExplicitlyBooked: true, // Manually booked via sheet
+      transportDateTime: _transportDateTime,
     );
 
     Navigator.pop(context, result);
@@ -2144,18 +2210,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: const Color(0xFF1976D2).withOpacity(0.08),
+            color: AppColors.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 16, color: const Color(0xFF1976D2)),
+          child: Icon(icon, size: 16, color: AppColors.primary),
         ),
         const SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF0D47A1),
+            color: context.colors.textPrimary,
             letterSpacing: 0.2,
           ),
         ),
@@ -2211,28 +2277,31 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       '3_hours': Icons.hourglass_full_rounded,
     };
     return GestureDetector(
-      onTap: () => _updateState(() => _selectedPricingType = type),
+      onTap: () => _updateState(() {
+        _selectedPricingType = type;
+        _updateDefaultTransportDateTime();
+      }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF0D47A1).withOpacity(0.06)
-              : Colors.grey.shade50,
+              ? AppColors.primary.withOpacity(0.1)
+              : context.colors.inputBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF1976D2)
+                ? AppColors.primary
                 : (isHighlighted
                       ? const Color(0xFFFFC300)
-                      : Colors.grey.shade200),
+                      : context.colors.cardBorder),
             width: isSelected ? 2 : 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF1976D2).withOpacity(0.1),
+                    color: AppColors.primary.withOpacity(0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -2245,20 +2314,20 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF1976D2).withOpacity(0.12)
+                    ? AppColors.primary.withOpacity(0.15)
                     : (isHighlighted
                           ? const Color(0xFFFFC300).withOpacity(0.12)
-                          : Colors.grey.shade100),
+                          : context.colors.chipBackground),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 iconMap[type] ?? Icons.access_time,
                 size: 18,
                 color: isSelected
-                    ? const Color(0xFF1976D2)
+                    ? AppColors.primary
                     : (isHighlighted
                           ? const Color(0xFFFFAB00)
-                          : Colors.grey.shade500),
+                          : context.colors.textSecondary),
               ),
             ),
             const SizedBox(width: 14),
@@ -2274,8 +2343,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                             : FontWeight.w600,
                         fontSize: 14,
                         color: isSelected
-                            ? const Color(0xFF0D47A1)
-                            : Colors.black87,
+                            ? AppColors.primary
+                            : context.colors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -2316,13 +2385,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     fontWeight: FontWeight.w900,
                     fontSize: 15,
                     color: isSelected
-                        ? const Color(0xFF0D47A1)
-                        : Colors.black87,
+                        ? AppColors.primary
+                        : context.colors.textPrimary,
                   ),
                 ),
                 Text(
                   '/person',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 10, color: context.colors.textSecondary),
                 ),
               ],
             ),
@@ -2334,12 +2403,12 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected
-                    ? const Color(0xFF1976D2)
+                    ? AppColors.primary
                     : Colors.transparent,
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF1976D2)
-                      : Colors.grey.shade300,
+                      ? AppColors.primary
+                      : context.colors.cardBorder,
                   width: 2,
                 ),
               ),
@@ -2363,7 +2432,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: context.colors.cardBorder),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -2371,12 +2440,12 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 CircleAvatar(
                   backgroundColor: isPrimary
                       ? AppColors.primary
-                      : Colors.grey.shade200,
+                      : context.colors.chipBackground,
                   radius: 18,
                   child: Text(
                     guest.guestName[0].toUpperCase(),
                     style: TextStyle(
-                      color: isPrimary ? Colors.white : Colors.grey.shade600,
+                      color: isPrimary ? Colors.white : context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -2389,7 +2458,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                         children: [
                           Text(
                             guest.guestName,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: context.colors.textPrimary,
+                            ),
                           ),
                           if (isPrimary) ...[
                             const SizedBox(width: 8),
@@ -2407,6 +2479,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
                               ),
                             ),
@@ -2418,7 +2491,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                           guest.guestPhone!,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                     ],
@@ -2586,17 +2659,25 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: context.colors.chipBackground,
                           shape: BoxShape.circle,
+                          border: Border.all(color: context.colors.cardBorder),
                         ),
-                        child: const Icon(Icons.remove, size: 16),
+                        child: Icon(
+                          Icons.remove,
+                          size: 16,
+                          color: context.colors.iconPrimary,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
                         '$quantity',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.textPrimary,
+                        ),
                       ),
                     ),
                     GestureDetector(
@@ -2652,14 +2733,14 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 Expanded(
                   child: Text(
                     'Lounge (${_guests.length} guests)',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   'LKR ${_basePrice.toStringAsFixed(0)}',
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13, color: context.colors.textPrimary),
                 ),
               ],
             ),
@@ -2670,11 +2751,11 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 children: [
                   Text(
                     'Pre-orders',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
                   ),
                   Text(
                     'LKR ${_preOrderTotal.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 13, color: context.colors.textPrimary),
                   ),
                 ],
               ),
@@ -2689,7 +2770,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     child: Text(
                       'Transport (${_preTripTransportType!.toUpperCase()})',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: context.colors.textSecondary,
                         fontSize: 13,
                       ),
                       maxLines: 1,
@@ -2700,7 +2781,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     _preTripPickupLocation != null
                         ? 'LKR ${_transportCost.toStringAsFixed(0)}'
                         : 'Select pickup',
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 13, color: context.colors.textPrimary),
                   ),
                 ],
               ),
@@ -2712,13 +2793,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 children: [
                   Text(
                     'Transport (${_postTripTransportType!.toUpperCase()})',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
                   ),
                   Text(
                     _postTripPickupLocation != null
                         ? 'LKR ${_transportCost.toStringAsFixed(0)}'
                         : 'Select pickup',
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 13, color: context.colors.textPrimary),
                   ),
                 ],
               ),
@@ -2727,9 +2808,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Total',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: context.colors.textPrimary),
                 ),
                 Text(
                   'LKR ${_totalPrice.toStringAsFixed(0)}',
@@ -2753,7 +2834,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                       colors: [Color(0xFFFFC300), Color(0xFFFFAB00)],
                     )
                   : null,
-              color: _selectedPricingType == null ? Colors.grey.shade200 : null,
+              color: _selectedPricingType == null ? context.colors.chipBackground : null,
               boxShadow: _selectedPricingType != null
                   ? [
                       BoxShadow(
@@ -2782,7 +2863,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     Icons.check_rounded,
                     color: _selectedPricingType != null
                         ? const Color(0xFF0D47A1)
-                        : Colors.grey,
+                        : context.colors.iconInactive,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -2791,7 +2872,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     style: TextStyle(
                       color: _selectedPricingType != null
                           ? const Color(0xFF0D47A1)
-                          : Colors.grey,
+                          : context.colors.textSecondary,
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
                       letterSpacing: 0.3,
@@ -2844,7 +2925,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             const SizedBox(height: 8),
             Text(
               _transportLoadError!,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
             ),
             TextButton.icon(
               onPressed: _loadTransportOptions,
@@ -2860,18 +2941,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
+          color: context.colors.inputBackground,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: context.colors.cardBorder),
         ),
         child: Row(
           children: [
-            Icon(Icons.map_outlined, color: Colors.grey.shade400),
+            Icon(Icons.map_outlined, color: context.colors.iconSecondary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'No transport pickup locations are currently available for this lounge.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
               ),
             ),
           ],
@@ -2899,12 +2980,12 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Select Pick-up Station',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             Container(
@@ -2954,18 +3035,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.white
-                    : Colors.white.withOpacity(0.7),
+                    ? context.colors.cardBackground
+                    : context.colors.inputBackground,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : Colors.grey.shade200,
+                  color: isSelected ? AppColors.primary : context.colors.cardBorder,
                   width: isSelected ? 2 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: isSelected
-                        ? AppColors.primary.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.04),
+                        ? AppColors.primary.withOpacity(0.15)
+                        : context.colors.shadowColor.withOpacity(0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                   ),
@@ -2978,8 +3059,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.primarySurface
-                          : Colors.grey.shade50,
+                          ? AppColors.primary.withOpacity(0.12)
+                          : context.colors.chipBackground,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: isSelected
@@ -3005,7 +3086,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                 : FontWeight.w600,
                             color: isSelected
                                 ? AppColors.primary
-                                : AppColors.textPrimary,
+                                : context.colors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -3016,28 +3097,28 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                             Icon(
                               Icons.directions_walk,
                               size: 14,
-                              color: Colors.grey.shade500,
+                              color: context.colors.iconSecondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${location.distanceKm?.toStringAsFixed(1) ?? '0.0'} km',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: context.colors.textSecondary,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Icon(
                               Icons.history,
                               size: 14,
-                              color: Colors.grey.shade500,
+                              color: context.colors.iconSecondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${location.estDurationMinutes ?? '--'} mins',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: context.colors.textSecondary,
                               ),
                             ),
                           ],
@@ -3054,7 +3135,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                   else
                     Icon(
                       Icons.arrow_forward_ios,
-                      color: Colors.grey.shade300,
+                      color: context.colors.iconInactive,
                       size: 14,
                     ),
                 ],
@@ -3073,12 +3154,12 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     const SizedBox(height: 20),
                     const Divider(height: 1),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'Select Vehicle Type',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -3123,24 +3204,24 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
+                        color: AppColors.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.blue.shade100),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
                       ),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.info_outline,
                             size: 18,
-                            color: Colors.blue.shade700,
+                            color: AppColors.primary,
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Driver will contact you once the booking is confirmed for specific pickup timing.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF0D47A1),
+                                color: context.colors.textPrimary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -3148,6 +3229,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                         ],
                       ),
                     ),
+                    if (selectedTransport != null) _buildTimeSelectionCard(),
                   ],
                 )
               : Padding(
@@ -3158,7 +3240,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                       style: TextStyle(
                         fontSize: 13,
                         fontStyle: FontStyle.italic,
-                        color: Colors.grey.shade500,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ),
@@ -3262,6 +3344,221 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         ),
       ),
     );
+  }
+
+  Widget _buildTimeSelectionCard() {
+    final formattedDate = _transportDateTime != null
+        ? DateFormat('EEEE, dd MMM yyyy').format(_transportDateTime!)
+        : 'Select Date';
+    final formattedTime = _transportDateTime != null
+        ? DateFormat('hh:mm a').format(_transportDateTime!)
+        : 'Select Time';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.colors.inputBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.colors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule_outlined, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Transport Schedule Time',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: context.colors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: _selectTransportDate,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: context.colors.cardBackground,
+                      border: Border.all(color: context.colors.cardBorder),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pick-up Date',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: context.colors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                formattedDate,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: context.colors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: _selectTransportTime,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: context.colors.cardBackground,
+                      border: Border.all(color: context.colors.cardBorder),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pick-up Time',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: context.colors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.access_time_rounded, size: 14, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                formattedTime,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: context.colors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.isPreTrip
+                ? 'ℹ️ Defaulted to pick you up to arrive before bus departure.'
+                : 'ℹ️ Defaulted to pick you up after your ${_selectedPricingType == "until_bus" ? "5 hour" : "lounge stay"} duration.',
+            style: TextStyle(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: context.colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectTransportDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _transportDateTime ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.primary,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      _updateState(() {
+        _transportDateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _transportDateTime?.hour ?? 12,
+          _transportDateTime?.minute ?? 0,
+        );
+      });
+    }
+  }
+
+  Future<void> _selectTransportTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_transportDateTime ?? DateTime.now()),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.primary,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      _updateState(() {
+        _transportDateTime = DateTime(
+          _transportDateTime?.year ?? DateTime.now().year,
+          _transportDateTime?.month ?? DateTime.now().month,
+          _transportDateTime?.day ?? DateTime.now().day,
+          picked.hour,
+          picked.minute,
+        );
+      });
+    }
   }
 }
 
@@ -3413,6 +3710,6 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
           ),
         );
       },
-    );
+    ); 
   }
 }
