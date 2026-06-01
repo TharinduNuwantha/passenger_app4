@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/user_service.dart';
@@ -6,6 +6,8 @@ import '../../models/user_model.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
+import '../../providers/theme_provider.dart';
+import '../../core/theme/app_theme.dart';
 
 import 'contact_us.dart';
 
@@ -201,6 +203,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ]),
 
                   const SizedBox(height: 24),
+                  _buildSectionTitle('App Settings'),
+                  _buildModernCard([
+                    _buildThemeTile(context),
+                  ]),
+
+                  const SizedBox(height: 24),
                   _buildSectionTitle('Support & Legal'),
                   _buildModernCard([
                     _buildSettingsTile(
@@ -338,6 +346,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
       onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    );
+  }
+
+  Widget _buildThemeTile(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.dark_mode_rounded, color: AppColors.primary, size: 22),
+      ),
+      title: const Text(
+        'App Theme',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      trailing: DropdownButton<ThemeMode>(
+        value: themeProvider.themeMode,
+        underline: const SizedBox(),
+        icon: const Icon(Icons.expand_more_rounded, color: Colors.grey),
+        onChanged: (ThemeMode? newMode) {
+          if (newMode != null) {
+            themeProvider.setThemeMode(newMode);
+          }
+        },
+        items: const [
+          DropdownMenuItem(value: ThemeMode.system, child: Text('System', style: TextStyle(fontSize: 14))),
+          DropdownMenuItem(value: ThemeMode.light, child: Text('Light', style: TextStyle(fontSize: 14))),
+          DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark', style: TextStyle(fontSize: 14))),
+        ],
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }

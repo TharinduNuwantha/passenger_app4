@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'config/constants.dart';
-import 'config/theme_config.dart' show AppTheme;
+import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/booking_intent_provider.dart';
 import 'providers/search_provider.dart';
@@ -20,7 +20,6 @@ import 'screens/profile/help_support.dart';
 import 'screens/profile/privacy_policy.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/splash_screen.dart';
-import 'theme/app_colors.dart';
 import 'widgets/location_gatekeeper.dart';
 
 Future<void> main() async {
@@ -34,14 +33,6 @@ Future<void> main() async {
     url: 'https://pttatcukzpceljcrwehk.supabase.co',
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   ));
-
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: AppColors.primary,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark,
-    ),
-  );
 
   runApp(const MyApp());
 }
@@ -65,8 +56,8 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
+            theme: lightTheme,
+            darkTheme: darkTheme,
             themeMode: themeProvider.themeMode,
             initialRoute: AppConstants.splashRoute,
             onGenerateRoute: (settings) {

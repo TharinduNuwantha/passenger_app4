@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -308,7 +309,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         _isLoadingBookings = false;
       });
     } catch (e) {
-      print('Failed to load upcoming bookings: $e');
+      // Failed to load upcoming bookings
       setState(() {
         _isLoadingBookings = false;
       });
@@ -448,9 +449,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       SnackBar(
         content: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.notifications_active_rounded,
-              color: Colors.white,
+              color: context.colors.textOnPrimary,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -465,10 +466,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
                 _openNotifications();
               },
-              child: const Text(
+              child: Text(
                 'VIEW',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.colors.textOnPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -571,12 +572,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     try {
       final response = await http.get(Uri.parse(url));
-      print('API Response Status: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
+      // API Response logged
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('API Status: ${data['status']}');
+        // API Status OK
 
         if (data['status'] == 'OK' && data['predictions'] != null) {
           setState(() {
@@ -602,11 +602,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               isLoadingDropSuggestions = false;
             }
           });
-          print(
-            'Suggestions loaded: ${isPickup ? pickupAutocompleteSuggestions.length : dropAutocompleteSuggestions.length}',
-          );
+          // Suggestions loaded
         } else {
-          print('API returned status: ${data['status']}');
+          // API returned non-OK status
           setState(() {
             if (isPickup) {
               pickupAutocompleteSuggestions.clear();
@@ -619,7 +617,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         }
       }
     } catch (e) {
-      print('Error fetching autocomplete: $e');
+      // Error fetching autocomplete
       setState(() {
         if (isPickup) {
           pickupAutocompleteSuggestions.clear();
@@ -742,12 +740,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           return PopScope(
             canPop: false,
             child: Dialog(
-              backgroundColor: Colors.transparent,
+              backgroundColor: Colors.transparent,  // Overlay dialog — transparent is correct
               elevation: 0,
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.colors.cardBackground,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -759,19 +757,19 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       ),
                       strokeWidth: 3,
                     ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Searching for trips...',
+                    SizedBox(height: 20),
+                    Text(
+                      'Finding best routes...',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Please wait',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
                     ),
                   ],
                 ),
@@ -783,9 +781,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     }
 
     try {
-      print('🔍 Starting search...');
-      print('🔍 Raw Pickup: "${pickupController.text}"');
-      print('🔍 Raw Drop: "${dropController.text}"');
+      // Starting search
 
       // Using direct coordinate-based search for Lounge-to-Lounge discovery
       // Wait for location if still finding
@@ -839,7 +835,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
       // Normalize to start of day (00:00:00) to search from beginning of the day
       final rawDate = selectedDate ?? DateTime.now();
       final searchDate = DateTime(rawDate.year, rawDate.month, rawDate.day);
-      print('🔍 Search Date (normalized to start of day): $searchDate');
+      // Search date normalized
 
       // Add to search history
       await _addToSearchHistory(pickupController.text, dropController.text);
@@ -1088,11 +1084,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.07),
+            color: context.colors.shadowColor,
             blurRadius: 24,
             spreadRadius: 0,
             offset: const Offset(0, 8),
@@ -1103,7 +1099,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.withOpacity(0.06), width: 1),
+        border: Border.all(color: context.colors.cardBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1129,12 +1125,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Where to?',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: Colors.black87,
+                      color: context.colors.textPrimary,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -1143,7 +1139,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade500,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -1257,12 +1253,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.colors.cardBackground,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: context.colors.cardBorder),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: context.colors.shadowColor,
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1270,7 +1266,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   ),
                   child: Icon(
                     Icons.swap_vert_rounded,
-                    color: Colors.grey.shade700,
+                    color: context.colors.iconSecondary,
                     size: 22,
                   ),
                 ),
@@ -1300,7 +1296,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 end: Alignment.centerRight,
               )
             : null,
-        color: isReady ? null : Colors.grey.shade200,
+        color: isReady ? null : context.colors.inputBackground,
         boxShadow: isReady
             ? [
                 BoxShadow(
@@ -1325,7 +1321,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: isReady ? Colors.white : Colors.grey.shade500,
+                    color: isReady ? Colors.white : context.colors.textTertiary,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -1369,12 +1365,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         decoration: BoxDecoration(
           color: isFilled
               ? accentColor.withOpacity(0.05)
-              : const Color(0xFFF7F8FA),
+              : context.colors.inputBackground,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isFilled
                 ? accentColor.withOpacity(0.25)
-                : Colors.grey.shade200,
+                : context.colors.inputBorder,
             width: 1.5,
           ),
         ),
@@ -1414,7 +1410,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                             fontWeight: FontWeight.w700,
                             color: isYourLocation && isPickup
                                 ? AppColors.primary
-                                : Colors.black87,
+                                : context.colors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1455,7 +1451,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade400,
+                        color: context.colors.textTertiary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1469,20 +1465,20 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: context.colors.chipBackground,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.close_rounded,
                     size: 14,
-                    color: Colors.grey.shade500,
+                    color: context.colors.textTertiary,
                   ),
                 ),
               )
             else
               Icon(
                 Icons.chevron_right_rounded,
-                color: Colors.grey.shade400,
+                color: context.colors.iconInactive,
                 size: 20,
               ),
           ],
@@ -1528,7 +1524,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   Text(
                     'Upcoming Trips',
                     style: AppTextStyles.h3.copyWith(
-                      color: Colors.black87,
+                      color: context.colors.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1624,8 +1620,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         statusIcon = Icons.cancel;
         break;
       default:
-        statusColor = Colors.grey;
-        bgColor = Colors.grey.withOpacity(0.1);
+        statusColor = context.colors.iconInactive;
+        bgColor = context.colors.iconInactive.withOpacity(0.1);
         statusIcon = Icons.info;
     }
 
@@ -1646,7 +1642,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
         width: MediaQuery.of(context).size.width - 48,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
           boxShadow: [
@@ -1705,10 +1701,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               // Route Name
               Text(
                 routeName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: context.colors.textPrimary,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -1719,7 +1715,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 'Ref: ${booking.bookingReference}',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: context.colors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
@@ -1735,14 +1731,14 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       Icon(
                         Icons.event_seat,
                         size: 16,
-                        color: Colors.grey.shade600,
+                        color: context.colors.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '$numberOfSeats seat${numberOfSeats > 1 ? 's' : ''}',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey.shade700,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -1761,13 +1757,13 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.schedule, size: 14, color: Colors.grey.shade600),
+                    Icon(Icons.schedule, size: 14, color: context.colors.textSecondary),
                     const SizedBox(width: 4),
                     Text(
                       _formatBookingDate(departureDate),
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -1812,10 +1808,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.bottomNavBackground,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: context.colors.shadowColor,
             blurRadius: 24,
             offset: const Offset(0, -4),
           ),
@@ -1855,7 +1851,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       Icon(
                         isSelected ? item.$1 : item.$2,
                         size: 22,
-                        color: isSelected ? Colors.white : Colors.grey.shade500,
+                        color: isSelected ? Colors.white : context.colors.iconInactive,
                       ),
                       if (isSelected) ...[
                         const SizedBox(width: 6),
@@ -2056,7 +2052,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       Text(
                         'Tap to view QR',
                         style: TextStyle(
-                          color: Colors.grey.shade500,
+                          color: context.colors.textTertiary,
                           fontSize: 11,
                           fontStyle: FontStyle.italic,
                         ),
@@ -2067,7 +2063,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                   Text(
                     activeBooking!['route'] ?? 'Unknown Route',
                     style: TextStyle(
-                      color: Colors.grey[900],
+                      color: context.colors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
@@ -2107,11 +2103,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   Widget _buildDateSelectorCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: context.colors.shadowColor,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -2136,12 +2132,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Select Date',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
-                  color: Colors.black87,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -2217,14 +2213,14 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           ? null
                           : (isToday
                                 ? AppColors.primary.withOpacity(0.06)
-                                : Colors.grey.shade50),
+                                : context.colors.inputBackground),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: isSelected
                             ? Colors.transparent
                             : (isToday
                                   ? AppColors.primary.withOpacity(0.3)
-                                  : Colors.grey.shade200),
+                                  : context.colors.cardBorder),
                         width: 1.5,
                       ),
                       boxShadow: isSelected
@@ -2245,7 +2241,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           style: TextStyle(
                             color: isSelected
                                 ? Colors.white.withOpacity(0.85)
-                                : Colors.grey.shade500,
+                                : context.colors.textSecondary,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
@@ -2269,7 +2265,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                           style: TextStyle(
                             color: isSelected
                                 ? Colors.white.withOpacity(0.8)
-                                : Colors.grey.shade500,
+                                : context.colors.textSecondary,
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
                           ),
@@ -2309,12 +2305,12 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Popular Routes',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
-                  color: Colors.black87,
+                  color: context.colors.textPrimary,
                 ),
               ),
             ],
@@ -2413,8 +2409,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
             const SizedBox(width: 10),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.black87,
+              style: TextStyle(
+                color: context.colors.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
@@ -2729,7 +2725,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       decoration: BoxDecoration(
                         color: _currentAdIndex == i
                             ? AppColors.primary
-                            : Colors.grey.shade300,
+                            : context.colors.iconInactive,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -2751,7 +2747,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.scaffoldBackground,
       body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: _buildModernBottomNav(),
     );
