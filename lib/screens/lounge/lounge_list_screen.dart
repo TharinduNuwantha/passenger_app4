@@ -4,6 +4,7 @@ import '../../models/lounge_booking_models.dart';
 import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
+import '../../core/theme/app_theme.dart';
 import 'lounge_detail_screen.dart';
 import '../../widgets/blue_header.dart';
 
@@ -142,7 +143,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.scaffoldBackground,
       body: SafeArea(
         top: false,
         child: Column(
@@ -171,17 +172,17 @@ class _LoungeListScreenState extends State<LoungeListScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.08),
+            color: context.colors.shadowColor,
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.15),
+          color: context.colors.cardBorder,
           width: 1,
         ),
       ),
@@ -216,7 +217,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                 Text(
                   'Filter by Province',
                   style: TextStyle(
-                    color: Colors.grey[500],
+                    color: context.colors.textTertiary,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -228,7 +229,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                     hint: Text(
                       'All Provinces',
                       style: TextStyle(
-                        color: Colors.grey[800],
+                        color: context.colors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -238,7 +239,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                     icon: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withOpacity(context.isDarkMode ? 0.18 : 0.08),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
@@ -248,11 +249,11 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                       ),
                     ),
                     style: TextStyle(
-                      color: Colors.grey[800],
+                      color: context.colors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
-                    dropdownColor: Colors.white,
+                    dropdownColor: context.colors.cardBackground,
                     borderRadius: BorderRadius.circular(12),
                     items: [
                       // "All Provinces" option
@@ -262,7 +263,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                           children: [
                            
                             const SizedBox(width: 0),
-                            const Text('All Provinces'),
+                            Text('All Provinces', style: TextStyle(color: context.colors.textPrimary)),
                           ],
                         ),
                       ),
@@ -278,7 +279,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                                 color: AppColors.primary.withOpacity(0.7),
                               ),
                               const SizedBox(width: 10),
-                              Text(state),
+                              Text(state, style: TextStyle(color: context.colors.textPrimary)),
                             ],
                           ),
                         );
@@ -323,11 +324,11 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                 color: AppColors.warning,
               ),
               const SizedBox(height: 12),
-              Text('Failed to load lounges', style: AppTextStyles.h3),
+              Text('Failed to load lounges', style: AppTextStyles.h3.copyWith(color: context.colors.textPrimary)),
               const SizedBox(height: 8),
               Text(
                 _error!,
-                style: AppTextStyles.body,
+                style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -336,7 +337,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: context.colors.cardBackground,
                   foregroundColor: AppColors.primary,
                 ),
               ),
@@ -363,7 +364,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                 _selectedState != null
                     ? 'No lounges in $_selectedState'
                     : 'No lounges available',
-                style: AppTextStyles.h3,
+                style: AppTextStyles.h3.copyWith(color: context.colors.textPrimary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -371,7 +372,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                 _selectedState != null
                     ? 'Try selecting a different state'
                     : 'Check back later for available lounges',
-                style: AppTextStyles.body,
+                style: AppTextStyles.body.copyWith(color: context.colors.textTertiary),
               ),
               if (_selectedState != null) ...[
                 const SizedBox(height: 16),
@@ -464,9 +465,12 @@ class _LoungeListScreenState extends State<LoungeListScreen>
   Widget _buildShimmerCard() {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      color: Colors.white,
-      surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: context.colors.cardBackground,
+      surfaceTintColor: context.colors.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: context.colors.cardBorder),
+      ),
       elevation: 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +480,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
             height: 150,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.grey[200],
+              color: context.colors.shimmerBase,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
@@ -487,7 +491,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.grey[300],
+                  color: context.colors.shimmerHighlight,
                 ),
               ),
             ),
@@ -502,7 +506,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                   height: 18,
                   width: 180,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: context.colors.shimmerBase,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -511,7 +515,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                   height: 14,
                   width: 250,
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: context.colors.shimmerHighlight,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -524,7 +528,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                       height: 28,
                       width: 70,
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: context.colors.shimmerHighlight,
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
@@ -538,7 +542,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                       height: 22,
                       width: 80,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: context.colors.shimmerBase,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -546,7 +550,7 @@ class _LoungeListScreenState extends State<LoungeListScreen>
                       height: 28,
                       width: 80,
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: context.colors.shimmerHighlight,
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
@@ -582,9 +586,12 @@ class LoungeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      color: Colors.white,
-      surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: context.colors.cardBackground,
+      surfaceTintColor: context.colors.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: context.colors.cardBorder),
+      ),
       elevation: 4,
       child: InkWell(
         onTap: onTap,
@@ -605,10 +612,10 @@ class LoungeCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       memCacheHeight: 300, // 2x display for retina
                       fadeInDuration: const Duration(milliseconds: 200),
-                      placeholder: (_, __) => _buildImagePlaceholder(),
-                      errorWidget: (_, __, ___) => _buildPlaceholderImage(),
+                      placeholder: (_, __) => _buildImagePlaceholder(context),
+                      errorWidget: (_, __, ___) => _buildPlaceholderImage(context),
                     )
-                  : _buildPlaceholderImage(),
+                  : _buildPlaceholderImage(context),
             ),
 
             // Content
@@ -632,7 +639,7 @@ class LoungeCard extends StatelessWidget {
                         ),
                       ),
                       if (lounge.averageRating != null)
-                        _buildRating(lounge.averageRating!),
+                        _buildRating(lounge.averageRating!, context),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -643,14 +650,14 @@ class LoungeCard extends StatelessWidget {
                       Icon(
                         Icons.location_on,
                         size: 16,
-                        color: Colors.grey[600],
+                        color: context.colors.iconInactive,
                       ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           lounge.address,
                           style: TextStyle(
-                            color: Colors.grey[600],
+                            color: context.colors.textSecondary,
                             fontSize: 14,
                           ),
                           maxLines: 1,
@@ -667,13 +674,13 @@ class LoungeCard extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 4,
                       children: lounge.amenities.take(4).map((amenity) {
-                        return _buildAmenityChip(amenity);
+                        return _buildAmenityChip(amenity, context);
                       }).toList(),
                     ),
                     const SizedBox(height: 12),
                   ],
 
-                  _buildStatusAndCapacity(lounge),
+                  _buildStatusAndCapacity(lounge, context),
                   const SizedBox(height: 12),
 
                   // Price and Status
@@ -683,9 +690,9 @@ class LoungeCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Starting from',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                            style: TextStyle(color: context.colors.textTertiary, fontSize: 12),
                           ),
                           Text(
                             lounge.formattedPrice1Hour,
@@ -704,16 +711,16 @@ class LoungeCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: lounge.isOperational
-                              ? Colors.green.withOpacity(0.1)
-                              : Colors.red.withOpacity(0.1),
+                              ? Colors.green.withOpacity(context.isDarkMode ? 0.18 : 0.08)
+                              : Colors.red.withOpacity(context.isDarkMode ? 0.18 : 0.08),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           lounge.isOperational ? 'Available' : 'Closed',
                           style: TextStyle(
                             color: lounge.isOperational
-                                ? Colors.green[700]
-                                : Colors.red[700],
+                                ? (context.isDarkMode ? Colors.green[300] : Colors.green[700])
+                                : (context.isDarkMode ? Colors.red[300] : Colors.red[700]),
                             fontWeight: FontWeight.w500,
                             fontSize: 12,
                           ),
@@ -731,61 +738,61 @@ class LoungeCard extends StatelessWidget {
   }
 
   /// Shimmer-like placeholder while image loads
-  Widget _buildImagePlaceholder() {
+  Widget _buildImagePlaceholder(BuildContext context) {
     return Container(
       height: 150,
       width: double.infinity,
-      color: Colors.grey[200],
+      color: context.colors.inputBackground,
       child: Center(
         child: SizedBox(
           width: 24,
           height: 24,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: Colors.grey[400],
+            color: context.colors.iconInactive,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPlaceholderImage() {
+  Widget _buildPlaceholderImage(BuildContext context) {
     return Container(
       height: 150,
       width: double.infinity,
-      color: Colors.grey[200],
+      color: context.colors.inputBackground,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.airline_seat_individual_suite_outlined,
             size: 48,
-            color: Colors.grey[400],
+            color: context.colors.iconInactive,
           ),
           const SizedBox(height: 8),
           Text(
             'Lounge',
-            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+            style: TextStyle(color: context.colors.textTertiary, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRating(double rating) {
+  Widget _buildRating(double rating, BuildContext context) {
     return Row(
       children: [
         const Icon(Icons.star, size: 18, color: Colors.amber),
         const SizedBox(width: 4),
         Text(
           rating.toStringAsFixed(1),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: context.colors.textPrimary),
         ),
       ],
     );
   }
 
-  Widget _buildAmenityChip(String amenity) {
+  Widget _buildAmenityChip(String amenity, BuildContext context) {
     IconData icon;
     switch (amenity.toLowerCase()) {
       case 'wifi':
@@ -820,7 +827,7 @@ class LoungeCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.primary.withOpacity(
-          0.1,
+          context.isDarkMode ? 0.15 : 0.08,
         ), // Consistent with bus feature chips
         borderRadius: BorderRadius.circular(12),
       ),
@@ -842,28 +849,28 @@ class LoungeCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(String status) {
+  Widget _buildStatusChip(String status, BuildContext context) {
     final normalized = status.toLowerCase();
     Color background;
     Color foreground;
 
     switch (normalized) {
       case 'approved':
-        background = Colors.green.withOpacity(0.12);
-        foreground = Colors.green[700] ?? Colors.green;
+        background = Colors.green.withOpacity(context.isDarkMode ? 0.18 : 0.12);
+        foreground = context.isDarkMode ? Colors.green[300]! : (Colors.green[700] ?? Colors.green);
         break;
       case 'pending':
-        background = Colors.orange.withOpacity(0.12);
-        foreground = Colors.orange[700] ?? Colors.orange;
+        background = Colors.orange.withOpacity(context.isDarkMode ? 0.18 : 0.12);
+        foreground = context.isDarkMode ? Colors.orange[300]! : (Colors.orange[700] ?? Colors.orange);
         break;
       case 'rejected':
       case 'inactive':
-        background = Colors.red.withOpacity(0.12);
-        foreground = Colors.red[700] ?? Colors.red;
+        background = Colors.red.withOpacity(context.isDarkMode ? 0.18 : 0.12);
+        foreground = context.isDarkMode ? Colors.red[300]! : (Colors.red[700] ?? Colors.red);
         break;
       default:
-        background = Colors.blueGrey.withOpacity(0.12);
-        foreground = Colors.blueGrey[700] ?? Colors.blueGrey;
+        background = Colors.blueGrey.withOpacity(context.isDarkMode ? 0.18 : 0.12);
+        foreground = context.isDarkMode ? Colors.blueGrey[300]! : (Colors.blueGrey[700] ?? Colors.blueGrey);
     }
 
     return Container(
@@ -884,18 +891,18 @@ class LoungeCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusAndCapacity(Lounge lounge) {
+  Widget _buildStatusAndCapacity(Lounge lounge, BuildContext context) {
     return Row(
       children: [
-        _buildStatusChip(lounge.status),
+        _buildStatusChip(lounge.status, context),
         if (lounge.capacity != null) ...[
           const SizedBox(width: 8),
-          Icon(Icons.people_alt, size: 14, color: Colors.grey[600]),
+          Icon(Icons.people_alt, size: 14, color: context.colors.iconInactive),
           const SizedBox(width: 4),
           Text(
             '${lounge.capacity} pax',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: context.colors.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

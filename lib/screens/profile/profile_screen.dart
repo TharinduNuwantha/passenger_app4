@@ -65,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.scaffoldBackground,
         appBar: AppBar(
           backgroundColor: AppColors.primary,
           title: const Text('Profile'),
@@ -80,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (errorMessage != null) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.scaffoldBackground,
         appBar: AppBar(
           backgroundColor: AppColors.primary,
           title: const Text('Profile'),
@@ -102,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 48),
                 child: Text(
                   errorMessage!,
-                  style: AppTextStyles.body.copyWith(color: Colors.grey),
+                  style: AppTextStyles.body.copyWith(color: context.colors.textTertiary),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -128,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final displayPhone = _user != null ? _formatPhoneNumber(_user!.phoneNumber) : '';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.scaffoldBackground,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -266,10 +266,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   // Version info
-                  const Center(
+                  Center(
                     child: Text(
                       'App Version 2.6.3 (Build 312)',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(color: context.colors.textTertiary, fontSize: 12),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -288,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          color: Colors.grey[600],
+          color: context.colors.textSecondary,
           fontSize: 12,
           fontWeight: FontWeight.bold,
           letterSpacing: 1.2,
@@ -300,11 +300,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildModernCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: context.colors.shadowColor,
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -318,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               widget,
               if (idx < children.length - 1)
-                Divider(height: 1, indent: 56, color: Colors.grey[100]),
+                Divider(height: 1, indent: 56, color: context.colors.dividerColor),
             ],
           );
         }).toList(),
@@ -331,20 +331,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.05),
+          color: AppColors.primary.withOpacity(context.isDarkMode ? 0.15 : 0.05),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, color: AppColors.primary, size: 22),
       ),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: context.colors.textPrimary,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20),
+      trailing: Icon(Icons.chevron_right_rounded, color: context.colors.iconInactive, size: 20),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -357,32 +357,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.05),
+          color: AppColors.primary.withOpacity(context.isDarkMode ? 0.15 : 0.05),
           borderRadius: BorderRadius.circular(10),
         ),
         child: const Icon(Icons.dark_mode_rounded, color: AppColors.primary, size: 22),
       ),
-      title: const Text(
+      title: Text(
         'App Theme',
         style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: context.colors.textPrimary,
         ),
       ),
       trailing: DropdownButton<ThemeMode>(
         value: themeProvider.themeMode,
         underline: const SizedBox(),
-        icon: const Icon(Icons.expand_more_rounded, color: Colors.grey),
+        icon: Icon(Icons.expand_more_rounded, color: context.colors.iconInactive),
         onChanged: (ThemeMode? newMode) {
           if (newMode != null) {
             themeProvider.setThemeMode(newMode);
           }
         },
-        items: const [
-          DropdownMenuItem(value: ThemeMode.system, child: Text('System', style: TextStyle(fontSize: 14))),
-          DropdownMenuItem(value: ThemeMode.light, child: Text('Light', style: TextStyle(fontSize: 14))),
-          DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark', style: TextStyle(fontSize: 14))),
+        items: [
+          DropdownMenuItem(value: ThemeMode.system, child: Text('System', style: TextStyle(fontSize: 14, color: context.colors.textPrimary))),
+          DropdownMenuItem(value: ThemeMode.light, child: Text('Light', style: TextStyle(fontSize: 14, color: context.colors.textPrimary))),
+          DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark', style: TextStyle(fontSize: 14, color: context.colors.textPrimary))),
         ],
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

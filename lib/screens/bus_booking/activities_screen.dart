@@ -4,6 +4,7 @@ import '../../models/unified_booking.dart';
 import '../../services/combined_bookings_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
+import '../../core/theme/app_theme.dart';
 import 'booking_detail_screen.dart';
 import '../lounge/lounge_booking_detail_screen.dart';
 import '../../widgets/blue_header.dart';
@@ -426,7 +427,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.scaffoldBackground,
       body: SafeArea(
         top: false,
         child: Column(
@@ -535,9 +536,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
             // Tab Content
             Expanded(
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF5F7FA),
-                  borderRadius: BorderRadius.only(
+                decoration: BoxDecoration(
+                  color: context.colors.scaffoldBackground,
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(28),
                     topRight: Radius.circular(28),
                   ),
@@ -631,7 +632,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
             const SizedBox(height: 16),
             Text(
               'Loading bookings...',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
             ),
           ],
         ),
@@ -648,7 +649,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: Colors.red.shade50.withOpacity(context.isDarkMode ? 0.15 : 1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -661,7 +662,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               Text(
                 'Something went wrong',
                 style: TextStyle(
-                  color: Colors.grey.shade800,
+                  color: context.colors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -669,7 +670,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               const SizedBox(height: 8),
               Text(
                 error,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -705,7 +706,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(context.isDarkMode ? 0.15 : 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -718,7 +719,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               Text(
                 emptyTitle,
                 style: TextStyle(
-                  color: Colors.grey.shade800,
+                  color: context.colors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -726,7 +727,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               const SizedBox(height: 8),
               Text(
                 emptySubtitle,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                style: TextStyle(color: context.colors.textTertiary, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -764,7 +765,6 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
   Widget _buildBookingCard(UnifiedBooking booking) {
     final isBus = booking.type == UnifiedBookingType.bus;
-    final isLounge = booking.type == UnifiedBookingType.lounge;
 
     // Color theming based on type
     final Color typeColor = isBus ? AppColors.primary : const Color(0xFF7C3AED);
@@ -776,10 +776,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: context.colors.shadowColor,
         child: InkWell(
           onTap: () => _navigateToDetail(booking),
           borderRadius: BorderRadius.circular(16),
@@ -787,7 +787,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: context.colors.cardBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -824,7 +824,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                     const Spacer(),
                     _buildStatusBadge(booking.status),
                     const SizedBox(width: 8),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                    Icon(Icons.chevron_right, color: context.colors.iconInactive),
                   ],
                 ),
 
@@ -833,10 +833,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                 // Title
                 Text(
                   booking.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+                    color: context.colors.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -850,14 +850,14 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                     Icon(
                       Icons.confirmation_number_outlined,
                       size: 14,
-                      color: Colors.grey.shade500,
+                      color: context.colors.iconInactive,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       booking.bookingReference,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: context.colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -870,7 +870,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
+                    color: context.colors.inputBackground,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -882,7 +882,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: context.colors.cardBackground,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -897,17 +897,17 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                               children: [
                                 Text(
                                   booking.formattedDate,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF374151),
+                                    color: context.colors.textPrimary,
                                   ),
                                 ),
                                 Text(
                                   booking.formattedTime,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey.shade500,
+                                    color: context.colors.textTertiary,
                                   ),
                                 ),
                               ],
@@ -920,7 +920,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                       Container(
                         width: 1,
                         height: 36,
-                        color: Colors.grey.shade300,
+                        color: context.colors.dividerColor,
                       ),
 
                       // Amount
@@ -943,7 +943,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                                   booking.subtitle,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey.shade500,
+                                    color: context.colors.textTertiary,
                                   ),
                                 ),
                               ],

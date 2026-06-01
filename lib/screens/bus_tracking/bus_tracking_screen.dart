@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Bus Tracking Screen - Shows real-time bus location on map
 class BusTrackingScreen extends StatefulWidget {
@@ -144,7 +145,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceWhite,
+      backgroundColor: context.colors.scaffoldBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,
@@ -191,7 +192,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                 child: FloatingActionButton(
                                   mini: true,
                                   onPressed: _centerOnUser,
-                                  backgroundColor: AppColors.white,
+                                  backgroundColor: context.colors.cardBackground,
                                   child: const Icon(
                                     Icons.my_location,
                                     color: AppColors.primary,
@@ -203,8 +204,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                         : Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceWhite,
-                              border: Border.all(color: AppColors.divider ?? Colors.grey.shade300),
+                              color: context.colors.scaffoldBackground,
+                              border: Border.all(color: context.colors.cardBorder),
                             ),
                             child: Center(
                               child: Column(
@@ -213,13 +214,13 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                   Icon(
                                     Icons.location_off,
                                     size: 80,
-                                    color: AppColors.primary.withOpacity(0.3),
+                                    color: AppColors.primary.withOpacity(context.isDarkMode ? 0.5 : 0.3),
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
                                     'Location permission required',
                                     style: AppTextStyles.bodyLarge.copyWith(
-                                      color: AppColors.textSecondary,
+                                      color: context.colors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -246,14 +247,14 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.white,
+                        color: context.colors.cardBackground,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(24),
                           topRight: Radius.circular(24),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.shadowMedium,
+                            color: context.colors.shadowColor,
                             blurRadius: 10,
                             offset: const Offset(0, -2),
                           ),
@@ -270,7 +271,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                                 height: 4,
                                 margin: const EdgeInsets.only(bottom: 20),
                                 decoration: BoxDecoration(
-                                  color: AppColors.divider,
+                                  color: context.colors.iconInactive.withOpacity(0.5),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -377,7 +378,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.primaryLighter,
+            color: AppColors.primary.withOpacity(context.isDarkMode ? 0.15 : 0.05),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: AppColors.primary, size: 20),
@@ -390,14 +391,14 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
               Text(
                 label,
                 style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textTertiary,
+                  color: context.colors.textTertiary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
