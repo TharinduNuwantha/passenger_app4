@@ -900,7 +900,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         title: Column(
           children: [
             const Text(
-              'Add Lounge',
+              'Lounge Experience',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -1109,13 +1109,27 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  isPreTrip ? 'Pre-Trip Lounge' : 'Post-Trip Lounge',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0D47A1),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isPreTrip ? 'Pre-Journey Lounge' : 'Arrival Lounge',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0D47A1),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    Text(
+                      isPreTrip ? 'Relax before your trip' : 'Refresh after your journey',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (selectedLounge != null)
@@ -1159,17 +1173,47 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
     bool isLoading,
     String? error,
   ) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: isLoading ? null : () => _addLounge(isPreTrip),
-        icon: const Icon(Icons.add),
-        label: Text('Add ${isPreTrip ? "Pre-Trip" : "Post-Trip"} Lounge'),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return InkWell(
+      onTap: isLoading ? null : () => _addLounge(isPreTrip),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D47A1).withOpacity(0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF0D47A1).withOpacity(0.15),
+            width: 1.5,
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isLoading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else ...[
+              Icon(
+                Icons.weekend_rounded,
+                color: const Color(0xFF0D47A1).withOpacity(0.8),
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Book ${isPreTrip ? "Pre-Journey" : "Arrival"} Lounge',
+                style: TextStyle(
+                  color: const Color(0xFF0D47A1).withOpacity(0.9),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ]
+          ],
         ),
       ),
     );
@@ -1254,7 +1298,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                 Text(
                   'LKR ${data.totalPrice.toStringAsFixed(0)}',
                   style: const TextStyle(
-                    color: AppColors.primary,
+                    color: Color(0xFF0D47A1),
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1264,8 +1308,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {
                   if (data.isExplicitlyBooked) {
@@ -1276,28 +1320,39 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: data.isExplicitlyBooked
-                      ? Colors.red.withOpacity(0.1)
-                      : AppColors.primary.withOpacity(0.1),
+                      ? Colors.red.shade50
+                      : const Color(0xFF0D47A1).withOpacity(0.1),
                   foregroundColor: data.isExplicitlyBooked
-                      ? Colors.red
-                      : AppColors.primary,
+                      ? Colors.red.shade700
+                      : const Color(0xFF0D47A1),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+                    horizontal: 16,
+                    vertical: 10,
                   ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Text(
-                  data.isExplicitlyBooked ? 'Cancel' : 'Book',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      data.isExplicitlyBooked ? Icons.close_rounded : Icons.add_circle_outline_rounded,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      data.isExplicitlyBooked ? 'Cancel' : 'Book',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

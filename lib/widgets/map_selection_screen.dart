@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 import '../theme/app_colors.dart';
 import '../screens/home/location_selection_screen.dart';
+import '../core/theme/app_theme.dart';
 
 // Complete Premium Redesigned Map Selection Screen
 class MapSelectionScreen extends StatefulWidget {
@@ -40,6 +41,195 @@ class MapSelectionScreen extends StatefulWidget {
 }
 
 class _MapSelectionScreenState extends State<MapSelectionScreen> {
+  static const String _darkMapStyle = '''
+[
+  {
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#212121"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#212121"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.country",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#9e9e9e"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.land_parcel",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.locality",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#bdbdbd"
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#181818"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#616161"
+      }
+    ]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text.stroke",
+    "stylers": [
+      {
+        "color": "#1b1b1b"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "geometry.fill",
+    "stylers": [
+      {
+        "color": "#2c2c2c"
+      }
+    ]
+  },
+  {
+    "featureType": "road",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#8a8a8a"
+      }
+    ]
+  },
+  {
+    "featureType": "road.arterial",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#373737"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#3c3c3c"
+      }
+    ]
+  },
+  {
+    "featureType": "road.highway.controlled_access",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#4e4e4e"
+      }
+    ]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#616161"
+      }
+    ]
+  },
+  {
+    "featureType": "transit",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#757575"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "color": "#000000"
+      }
+    ]
+  },
+  {
+    "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [
+      {
+        "color": "#3d3d3d"
+      }
+    ]
+  }
+]
+''';
+
   GoogleMapController? _mapController;
 
   // --- State for Single Location Mode ---
@@ -745,7 +935,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         : AppColors.dropRed;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.scaffoldBackground,
       body: Stack(
         children: [
           // 1. Full-screen background Google Map (Primary UI layer)
@@ -761,6 +951,9 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               ),
               onMapCreated: (controller) {
                 _mapController = controller;
+                if (context.isDarkMode) {
+                  _mapController?.setMapStyle(_darkMapStyle);
+                }
                 if (widget.isRouteSelection &&
                     _pickupLocation != null &&
                     _dropLocation != null) {
@@ -858,24 +1051,24 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.colors.cardBackground,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.12),
+                            color: context.colors.shadowColor,
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
                         ],
                         border: Border.all(
-                          color: Colors.grey.shade100,
+                          color: context.colors.cardBorder,
                           width: 1.2,
                         ),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.arrow_back_rounded,
-                          color: Colors.black87,
+                          color: context.colors.iconPrimary,
                           size: 22,
                         ),
                       ),
@@ -942,12 +1135,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100, width: 1.2),
+        border: Border.all(color: context.colors.cardBorder, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: context.colors.shadowColor,
             blurRadius: 28,
             spreadRadius: -2,
             offset: const Offset(0, 8),
@@ -981,7 +1174,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: CustomPaint(
                   size: const Size(2, 45),
-                  painter: DottedLinePainter(),
+                  painter: DottedLinePainter(color: context.colors.dividerColor),
                 ),
               ),
               Container(
@@ -1058,12 +1251,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.grey.shade200, width: 1.2),
+        border: Border.all(color: context.colors.cardBorder, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: context.colors.shadowColor,
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -1084,8 +1277,8 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: _selectedAddress.isEmpty
-                      ? Colors.grey.shade400
-                      : Colors.black87,
+                      ? context.colors.inputHint
+                      : context.colors.textPrimary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1118,12 +1311,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
         height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colors.inputBackground,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isActive
                 ? activeColor
-                : Colors.grey.shade200,
+                : context.colors.inputBorder,
             width: isActive ? 1.5 : 1.0,
           ),
           boxShadow: isActive
@@ -1143,7 +1336,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               decoration: BoxDecoration(
                 color: isActive
                     ? activeColor.withOpacity(0.12)
-                    : Colors.grey.shade200,
+                    : context.colors.chipBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -1151,7 +1344,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color: isActive ? activeColor : Colors.grey.shade600,
+                  color: isActive ? activeColor : context.colors.textSecondary,
                   letterSpacing: 0.6,
                 ),
               ),
@@ -1163,7 +1356,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: hasText ? FontWeight.w700 : FontWeight.w500,
-                  color: hasText ? Colors.black87 : Colors.grey.shade400,
+                  color: hasText ? context.colors.textPrimary : context.colors.inputHint,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1177,13 +1370,13 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: context.colors.chipBackground,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.close_rounded,
                     size: 12,
-                    color: Colors.black54,
+                    color: context.colors.iconSecondary,
                   ),
                 ),
               ),
@@ -1201,11 +1394,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: context.colors.shadowColor,
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -1249,11 +1442,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 14, 24, 34),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.bottomSheetBackground,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: context.colors.shadowColor,
             blurRadius: 28,
             offset: const Offset(0, -6),
           ),
@@ -1269,7 +1462,7 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               width: 44,
               height: 5,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: context.colors.dividerColor,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -1319,10 +1512,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                         ? const ShimmerLoader()
                         : Text(
                             currentAddress,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 15,
-                              color: Colors.black87,
+                              color: context.colors.textPrimary,
                               height: 1.35,
                             ),
                             maxLines: 2,
@@ -1397,10 +1590,10 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.04),
+        color: context.colors.chipBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.12),
+          color: context.colors.cardBorder,
           width: 1,
         ),
       ),
@@ -1412,12 +1605,12 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
             size: 20,
           ),
           const SizedBox(width: 10),
-          const Text(
+          Text(
             'Direct Distance:',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Colors.black54,
+              color: context.colors.textSecondary,
             ),
           ),
           const Spacer(),
@@ -1437,11 +1630,14 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
 
 // Custom Painter to draw a clean timeline dotted vertical line
 class DottedLinePainter extends CustomPainter {
+  final Color color;
+  DottedLinePainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     double dashHeight = 5, dashSpace = 4, startY = 0;
     final paint = Paint()
-      ..color = Colors.grey.shade300
+      ..color = color
       ..strokeWidth = 2;
     while (startY < size.height) {
       canvas.drawLine(Offset(0, startY), Offset(0, startY + dashHeight), paint);
@@ -1450,7 +1646,7 @@ class DottedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(DottedLinePainter oldDelegate) => oldDelegate.color != color;
 }
 
 // Premium Shimmer skeleton loader widget
@@ -1494,7 +1690,7 @@ class _ShimmerLoaderState extends State<ShimmerLoader>
             width: double.infinity,
             height: 16,
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
+              color: context.colors.shimmerBase,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -1503,7 +1699,7 @@ class _ShimmerLoaderState extends State<ShimmerLoader>
             width: 180,
             height: 16,
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
+              color: context.colors.shimmerBase,
               borderRadius: BorderRadius.circular(4),
             ),
           ),

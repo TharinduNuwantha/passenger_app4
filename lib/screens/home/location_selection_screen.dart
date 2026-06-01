@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:async';
 import '../../theme/app_colors.dart';
 import '../../widgets/map_selection_screen.dart';
+import '../../core/theme/app_theme.dart';
 
 /// Full-screen location selection page.
 ///
@@ -547,7 +548,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
         position: _slideAnimation,
         child: Scaffold(
           resizeToAvoidBottomInset: true,
-          backgroundColor: const Color(0xFFF8F9FB),
+          backgroundColor: context.colors.scaffoldBackground,
           body: Column(
             children: [
               // ── Header with Gradient ──────────────────────────────────
@@ -795,19 +796,19 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                         duration: const Duration(milliseconds: 200),
                         height: 54,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.colors.inputBackground,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: _searchFocusNode.hasFocus
                                 ? _accentColor
-                                : Colors.grey.shade200,
+                                : context.colors.inputBorder,
                             width: _searchFocusNode.hasFocus ? 1.6 : 1.0,
                           ),
                           boxShadow: [
                             BoxShadow(
                               color: _searchFocusNode.hasFocus
                                   ? _accentColor.withOpacity(0.08)
-                                  : Colors.black.withOpacity(0.06),
+                                  : context.colors.shadowColor,
                               blurRadius: 16,
                               offset: const Offset(0, 4),
                             ),
@@ -829,20 +830,20 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                               child: TextField(
                                 controller: _searchController,
                                 focusNode: _searchFocusNode,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                  color: context.colors.inputText,
                                   letterSpacing: 0.1,
                                 ),
                                 decoration: InputDecoration(
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: context.colors.inputBackground,
                                   hintText: widget.isPickup
                                       ? 'Search pickup location...'
                                       : 'Search destination...',
                                   hintStyle: TextStyle(
-                                    color: Colors.grey.shade400,
+                                    color: context.colors.inputHint,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w400,
                                   ),
@@ -886,13 +887,13 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                   child: Container(
                                     padding: const EdgeInsets.all(5),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
+                                      color: context.colors.chipBackground,
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
                                       Icons.close_rounded,
                                       size: 14,
-                                      color: Colors.grey.shade600,
+                                      color: context.colors.iconSecondary,
                                     ),
                                   ),
                                 ),
@@ -926,12 +927,15 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colors.cardBackground,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: color.withOpacity(0.15), width: 1.5),
+          border: Border.all(
+            color: context.colors.cardBorder,
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.08),
+              color: context.colors.shadowColor,
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -943,7 +947,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: bgColor,
+                color: context.isDarkMode
+                    ? context.colors.chipBackground
+                    : bgColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: isLoading
@@ -964,10 +970,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: context.colors.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -977,7 +983,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                     sublabel,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade500,
+                      color: context.colors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1114,7 +1120,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
               : Icon(
                   isSaved ? Icons.star_rounded : Icons.star_outline_rounded,
                   size: 20,
-                  color: isSaved ? Colors.amber.shade600 : Colors.grey.shade400,
+                  color: isSaved ? Colors.amber.shade600 : context.colors.iconInactive,
                 ),
         ),
       ),
@@ -1157,12 +1163,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.colors.cardBackground,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100, width: 1),
+                border: Border.all(color: context.colors.cardBorder, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: context.colors.shadowColor,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -1174,7 +1180,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
+                      color: context.isDarkMode
+                          ? Colors.amber.shade900.withOpacity(0.2)
+                          : Colors.amber.shade50,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -1190,10 +1198,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                       children: [
                         Text(
                           mainText,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Colors.black87,
+                            color: context.colors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1204,7 +1212,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                             secondaryText,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade500,
+                              color: context.colors.textSecondary,
                               fontWeight: FontWeight.w400,
                             ),
                             maxLines: 1,
@@ -1223,7 +1231,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                   Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: _accentColorLight,
+                      color: context.isDarkMode
+                          ? context.colors.chipBackground
+                          : _accentColorLight,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -1269,12 +1279,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.colors.cardBackground,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100, width: 1),
+                border: Border.all(color: context.colors.cardBorder, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: context.colors.shadowColor,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -1286,7 +1296,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: _accentColorLight,
+                      color: context.isDarkMode
+                          ? context.colors.chipBackground
+                          : _accentColorLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -1302,10 +1314,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                       children: [
                         Text(
                           mainText,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Colors.black87,
+                            color: context.colors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1316,7 +1328,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                             secondaryText,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade500,
+                              color: context.colors.textSecondary,
                               fontWeight: FontWeight.w400,
                             ),
                             maxLines: 1,
@@ -1335,7 +1347,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                   Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: _accentColorLight,
+                      color: context.isDarkMode
+                          ? context.colors.chipBackground
+                          : _accentColorLight,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -1380,12 +1394,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.colors.cardBackground,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100, width: 1),
+                border: Border.all(color: context.colors.cardBorder, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: context.colors.shadowColor,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -1397,12 +1411,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
+                      color: context.colors.chipBackground,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.history_rounded,
-                      color: Colors.grey.shade500,
+                      color: context.colors.iconSecondary,
                       size: 22,
                     ),
                   ),
@@ -1413,10 +1427,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                       children: [
                         Text(
                           displayText,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Colors.black87,
+                            color: context.colors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1431,7 +1445,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
+                                  color: context.colors.chipBackground,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
@@ -1440,7 +1454,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                     Icon(
                                       Icons.swap_horiz_rounded,
                                       size: 12,
-                                      color: Colors.grey.shade500,
+                                      color: context.colors.iconInactive,
                                     ),
                                     const SizedBox(width: 4),
                                     Flexible(
@@ -1448,7 +1462,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                                         otherText,
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: Colors.grey.shade500,
+                                          color: context.colors.textSecondary,
                                           fontWeight: FontWeight.w500,
                                         ),
                                         maxLines: 1,
@@ -1473,7 +1487,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                   Icon(
                     Icons.north_east_rounded,
                     size: 18,
-                    color: Colors.grey.shade400,
+                    color: context.colors.iconInactive,
                   ),
                 ],
               ),
@@ -1512,12 +1526,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No locations found',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Colors.black87,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -1526,7 +1540,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade500,
+                color: context.colors.textSecondary,
                 fontWeight: FontWeight.w500,
                 height: 1.5,
               ),
@@ -1613,10 +1627,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
                   ? 'Where are you starting from?'
                   : 'Where are you going?',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
-                color: Colors.black87,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -1625,7 +1639,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade500,
+                color: context.colors.textSecondary,
                 fontWeight: FontWeight.w500,
                 height: 1.5,
               ),
