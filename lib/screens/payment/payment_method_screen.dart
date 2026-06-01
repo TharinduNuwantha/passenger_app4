@@ -3,6 +3,8 @@ import '../../theme/app_colors.dart';
 import '../../services/booking_service.dart';
 import 'package:logger/logger.dart';
 import 'payment_success_screen.dart';
+import '../../core/theme/app_theme.dart';
+
 
 class PaymentMethodScreen extends StatefulWidget {
   final String bookingPrice;
@@ -88,18 +90,18 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     final int totalAmount = busFare;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.scaffoldBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: context.colors.iconPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Payment',
           style: TextStyle(
-            color: Colors.white,
+            color: context.colors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -117,27 +119,28 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: context.colors.cardBackground,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: context.colors.cardBorder),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.confirmation_number,
-                      color: Colors.white70,
+                      color: context.colors.iconSecondary,
                     ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Booking Reference',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                         ),
                         Text(
                           widget.referenceNo,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -151,10 +154,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               const SizedBox(height: 24),
 
               // Payment Method Selection
-              const Text(
+              Text(
                 'Select Payment Method',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.colors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -171,12 +174,12 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.colors.cardBackground,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected
                             ? AppColors.primary
-                            : Colors.transparent,
+                            : context.colors.cardBorder,
                         width: 2,
                       ),
                     ),
@@ -198,9 +201,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         Expanded(
                           child: Text(
                             method['name'],
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
+                              color: context.colors.textPrimary,
                             ),
                           ),
                         ),
@@ -224,42 +228,45 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.colors.cardBackground,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.colors.cardBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Payment Summary',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Bus Fare',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(color: context.colors.textSecondary),
                         ),
                         Text(
                           'LKR $busFare',
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: TextStyle(fontWeight: FontWeight.w500, color: context.colors.textPrimary),
                         ),
                       ],
                     ),
-                    const Divider(height: 24),
+                    Divider(height: 24, color: context.colors.dividerColor),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Total Amount',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                         Text(
@@ -287,8 +294,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       ? null
                       : () => _processPayment(totalAmount),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -298,7 +305,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                       ? const SizedBox(
                           height: 24,
                           width: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : Text(
                           selectedPaymentIndex == 1
@@ -315,15 +322,15 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               const SizedBox(height: 16),
 
               // Security Note
-              const Center(
+              Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.lock, color: Colors.white54, size: 16),
-                    SizedBox(width: 8),
+                    Icon(Icons.lock, color: context.colors.textTertiary, size: 16),
+                    const SizedBox(width: 8),
                     Text(
                       'Secure Payment',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                      style: TextStyle(color: context.colors.textTertiary, fontSize: 12),
                     ),
                   ],
                 ),

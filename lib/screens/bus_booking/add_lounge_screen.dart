@@ -12,6 +12,8 @@ import '../../models/search_models.dart';
 import '../../services/lounge_booking_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/map_selection_screen.dart';
+import '../../core/theme/app_theme.dart';
+
 
 /// Data class to hold selected lounge information for combined booking
 class SelectedLoungeData {
@@ -1069,19 +1071,19 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: selectedLounge != null
               ? (selectedLounge.isExplicitlyBooked
                     ? AppColors.primary
                     : Colors.orange)
-              : Colors.grey.shade200,
+              : context.colors.cardBorder,
           width: selectedLounge != null ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: context.colors.shadowColor.withOpacity(0.08),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -1900,9 +1902,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       maxChildSize: 0.95,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          decoration: BoxDecoration(
+            color: context.colors.bottomSheetBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             children: [
@@ -1912,7 +1914,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 width: 44,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: context.colors.dividerColor,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -2380,20 +2382,20 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: context.colors.inputBackground,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: context.colors.cardBorder),
           ),
           child: Column(
             children: [
               TextField(
                 controller: _guestNameController,
-                style: const TextStyle(color: Colors.black),
+                style: TextStyle(color: context.colors.textPrimary),
                 decoration: InputDecoration(
                   labelText: 'Guest Name',
-                  labelStyle: const TextStyle(color: Colors.black87),
+                  labelStyle: TextStyle(color: context.colors.textSecondary),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.colors.cardBackground,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -2406,13 +2408,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               const SizedBox(height: 8),
               TextField(
                 controller: _guestPhoneController,
-                style: const TextStyle(color: Colors.black),
+                style: TextStyle(color: context.colors.textPrimary),
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: 'Phone (Optional)',
-                  labelStyle: const TextStyle(color: Colors.black87),
+                  labelStyle: TextStyle(color: context.colors.textSecondary),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.colors.cardBackground,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -2452,7 +2454,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: context.colors.cardBorder),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -2469,10 +2471,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                         errorBuilder: (_, __, ___) => Container(
                           width: 60,
                           height: 60,
-                          color: Colors.grey.shade200,
+                          color: context.colors.chipBackground,
                           child: Icon(
                             Icons.fastfood,
-                            color: Colors.grey.shade400,
+                            color: context.colors.iconSecondary,
                             size: 28,
                           ),
                         ),
@@ -2480,10 +2482,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     : Container(
                         width: 60,
                         height: 60,
-                        color: Colors.grey.shade200,
+                        color: context.colors.chipBackground,
                         child: Icon(
                           Icons.fastfood,
-                          color: Colors.grey.shade400,
+                          color: context.colors.iconSecondary,
                           size: 28,
                         ),
                       ),
@@ -2502,7 +2504,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                       'LKR ${product.price.toStringAsFixed(0)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -2575,10 +2577,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: context.colors.shadowColor.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -3140,10 +3142,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? AppColors.primary : context.colors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            color: isSelected ? AppColors.primary : context.colors.cardBorder,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -3165,7 +3167,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : AppColors.textPrimary,
+                color: isSelected ? Colors.white : context.colors.textPrimary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -3177,7 +3179,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 fontSize: 10,
                 color: isSelected
                     ? Colors.white.withOpacity(0.8)
-                    : Colors.grey.shade600,
+                    : context.colors.textSecondary,
               ),
             ),
             if (priceLabel.isNotEmpty) ...[
@@ -3187,7 +3189,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.2)
-                      : Colors.grey.shade100,
+                      : context.colors.chipBackground,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -3195,7 +3197,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : Colors.grey.shade800,
+                    color: isSelected ? Colors.white : context.colors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -3303,7 +3305,7 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
           padding: EdgeInsets.all(widget.isLoading ? 2.0 : 0),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.colors.cardBackground,
               borderRadius: BorderRadius.circular(13),
             ),
             child: Material(
@@ -3344,7 +3346,7 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
                           fontWeight: FontWeight.bold,
                           color: widget.isLoading
                               ? AppColors.primary
-                              : Colors.black87,
+                              : context.colors.textPrimary,
                           letterSpacing: 0.1,
                         ),
                       ),

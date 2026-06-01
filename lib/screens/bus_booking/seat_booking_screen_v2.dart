@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import 'booking_confirm_screen.dart';
 import 'package:flutter/services.dart';
 import 'booking_intent_flow_screen.dart';
+import '../../core/theme/app_theme.dart';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 // Seat state colours
@@ -17,11 +18,6 @@ const _kMale       = Color(0xFFE53935);   // Red – male booked
 const _kFemale     = Color(0xFFE91E63);   // Pink – female booked
 const _kBlocked    = Color(0xFFBDBDBD);   // Medium grey
 const _kUnavail    = Color(0xFFEEEEEE);   // Light grey
-
-// Surface / background
-const _kBg         = Color(0xFFF4F6FB);   // Page background
-const _kCard       = Colors.white;
-const _kDivider    = Color(0xFFE8EBF0);
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Enhanced seat booking screen that fetches real seat data from API
@@ -79,6 +75,10 @@ class SeatBookingScreenV2 extends StatefulWidget {
 }
 
 class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
+  Color get _kBg => context.colors.scaffoldBackground;
+  Color get _kCard => context.colors.cardBackground;
+  Color get _kDivider => context.colors.dividerColor;
+
   final BookingService _bookingService = BookingService();
   final AuthService _authService = AuthService();
   final Logger _logger = Logger();
@@ -146,9 +146,9 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
         minChildSize: 0.3,
         maxChildSize: 0.8,
         builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: context.colors.bottomSheetBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
@@ -157,7 +157,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: context.colors.dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -243,12 +243,12 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
             if (booking.numberOfSeats != null)
               Text(
                 '${booking.numberOfSeats} seat(s) • ${booking.formattedTotal}',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
               ),
             if (booking.departureDatetime != null)
               Text(
                 'Departure: ${_formatDateTime(booking.departureDatetime!)}',
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
               ),
           ],
         ),
@@ -1019,7 +1019,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: _kBg,
-        border: const Border(bottom: BorderSide(color: _kDivider)),
+        border: Border(bottom: BorderSide(color: _kDivider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1468,7 +1468,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.grey.shade400,
+                                  color: context.colors.textTertiary,
                                   letterSpacing: 1.0,
                                 ),
                               ),
@@ -1498,7 +1498,7 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.grey.shade400,
+                                  color: context.colors.textTertiary,
                                   letterSpacing: 1.0,
                                 ),
                               ),
@@ -1534,8 +1534,8 @@ class _SeatBookingScreenV2State extends State<SeatBookingScreenV2> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        disabledBackgroundColor: Colors.grey.shade200,
-                        disabledForegroundColor: Colors.grey.shade400,
+                        disabledBackgroundColor: context.colors.chipBackground,
+                        disabledForegroundColor: context.colors.textTertiary,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,

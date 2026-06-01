@@ -13,6 +13,8 @@ import '../../theme/app_colors.dart';
 import '../payment/payment_webview_screen.dart';
 import 'booking_intent_success_screen.dart';
 import 'add_lounge_screen.dart';
+import '../../core/theme/app_theme.dart';
+
 
 /// Booking Intent Flow Screen - Uses the new Intent → Payment → Confirm flow
 ///
@@ -670,9 +672,9 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                       _buildLoungeSelectionSummary(),
                     Expanded(
                       child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
+                        decoration: BoxDecoration(
+                          color: context.colors.cardBackground,
+                          borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(30),
                             topRight: Radius.circular(30),
                           ),
@@ -978,21 +980,22 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: context.colors.textSecondary),
         prefixIcon: Icon(icon, color: AppColors.primary.withOpacity(0.6)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: context.colors.inputBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: context.colors.inputBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primary),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: context.colors.inputBackground,
       ),
     );
   }
@@ -1001,7 +1004,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: context.colors.inputBackground,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1032,7 +1035,8 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            color: context.colors.cardBackground,
+            border: Border.all(color: context.colors.cardBorder),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -1286,14 +1290,14 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                           '• Pre-orders',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         Text(
                           'LKR ${_preTripLounge!.preOrderTotal.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                       ],
@@ -1336,14 +1340,14 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                           '• Pre-orders',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         Text(
                           'LKR ${_transitLounge!.preOrderTotal.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                       ],
@@ -1386,14 +1390,14 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                           '• Pre-orders',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                         Text(
                           'LKR ${_postTripLounge!.preOrderTotal.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                       ],
@@ -1456,10 +1460,10 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.colors.cardBackground,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: context.colors.shadowColor.withOpacity(0.08),
                 blurRadius: 10,
                 offset: const Offset(0, -5),
               ),
@@ -1475,7 +1479,7 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                disabledBackgroundColor: Colors.grey.shade300,
+                disabledBackgroundColor: context.colors.chipBackground,
               ),
               child: isLoading
                   ? const SizedBox(

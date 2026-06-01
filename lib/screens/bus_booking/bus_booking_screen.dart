@@ -6,6 +6,8 @@ import '../../theme/app_text_style.dart';
 import '../../providers/search_provider.dart';
 import '../../models/search_models.dart';
 import 'seat_booking_screen_v2.dart';
+import '../../core/theme/app_theme.dart';
+
 
 class BusListScreen extends StatefulWidget {
   final DateTime? date;
@@ -81,7 +83,7 @@ class _BusListScreenState extends State<BusListScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           elevation: 10,
-          backgroundColor: Colors.white,
+          backgroundColor: context.colors.dialogBackground,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -100,12 +102,12 @@ class _BusListScreenState extends State<BusListScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Expand Search Radius?',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -115,7 +117,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.5,
-                    color: Colors.grey.shade600,
+                    color: context.colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -132,12 +134,12 @@ class _BusListScreenState extends State<BusListScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          side: BorderSide(color: Colors.grey.shade300),
+                          side: BorderSide(color: context.colors.cardBorder),
                         ),
                         child: Text(
                           'Cancel',
                           style: TextStyle(
-                            color: Colors.grey.shade700,
+                            color: context.colors.textSecondary,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
@@ -186,9 +188,7 @@ class _BusListScreenState extends State<BusListScreen> {
         : "Select Date";
 
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF8FAFC,
-      ), // Ultra-light cool grey background
+      backgroundColor: context.colors.scaffoldBackground,
       body: Consumer<SearchProvider>(
         builder: (context, searchProvider, child) {
           List<TripResult> trips = searchProvider.tripResults;
@@ -546,17 +546,17 @@ class _BusListScreenState extends State<BusListScreen> {
         child: Container(
           height: 70,
           padding: const EdgeInsets.only(top: 15),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.only(
+          decoration: BoxDecoration(
+            color: context.colors.scaffoldBackground,
+            borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(35),
               topRight: Radius.circular(35),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
+                color: context.colors.shadowColor.withOpacity(0.08),
                 blurRadius: 10,
-                offset: Offset(0, -5),
+                offset: const Offset(0, -5),
               ),
             ],
           ),
@@ -590,13 +590,13 @@ class _BusListScreenState extends State<BusListScreen> {
         margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? AppColors.primary : context.colors.cardBackground,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: isSelected
                   ? AppColors.primary.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.03),
+                  : context.colors.shadowColor.withOpacity(0.03),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -613,7 +613,7 @@ class _BusListScreenState extends State<BusListScreen> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : AppColors.textPrimary,
+                color: isSelected ? Colors.white : context.colors.textPrimary,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
@@ -632,26 +632,34 @@ class _BusListScreenState extends State<BusListScreen> {
         children: [
           Text(
             '$count Buses Available',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.colors.cardBackground,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: context.colors.cardBorder),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Text(
                   'Sort',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textPrimary,
+                  ),
                 ),
-                Icon(Icons.keyboard_arrow_down_rounded, size: 16),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 16,
+                  color: context.colors.iconPrimary,
+                ),
               ],
             ),
           ),
@@ -661,17 +669,17 @@ class _BusListScreenState extends State<BusListScreen> {
   }
 
   Widget _buildLoadingState() {
-    return const SizedBox(
+    return SizedBox(
       height: 400,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(strokeWidth: 3),
-            SizedBox(height: 20),
+            const CircularProgressIndicator(strokeWidth: 3),
+            const SizedBox(height: 20),
             Text(
               'Finding your perfect ride...',
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey),
+              style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.textSecondary),
             ),
           ],
         ),
@@ -690,15 +698,15 @@ class _BusListScreenState extends State<BusListScreen> {
             color: Colors.redAccent,
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Oops! Something went wrong',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: context.colors.textPrimary),
           ),
           const SizedBox(height: 10),
           Text(
             provider.errorMessage ?? 'Unknown error',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: context.colors.textSecondary),
           ),
           const SizedBox(height: 30),
           ElevatedButton(
@@ -738,18 +746,18 @@ class _BusListScreenState extends State<BusListScreen> {
             size: 80,
             color: hasRouteOnlyDiscovery || hasPartialCoverage
                 ? AppColors.primary
-                : Colors.grey.shade300,
+                : context.colors.iconInactive,
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'No Buses Found',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: context.colors.textPrimary),
           ),
           const SizedBox(height: 10),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: context.colors.textSecondary),
           ),
           const SizedBox(height: 30),
           TextButton(
@@ -795,11 +803,11 @@ class _BusListScreenState extends State<BusListScreen> {
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: context.colors.shadowColor.withOpacity(0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -807,7 +815,7 @@ class _BusListScreenState extends State<BusListScreen> {
         border: Border.all(
           color: isExpanded
               ? AppColors.primary.withOpacity(0.15)
-              : Colors.white,
+              : context.colors.cardBorder,
           width: 1.5,
         ),
       ),
@@ -911,7 +919,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                                 : trip.routeName,
                                             style: TextStyle(
                                               fontSize: 13,
-                                              color: Colors.grey[600],
+                                              color: context.colors.textSecondary,
                                               fontWeight: FontWeight.w600,
                                             ),
                                             maxLines: 2,
@@ -1036,8 +1044,8 @@ class _BusListScreenState extends State<BusListScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  border: const Border(top: BorderSide(color: AppColors.divider)),
+                  color: context.colors.scaffoldBackground,
+                  border: Border(top: BorderSide(color: context.colors.dividerColor)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1077,9 +1085,9 @@ class _BusListScreenState extends State<BusListScreen> {
             // --- 5. FOOTER: PRICE & BOOK ---
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: AppColors.divider)),
+              decoration: BoxDecoration(
+                color: context.colors.cardBackground,
+                border: Border(top: BorderSide(color: context.colors.dividerColor)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1267,8 +1275,8 @@ class _BusListScreenState extends State<BusListScreen> {
                   ),
                   Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+                    decoration: BoxDecoration(
+                      color: context.colors.cardBackground,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1489,7 +1497,7 @@ class _BusListScreenState extends State<BusListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -1815,7 +1823,7 @@ class _BusListScreenState extends State<BusListScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.bottomSheetBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1858,7 +1866,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   const SizedBox(height: 8),
                   Text(
                     trip.routeName,
-                    style: AppTextStyles.body.copyWith(color: Colors.grey[600]),
+                    style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
                   ),
                   const Divider(height: 24),
                   Text(
@@ -1871,13 +1879,14 @@ class _BusListScreenState extends State<BusListScreen> {
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.colors.cardBorder),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<RouteStop>(
                         value: selectedBoarding,
                         isExpanded: true,
+                        dropdownColor: context.colors.cardBackground,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         borderRadius: BorderRadius.circular(12),
                         items: trip.routeStops
@@ -1898,7 +1907,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                       size: 18,
                                       color: stop.isMajorStop
                                           ? AppColors.primary
-                                          : Colors.grey,
+                                          : context.colors.iconSecondary,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -1938,13 +1947,14 @@ class _BusListScreenState extends State<BusListScreen> {
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.colors.cardBorder),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<RouteStop>(
                         value: selectedAlighting,
                         isExpanded: true,
+                        dropdownColor: context.colors.cardBackground,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         borderRadius: BorderRadius.circular(12),
                         items: validAlightingStops.map((stop) {
@@ -1959,7 +1969,7 @@ class _BusListScreenState extends State<BusListScreen> {
                                   size: 18,
                                   color: stop.isMajorStop
                                       ? AppColors.primary
-                                      : Colors.grey,
+                                      : context.colors.iconSecondary,
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
