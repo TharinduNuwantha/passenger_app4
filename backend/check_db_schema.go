@@ -18,10 +18,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Query lounge_bookings columns
 	rows, err := db.Query(`
 		SELECT column_name, data_type 
 		FROM information_schema.columns 
-		WHERE table_name = 'booking_intents'
+		WHERE table_name = 'lounge_bookings'
 		ORDER BY ordinal_position
 	`)
 	if err != nil {
@@ -29,7 +30,7 @@ func main() {
 	}
 	defer rows.Close()
 
-	fmt.Println("Columns in booking_intents:")
+	fmt.Println("Columns in lounge_bookings:")
 	for rows.Next() {
 		var name, dtype string
 		if err := rows.Scan(&name, &dtype); err != nil {
@@ -37,4 +38,26 @@ func main() {
 		}
 		fmt.Printf("- %s (%s)\n", name, dtype)
 	}
+
+	// Query bookings columns
+	brows, err := db.Query(`
+		SELECT column_name, data_type 
+		FROM information_schema.columns 
+		WHERE table_name = 'bookings'
+		ORDER BY ordinal_position
+	`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer brows.Close()
+
+	fmt.Println("\nColumns in bookings:")
+	for brows.Next() {
+		var name, dtype string
+		if err := brows.Scan(&name, &dtype); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("- %s (%s)\n", name, dtype)
+	}
 }
+
