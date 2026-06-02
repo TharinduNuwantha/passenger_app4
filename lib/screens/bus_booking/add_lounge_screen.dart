@@ -3356,136 +3356,190 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
     return Container(
       margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.colors.inputBackground,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.colors.cardBorder),
+        color: context.colors.cardBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: context.colors.cardBorder.withOpacity(0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: context.colors.cardBorder.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.schedule_outlined, size: 18, color: AppColors.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.schedule_rounded, size: 22, color: AppColors.primary),
+              ),
+              const SizedBox(width: 14),
               Text(
                 'Transport Schedule Time',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 17,
                   color: context.colors.textPrimary,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
-                child: InkWell(
-                  onTap: _selectTransportDate,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: context.colors.cardBackground,
-                      border: Border.all(color: context.colors.cardBorder),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pick-up Date',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: context.colors.textSecondary,
-                            fontWeight: FontWeight.w500,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _selectTransportDate,
+                    borderRadius: BorderRadius.circular(16),
+                    splashColor: AppColors.primary.withOpacity(0.1),
+                    highlightColor: AppColors.primary.withOpacity(0.05),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: context.colors.inputBackground,
+                        border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.primary),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                formattedDate,
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Pick-up Date',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: context.colors.textPrimary,
+                                  fontSize: 11,
+                                  color: context.colors.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            formattedDate,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: context.colors.textPrimary,
                             ),
-                          ],
-                        ),
-                      ],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
-                child: InkWell(
-                  onTap: _selectTransportTime,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: context.colors.cardBackground,
-                      border: Border.all(color: context.colors.cardBorder),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pick-up Time',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: context.colors.textSecondary,
-                            fontWeight: FontWeight.w500,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _selectTransportTime,
+                    borderRadius: BorderRadius.circular(16),
+                    splashColor: AppColors.primary.withOpacity(0.1),
+                    highlightColor: AppColors.primary.withOpacity(0.05),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: context.colors.inputBackground,
+                        border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.access_time_rounded, size: 14, color: AppColors.primary),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                formattedTime,
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time_rounded, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Pick-up Time',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: context.colors.textPrimary,
+                                  fontSize: 11,
+                                  color: context.colors.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            formattedTime,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: context.colors.textPrimary,
                             ),
-                          ],
-                        ),
-                      ],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            widget.isPreTrip
-                ? 'ℹ️ Defaulted to pick you up to arrive before bus departure.'
-                : 'ℹ️ Defaulted to pick you up after your ${_selectedPricingType == "until_bus" ? "5 hour" : "lounge stay"} duration.',
-            style: TextStyle(
-              fontSize: 11,
-              fontStyle: FontStyle.italic,
-              color: context.colors.textSecondary,
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.isPreTrip
+                        ? 'Defaulted to pick you up to arrive before bus departure.'
+                        : 'Defaulted to pick you up after your ${_selectedPricingType == "until_bus" ? "5 hour" : "lounge stay"} duration.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: context.colors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
