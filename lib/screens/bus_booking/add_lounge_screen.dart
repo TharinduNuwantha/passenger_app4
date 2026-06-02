@@ -1426,8 +1426,8 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
   }
 
   Widget _buildBottomActions() {
-    final hasSelections =
-        _selectedPreTripLounge != null || _selectedPostTripLounge != null;
+    final hasBookedLounge = (_selectedPreTripLounge != null && _selectedPreTripLounge!.isExplicitlyBooked) ||
+        (_selectedPostTripLounge != null && _selectedPostTripLounge!.isExplicitlyBooked);
 
     return Container(
       decoration: BoxDecoration(
@@ -1450,47 +1450,46 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (hasSelections)
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.receipt_long_rounded,
-                          color: Colors.white70,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Total (Bus + Lounge)',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      'LKR ${_totalWithLounges.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Color(0xFFFFC300),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
               ),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.receipt_long_rounded,
+                        color: Colors.white70,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        hasBookedLounge ? 'Total (Bus + Lounges)' : 'Total (Bus)',
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'LKR ${_totalWithLounges.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFC300),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Row(
               children: [
                 Expanded(
@@ -1541,7 +1540,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                         ),
                       ),
                       child: Text(
-                        hasSelections ? 'Continue with Lounge' : 'Continue →',
+                        hasBookedLounge ? 'Continue with Lounge' : 'Continue →',
                         style: const TextStyle(
                           color: Color(0xFF0D47A1),
                           fontWeight: FontWeight.w900,
