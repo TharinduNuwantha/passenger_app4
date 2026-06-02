@@ -131,15 +131,15 @@ type LoungeIntentPreOrder struct {
 
 // PricingSnapshot stores server-calculated prices at intent creation
 type PricingSnapshot struct {
-	BusFare         float64             `json:"bus_fare"`
-	PreLoungeFare   float64             `json:"pre_lounge_fare"`
-	TransitLoungeFare float64           `json:"transit_lounge_fare"`
-	PostLoungeFare  float64             `json:"post_lounge_fare"`
-	Total           float64             `json:"total"`
-	Currency        string              `json:"currency"`
-	CalculatedAt    time.Time           `json:"calculated_at"`
-	SeatPrices      map[string]float64  `json:"seat_prices,omitempty"` // seat_id -> price
-	DiscountApplied *IntentDiscountInfo `json:"discount_applied,omitempty"`
+	BusFare           float64             `json:"bus_fare"`
+	PreLoungeFare     float64             `json:"pre_lounge_fare"`
+	TransitLoungeFare float64             `json:"transit_lounge_fare"`
+	PostLoungeFare    float64             `json:"post_lounge_fare"`
+	Total             float64             `json:"total"`
+	Currency          string              `json:"currency"`
+	CalculatedAt      time.Time           `json:"calculated_at"`
+	SeatPrices        map[string]float64  `json:"seat_prices,omitempty"` // seat_id -> price
+	DiscountApplied   *IntentDiscountInfo `json:"discount_applied,omitempty"`
 }
 
 // IntentDiscountInfo stores discount information
@@ -220,13 +220,13 @@ type BookingIntent struct {
 	PostTripLoungeIntent *LoungeIntentPayload `json:"post_trip_lounge_intent,omitempty" db:"post_trip_lounge_intent"`
 
 	// Pricing (server-calculated, stored at intent time)
-	BusFare         float64         `json:"bus_fare" db:"bus_fare"`
-	PreLoungeFare   float64         `json:"pre_lounge_fare" db:"pre_lounge_fare"`
-	TransitLoungeFare float64       `json:"transit_lounge_fare" db:"transit_lounge_fare"`
-	PostLoungeFare  float64         `json:"post_lounge_fare" db:"post_lounge_fare"`
-	TotalAmount     float64         `json:"total_amount" db:"total_amount"`
-	Currency        string          `json:"currency" db:"currency"`
-	PricingSnapshot PricingSnapshot `json:"pricing_snapshot" db:"pricing_snapshot"`
+	BusFare           float64         `json:"bus_fare" db:"bus_fare"`
+	PreLoungeFare     float64         `json:"pre_lounge_fare" db:"pre_lounge_fare"`
+	TransitLoungeFare float64         `json:"transit_lounge_fare" db:"transit_lounge_fare"`
+	PostLoungeFare    float64         `json:"post_lounge_fare" db:"post_lounge_fare"`
+	TotalAmount       float64         `json:"total_amount" db:"total_amount"`
+	Currency          string          `json:"currency" db:"currency"`
+	PricingSnapshot   PricingSnapshot `json:"pricing_snapshot" db:"pricing_snapshot"`
 
 	// Payment tracking
 	PaymentReference       *string              `json:"payment_reference,omitempty" db:"payment_reference"`
@@ -432,12 +432,12 @@ type BookingIntentResponse struct {
 
 // PriceBreakdown shows pricing details
 type PriceBreakdown struct {
-	BusFare        float64 `json:"bus_fare"`
-	PreLoungeFare  float64 `json:"pre_lounge_fare"`
+	BusFare           float64 `json:"bus_fare"`
+	PreLoungeFare     float64 `json:"pre_lounge_fare"`
 	TransitLoungeFare float64 `json:"transit_lounge_fare"`
-	PostLoungeFare float64 `json:"post_lounge_fare"`
-	Total          float64 `json:"total"`
-	Currency       string  `json:"currency"`
+	PostLoungeFare    float64 `json:"post_lounge_fare"`
+	Total             float64 `json:"total"`
+	Currency          string  `json:"currency"`
 }
 
 // InitiatePaymentResponse is returned when initiating payment
@@ -511,10 +511,10 @@ type PartialAvailabilityError struct {
 
 // AvailabilityStatus shows what is available
 type AvailabilityStatus struct {
-	Bus        *ItemAvailability `json:"bus,omitempty"`
-	PreLounge  *ItemAvailability `json:"pre_lounge,omitempty"`
+	Bus           *ItemAvailability `json:"bus,omitempty"`
+	PreLounge     *ItemAvailability `json:"pre_lounge,omitempty"`
 	TransitLounge *ItemAvailability `json:"transit_lounge,omitempty"`
-	PostLounge *ItemAvailability `json:"post_lounge,omitempty"`
+	PostLounge    *ItemAvailability `json:"post_lounge,omitempty"`
 }
 
 // ItemAvailability represents availability of an item
@@ -525,10 +525,10 @@ type ItemAvailability struct {
 
 // UnavailableItems shows what is not available
 type UnavailableItems struct {
-	Bus        *UnavailableReason `json:"bus,omitempty"`
-	PreLounge  *UnavailableReason `json:"pre_lounge,omitempty"`
+	Bus           *UnavailableReason `json:"bus,omitempty"`
+	PreLounge     *UnavailableReason `json:"pre_lounge,omitempty"`
 	TransitLounge *UnavailableReason `json:"transit_lounge,omitempty"`
-	PostLounge *UnavailableReason `json:"post_lounge,omitempty"`
+	PostLounge    *UnavailableReason `json:"post_lounge,omitempty"`
 }
 
 // UnavailableReason explains why something is unavailable

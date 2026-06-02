@@ -597,10 +597,10 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 
 	// Log the intent state for debugging - using Info level for visibility
 	confirmFields := logrus.Fields{
-		"intent_id":              intent.ID,
-		"intent_type":            intent.IntentType,
-		"status":                 intent.Status,
-		"has_bus_intent":         intent.BusIntent != nil,
+		"intent_id":                 intent.ID,
+		"intent_type":               intent.IntentType,
+		"status":                    intent.Status,
+		"has_bus_intent":            intent.BusIntent != nil,
 		"has_pre_lounge_intent":     intent.PreTripLoungeIntent != nil,
 		"has_transit_lounge_intent": intent.TransitLoungeIntent != nil,
 		"has_post_lounge_intent":    intent.PostTripLoungeIntent != nil,
@@ -793,12 +793,12 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 	intent, _ = s.intentRepo.GetIntentByID(intentID)
 
 	s.logger.WithFields(logrus.Fields{
-		"intent_id":                  intentID,
-		"master_reference":           masterRef,
-		"bus_booking_id":             busBookingID,
-		"pre_lounge_booking_id":      preLoungeBookingID,
-		"transit_lounge_booking_id":  transitLoungeBookingID,
-		"post_lounge_booking_id":     postLoungeBookingID,
+		"intent_id":                 intentID,
+		"master_reference":          masterRef,
+		"bus_booking_id":            busBookingID,
+		"pre_lounge_booking_id":     preLoungeBookingID,
+		"transit_lounge_booking_id": transitLoungeBookingID,
+		"post_lounge_booking_id":    postLoungeBookingID,
 	}).Info("Booking confirmed successfully")
 
 	return s.buildConfirmResponse(intent), nil
@@ -1317,15 +1317,15 @@ func (s *BookingOrchestratorService) AddLoungeToIntent(
 
 	// Log verification of saved data
 	verifyFields := logrus.Fields{
-		"intent_id":              updatedIntent.ID,
-		"intent_type":            updatedIntent.IntentType,
-		"has_pre_lounge_intent":  updatedIntent.PreTripLoungeIntent != nil,
+		"intent_id":                 updatedIntent.ID,
+		"intent_type":               updatedIntent.IntentType,
+		"has_pre_lounge_intent":     updatedIntent.PreTripLoungeIntent != nil,
 		"has_transit_lounge_intent": updatedIntent.TransitLoungeIntent != nil,
-		"has_post_lounge_intent": updatedIntent.PostTripLoungeIntent != nil,
-		"pre_lounge_fare":        updatedIntent.PreLoungeFare,
-		"transit_lounge_fare":    updatedIntent.TransitLoungeFare,
-		"post_lounge_fare":       updatedIntent.PostLoungeFare,
-		"total_amount":           updatedIntent.TotalAmount,
+		"has_post_lounge_intent":    updatedIntent.PostTripLoungeIntent != nil,
+		"pre_lounge_fare":           updatedIntent.PreLoungeFare,
+		"transit_lounge_fare":       updatedIntent.TransitLoungeFare,
+		"post_lounge_fare":          updatedIntent.PostLoungeFare,
+		"total_amount":              updatedIntent.TotalAmount,
 	}
 	// Add lounge IDs if present for confirmation
 	if updatedIntent.PreTripLoungeIntent != nil {
@@ -1397,12 +1397,12 @@ func (s *BookingOrchestratorService) buildIntentResponse(intent *models.BookingI
 		IntentID: intent.ID,
 		Status:   string(intent.Status),
 		PriceBreakdown: models.PriceBreakdown{
-			BusFare:        intent.BusFare,
+			BusFare:           intent.BusFare,
 			PreLoungeFare:     intent.PreLoungeFare,
 			TransitLoungeFare: intent.TransitLoungeFare,
 			PostLoungeFare:    intent.PostLoungeFare,
-			Total:          intent.TotalAmount,
-			Currency:       intent.Currency,
+			Total:             intent.TotalAmount,
+			Currency:          intent.Currency,
 		},
 		ExpiresAt:                 intent.ExpiresAt,
 		TTLSeconds:                ttl,
@@ -1418,11 +1418,11 @@ func (s *BookingOrchestratorService) buildConfirmResponse(intent *models.Booking
 	}
 
 	s.logger.WithFields(logrus.Fields{
-		"intent_id":                  intent.ID,
-		"bus_booking_id":             intent.BusBookingID,
-		"pre_lounge_booking_id":      intent.PreLoungeBookingID,
-		"transit_lounge_booking_id":  intent.TransitLoungeBookingID,
-		"post_lounge_booking_id":     intent.PostLoungeBookingID,
+		"intent_id":                 intent.ID,
+		"bus_booking_id":            intent.BusBookingID,
+		"pre_lounge_booking_id":     intent.PreLoungeBookingID,
+		"transit_lounge_booking_id": intent.TransitLoungeBookingID,
+		"post_lounge_booking_id":    intent.PostLoungeBookingID,
 	}).Info("Building confirm response with booking IDs")
 
 	// Get bus booking details
@@ -1535,11 +1535,11 @@ func (s *BookingOrchestratorService) buildConfirmResponse(intent *models.Booking
 	}
 
 	s.logger.WithFields(logrus.Fields{
-		"has_bus_booking":     response.BusBooking != nil,
-		"has_pre_lounge":      response.PreLoungeBooking != nil,
-		"has_transit_lounge":  response.TransitLoungeBooking != nil,
-		"has_post_lounge":     response.PostLoungeBooking != nil,
-		"master_reference":    response.MasterReference,
+		"has_bus_booking":    response.BusBooking != nil,
+		"has_pre_lounge":     response.PreLoungeBooking != nil,
+		"has_transit_lounge": response.TransitLoungeBooking != nil,
+		"has_post_lounge":    response.PostLoungeBooking != nil,
+		"master_reference":   response.MasterReference,
 	}).Info("Confirm response built successfully")
 
 	return response
