@@ -148,10 +148,11 @@ func (r *AppBookingRepository) CreateBooking(
 			promo_code, promo_discount_type, promo_discount_value,
 			payment_status, payment_method, booking_status,
 			passenger_name, passenger_phone, passenger_email,
-			booking_source, device_info, notes
+			booking_source, device_info, notes,
+			transport_type, transport_time
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
 		) RETURNING id, created_at, updated_at`
 
 	err = tx.QueryRowx(bookingQuery,
@@ -162,6 +163,7 @@ func (r *AppBookingRepository) CreateBooking(
 		booking.PaymentStatus, booking.PaymentMethod, booking.BookingStatus,
 		booking.PassengerName, booking.PassengerPhone, booking.PassengerEmail,
 		booking.BookingSource, deviceInfoJSON, booking.Notes,
+		booking.TransportType, booking.TransportTime,
 	).Scan(&booking.ID, &booking.CreatedAt, &booking.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create booking: %w", err)
@@ -278,7 +280,8 @@ func (r *AppBookingRepository) GetBookingByID(bookingID string) (*models.MasterB
 		       booking_status, passenger_name, passenger_phone, passenger_email,
 		       confirmed_at, cancelled_at, cancellation_reason, cancelled_by_user_id,
 		       completed_at, refund_amount, refund_reference, refunded_at,
-		       booking_source, device_info, notes, created_at, updated_at
+		       booking_source, device_info, notes, created_at, updated_at,
+		       transport_type, transport_time
 		FROM bookings WHERE id = $1`
 
 	err := r.db.Get(booking, query, bookingID)
@@ -313,7 +316,8 @@ func (r *AppBookingRepository) GetBookingByReference(reference string) (*models.
 		       booking_status, passenger_name, passenger_phone, passenger_email,
 		       confirmed_at, cancelled_at, cancellation_reason, cancelled_by_user_id,
 		       completed_at, refund_amount, refund_reference, refunded_at,
-		       booking_source, device_info, notes, created_at, updated_at
+		       booking_source, device_info, notes, created_at, updated_at,
+		       transport_type, transport_time
 		FROM bookings WHERE booking_reference = $1`
 
 	err := r.db.Get(booking, query, reference)

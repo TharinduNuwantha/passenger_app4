@@ -149,11 +149,15 @@ type MasterBooking struct {
 	CancellationReason *string    `json:"cancellation_reason,omitempty" db:"cancellation_reason"`
 	CancelledByUserID  *string    `json:"cancelled_by_user_id,omitempty" db:"cancelled_by_user_id"`
 	CompletedAt        *time.Time `json:"completed_at,omitempty" db:"completed_at"`
+	RefundedAt         *time.Time `json:"refunded_at,omitempty" db:"refunded_at"`
+
+	// Transport fields for Master Booking
+	TransportType *string `json:"transport_type,omitempty" db:"transport_type"`
+	TransportTime *string `json:"transport_time,omitempty" db:"transport_time"`
 
 	// Refund
 	RefundAmount    float64    `json:"refund_amount" db:"refund_amount"`
 	RefundReference *string    `json:"refund_reference,omitempty" db:"refund_reference"`
-	RefundedAt      *time.Time `json:"refunded_at,omitempty" db:"refunded_at"`
 
 	// Metadata
 	BookingSource BookingSource `json:"booking_source" db:"booking_source"`

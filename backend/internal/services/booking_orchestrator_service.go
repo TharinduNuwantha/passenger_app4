@@ -863,13 +863,25 @@ func (s *BookingOrchestratorService) createBusBookingFromIntent(intent *models.B
 		LoungeTransportTotal: loungeTransportTotal,
 		PreOrderTotal:        preOrderTotal,
 		Subtotal:             totalAmount,
-		TotalAmount:    totalAmount,
-		PaymentStatus:  models.MasterPaymentPaid, // Paid via intent
-		BookingStatus:  models.MasterBookingConfirmed,
-		PassengerName:  busIntent.PassengerName,
-		PassengerPhone: busIntent.PassengerPhone,
-		PassengerEmail: busIntent.PassengerEmail,
-		BookingSource:  models.BookingSourceApp,
+		TotalAmount:          totalAmount,
+		PaymentStatus:        models.MasterPaymentPaid, // Paid via intent
+		BookingStatus:        models.MasterBookingConfirmed,
+		PassengerName:        busIntent.PassengerName,
+		PassengerPhone:       busIntent.PassengerPhone,
+		PassengerEmail:       busIntent.PassengerEmail,
+		BookingSource:        models.BookingSourceApp,
+	}
+
+	// Pull transport details from the first available lounge intent that has transport
+	if intent.PreTripLoungeIntent != nil && intent.PreTripLoungeIntent.TransportType != nil {
+		masterBooking.TransportType = intent.PreTripLoungeIntent.TransportType
+		masterBooking.TransportTime = intent.PreTripLoungeIntent.TransportTime
+	} else if intent.TransitLoungeIntent != nil && intent.TransitLoungeIntent.TransportType != nil {
+		masterBooking.TransportType = intent.TransitLoungeIntent.TransportType
+		masterBooking.TransportTime = intent.TransitLoungeIntent.TransportTime
+	} else if intent.PostTripLoungeIntent != nil && intent.PostTripLoungeIntent.TransportType != nil {
+		masterBooking.TransportType = intent.PostTripLoungeIntent.TransportType
+		masterBooking.TransportTime = intent.PostTripLoungeIntent.TransportTime
 	}
 
 	// Build bus booking
