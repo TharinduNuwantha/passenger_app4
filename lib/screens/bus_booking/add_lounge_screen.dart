@@ -1248,122 +1248,149 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
   }
 
   Widget _buildSelectedLoungeChip(SelectedLoungeData data, bool isPreTrip) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: isPreTrip
-            ? AppColors.primary.withOpacity(0.05)
-            : AppColors.secondary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: (isPreTrip ? AppColors.primary : AppColors.secondary)
-              .withOpacity(0.15),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Edit option: configure lounge booking when clicking anywhere on the card (excluding the cancel button)
+            _configureLoungeBooking(data.lounge, isPreTrip);
+          },
+          borderRadius: BorderRadius.circular(16),
+          splashColor: (isPreTrip ? AppColors.primary : AppColors.secondary).withOpacity(0.1),
+          highlightColor: (isPreTrip ? AppColors.primary : AppColors.secondary).withOpacity(0.05),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: (isPreTrip ? AppColors.primary : AppColors.secondary)
-                  .withOpacity(0.1),
-              shape: BoxShape.circle,
+              color: isPreTrip
+                  ? AppColors.primary.withOpacity(0.05)
+                  : AppColors.secondary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: (isPreTrip ? AppColors.primary : AppColors.secondary)
+                    .withOpacity(0.15),
+              ),
             ),
-            child: Icon(
-              isPreTrip ? Icons.login_rounded : Icons.logout_rounded,
-              size: 18,
-              color: isPreTrip ? AppColors.primary : AppColors.secondary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  data.lounge.loungeName,
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: (isPreTrip ? AppColors.primary : AppColors.secondary)
+                        .withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${data.guests.length} guest(s) • ${_formatPricingType(data.pricingType)}',
-                  style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                  child: Icon(
+                    isPreTrip ? Icons.login_rounded : Icons.logout_rounded,
+                    size: 18,
+                    color: isPreTrip ? AppColors.primary : AppColors.secondary,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'LKR ${data.totalPrice.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              data.lounge.loungeName,
+                              style: TextStyle(
+                                color: context.colors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.edit_rounded,
+                            size: 14,
+                            color: (isPreTrip ? AppColors.primary : AppColors.secondary).withOpacity(0.6),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${data.guests.length} guest(s) • ${_formatPricingType(data.pricingType)}',
+                        style: TextStyle(
+                          color: context.colors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'LKR ${data.totalPrice.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  if (data.isExplicitlyBooked) {
-                    _removeLounge(isPreTrip);
-                  } else {
-                    _configureLoungeBooking(data.lounge, isPreTrip);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: data.isExplicitlyBooked
-                      ? AppColors.error.withOpacity(0.12)
-                      : AppColors.primary.withOpacity(0.12),
-                  foregroundColor: data.isExplicitlyBooked
-                      ? AppColors.error
-                      : AppColors.primary,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      data.isExplicitlyBooked ? Icons.close_rounded : Icons.add_circle_outline_rounded,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      data.isExplicitlyBooked ? 'Cancel' : 'Book',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
+                    ElevatedButton(
+                      onPressed: () {
+                        if (data.isExplicitlyBooked) {
+                          _removeLounge(isPreTrip);
+                        } else {
+                          _configureLoungeBooking(data.lounge, isPreTrip);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: data.isExplicitlyBooked
+                            ? AppColors.error.withOpacity(0.12)
+                            : AppColors.primary.withOpacity(0.12),
+                        foregroundColor: data.isExplicitlyBooked
+                            ? AppColors.error
+                            : AppColors.primary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            data.isExplicitlyBooked ? Icons.close_rounded : Icons.add_circle_outline_rounded,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            data.isExplicitlyBooked ? 'Cancel' : 'Book',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
