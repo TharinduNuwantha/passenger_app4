@@ -114,10 +114,11 @@ type MasterBooking struct {
 	BookingType      BookingType `json:"booking_type" db:"booking_type"`
 
 	// Totals
-	BusTotal       float64 `json:"bus_total" db:"bus_total"`
-	LoungeTotal    float64 `json:"lounge_total" db:"lounge_total"`
-	PreOrderTotal  float64 `json:"pre_order_total" db:"pre_order_total"`
-	Subtotal       float64 `json:"subtotal" db:"subtotal"`
+	BusTotal             float64 `json:"bus_total" db:"bus_total"`
+	LoungeTotal          float64 `json:"lounge_total" db:"lounge_total"`
+	LoungeTransportTotal float64 `json:"lounge_transport_total" db:"lounge_transport_total"`
+	PreOrderTotal        float64 `json:"pre_order_total" db:"pre_order_total"`
+	Subtotal             float64 `json:"subtotal" db:"subtotal"`
 	DiscountAmount float64 `json:"discount_amount" db:"discount_amount"`
 	TaxAmount      float64 `json:"tax_amount" db:"tax_amount"`
 	TotalAmount    float64 `json:"total_amount" db:"total_amount"`
@@ -394,6 +395,6 @@ func (b *MasterBooking) NeedsRefund() bool {
 
 // CalculateTotals recalculates booking totals
 func (b *MasterBooking) CalculateTotals() {
-	b.Subtotal = b.BusTotal + b.LoungeTotal + b.PreOrderTotal
+	b.Subtotal = b.BusTotal + b.LoungeTotal + b.LoungeTransportTotal + b.PreOrderTotal
 	b.TotalAmount = b.Subtotal - b.DiscountAmount + b.TaxAmount
 }

@@ -412,20 +412,30 @@ func (s *BookingOrchestratorService) processLoungeIntent(
 		preOrderTotal += unitPrice * float64(po.Quantity)
 	}
 
-	totalPrice := basePrice + preOrderTotal
+	var transportCost float64
+	if req.TransportCost != nil {
+		transportCost = *req.TransportCost
+	}
+
+	totalPrice := basePrice + preOrderTotal + transportCost
 
 	// 6. Build payload
 	payload := &models.LoungeIntentPayload{
-		LoungeID:      req.LoungeID,
-		LoungeName:    lounge.LoungeName,
-		PricingType:   req.PricingType,
-		GuestCount:    guestCount,
-		Guests:        guests,
-		PreOrders:     preOrders,
-		PricePerGuest: pricePerGuest,
-		BasePrice:     basePrice,
-		PreOrderTotal: preOrderTotal,
-		TotalPrice:    totalPrice,
+		LoungeID:         req.LoungeID,
+		LoungeName:       lounge.LoungeName,
+		PricingType:      req.PricingType,
+		GuestCount:       guestCount,
+		Guests:           guests,
+		PreOrders:        preOrders,
+		PricePerGuest:    pricePerGuest,
+		BasePrice:        basePrice,
+		PreOrderTotal:    preOrderTotal,
+		TransportType:    req.TransportType,
+		PickupLocation:   req.PickupLocation,
+		PickupLocationID: req.PickupLocationID,
+		TransportCost:    transportCost,
+		TransportTime:    req.TransportTime,
+		TotalPrice:       totalPrice,
 	}
 
 	return payload, totalPrice, nil
@@ -825,29 +835,34 @@ func (s *BookingOrchestratorService) createBusBookingFromIntent(intent *models.B
 	}
 
 	loungeTotal := 0.0
+	loungeTransportTotal := 0.0
 	preOrderTotal := 0.0
 
 	if intent.PreTripLoungeIntent != nil {
-		loungeTotal += intent.PreTripLoungeIntent.BasePrice + intent.PreTripLoungeIntent.TransportCost
+		loungeTotal += intent.PreTripLoungeIntent.BasePrice
+		loungeTransportTotal += intent.PreTripLoungeIntent.TransportCost
 		preOrderTotal += intent.PreTripLoungeIntent.PreOrderTotal
 	}
 	if intent.TransitLoungeIntent != nil {
-		loungeTotal += intent.TransitLoungeIntent.BasePrice + intent.TransitLoungeIntent.TransportCost
+		loungeTotal += intent.TransitLoungeIntent.BasePrice
+		loungeTransportTotal += intent.TransitLoungeIntent.TransportCost
 		preOrderTotal += intent.TransitLoungeIntent.PreOrderTotal
 	}
 	if intent.PostTripLoungeIntent != nil {
-		loungeTotal += intent.PostTripLoungeIntent.BasePrice + intent.PostTripLoungeIntent.TransportCost
+		loungeTotal += intent.PostTripLoungeIntent.BasePrice
+		loungeTransportTotal += intent.PostTripLoungeIntent.TransportCost
 		preOrderTotal += intent.PostTripLoungeIntent.PreOrderTotal
 	}
 
 	// Build master booking
 	masterBooking := &models.MasterBooking{
-		UserID:         intent.UserID.String(),
-		BookingType:    bookingType,
-		BusTotal:       intent.BusFare,
-		LoungeTotal:    loungeTotal,
-		PreOrderTotal:  preOrderTotal,
-		Subtotal:       totalAmount,
+		UserID:               intent.UserID.String(),
+		BookingType:          bookingType,
+		BusTotal:             intent.BusFare,
+		LoungeTotal:          loungeTotal,
+		LoungeTransportTotal: loungeTransportTotal,
+		PreOrderTotal:        preOrderTotal,
+		Subtotal:             totalAmount,
 		TotalAmount:    totalAmount,
 		PaymentStatus:  models.MasterPaymentPaid, // Paid via intent
 		BookingStatus:  models.MasterBookingConfirmed,
@@ -967,6 +982,10 @@ func (s *BookingOrchestratorService) createLoungeBookingFromIntent(
 		}
 	}
 	booking.TransportCost = fmt.Sprintf("%.2f", loungeIntent.TransportCost)
+	if loungeIntent.TransportTime != nil {
+		booking.TransportTime.String = *loungeIntent.TransportTime
+		booking.TransportTime.Valid = true
+	}
 
 	// Set booking type
 	switch bookingType {

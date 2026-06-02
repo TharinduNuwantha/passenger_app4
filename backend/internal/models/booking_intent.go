@@ -109,6 +109,7 @@ type LoungeIntentPayload struct {
 	PickupLocation   *string                `json:"pickup_location,omitempty"`
 	PickupLocationID *string                `json:"pickup_location_id,omitempty"`
 	TransportCost    float64                `json:"transport_cost,omitempty"`
+	TransportTime    *string                `json:"transport_time,omitempty"`
 }
 
 // LoungeIntentGuest represents a guest in lounge intent
@@ -339,10 +340,15 @@ type BusIntentSeatRequest struct {
 
 // LoungeIntentRequest represents lounge booking request data
 type LoungeIntentRequest struct {
-	LoungeID    string                        `json:"lounge_id" binding:"required"`
-	PricingType string                        `json:"pricing_type" binding:"required"` // "1_hour", "2_hours", "3_hours", "until_bus"
-	Guests      []LoungeIntentGuestRequest    `json:"guests" binding:"required,min=1"`
-	PreOrders   []LoungeIntentPreOrderRequest `json:"pre_orders,omitempty"`
+	LoungeID         string                        `json:"lounge_id" binding:"required"`
+	PricingType      string                        `json:"pricing_type" binding:"required"` // "1_hour", "2_hours", "3_hours", "until_bus"
+	Guests           []LoungeIntentGuestRequest    `json:"guests" binding:"required,min=1"`
+	PreOrders        []LoungeIntentPreOrderRequest `json:"pre_orders,omitempty"`
+	TransportType    *string                       `json:"transport_type,omitempty"`
+	PickupLocation   *string                       `json:"pickup_location,omitempty"`
+	PickupLocationID *string                       `json:"pickup_location_id,omitempty"`
+	TransportCost    *float64                      `json:"transport_cost,omitempty"`
+	TransportTime    *string                       `json:"transport_time,omitempty"`
 }
 
 // LoungeIntentGuestRequest represents a guest in the request

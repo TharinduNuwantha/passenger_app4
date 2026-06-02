@@ -143,7 +143,7 @@ func (r *AppBookingRepository) CreateBooking(
 	bookingQuery := `
 		INSERT INTO bookings (
 			booking_reference, user_id, booking_type,
-			bus_total, lounge_total, pre_order_total,
+			bus_total, lounge_total, lounge_transport_total, pre_order_total,
 			subtotal, discount_amount, tax_amount, total_amount,
 			promo_code, promo_discount_type, promo_discount_value,
 			payment_status, payment_method, booking_status,
@@ -151,12 +151,12 @@ func (r *AppBookingRepository) CreateBooking(
 			booking_source, device_info, notes
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
 		) RETURNING id, created_at, updated_at`
 
 	err = tx.QueryRowx(bookingQuery,
 		booking.BookingReference, booking.UserID, booking.BookingType,
-		booking.BusTotal, booking.LoungeTotal, booking.PreOrderTotal,
+		booking.BusTotal, booking.LoungeTotal, booking.LoungeTransportTotal, booking.PreOrderTotal,
 		booking.Subtotal, booking.DiscountAmount, booking.TaxAmount, booking.TotalAmount,
 		booking.PromoCode, booking.PromoDiscountType, booking.PromoDiscountValue,
 		booking.PaymentStatus, booking.PaymentMethod, booking.BookingStatus,
@@ -271,7 +271,7 @@ func (r *AppBookingRepository) GetBookingByID(bookingID string) (*models.MasterB
 	booking := &models.MasterBooking{}
 	query := `
 		SELECT id, booking_reference, user_id, booking_type,
-		       bus_total, lounge_total, pre_order_total,
+		       bus_total, lounge_total, lounge_transport_total, pre_order_total,
 		       subtotal, discount_amount, tax_amount, total_amount,
 		       promo_code, promo_discount_type, promo_discount_value,
 		       payment_status, payment_method, payment_reference, payment_gateway, paid_at,
@@ -306,7 +306,7 @@ func (r *AppBookingRepository) GetBookingByReference(reference string) (*models.
 	booking := &models.MasterBooking{}
 	query := `
 		SELECT id, booking_reference, user_id, booking_type,
-		       bus_total, lounge_total, pre_order_total,
+		       bus_total, lounge_total, lounge_transport_total, pre_order_total,
 		       subtotal, discount_amount, tax_amount, total_amount,
 		       promo_code, promo_discount_type, promo_discount_value,
 		       payment_status, payment_method, payment_reference, payment_gateway, paid_at,

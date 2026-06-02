@@ -273,6 +273,7 @@ type LoungeBooking struct {
 	PickupLocation   sql.NullString `db:"pickup_location" json:"pickup_location,omitempty"`
 	PickupLocationID *uuid.UUID     `db:"pickup_location_id" json:"pickup_location_id,omitempty"`
 	TransportCost    string         `db:"transport_cost" json:"transport_cost"`
+	TransportTime    sql.NullString `db:"transport_time" json:"transport_time,omitempty"`
 
 	// Timestamps
 	CancelledAt        sql.NullTime   `db:"cancelled_at" json:"cancelled_at,omitempty"`
@@ -303,6 +304,7 @@ func (lb *LoungeBooking) MarshalJSON() ([]byte, error) {
 		CancellationReason *string    `json:"cancellation_reason,omitempty"`
 		TransportType      *string    `json:"transport_type,omitempty"`
 		PickupLocation     *string    `json:"pickup_location,omitempty"`
+		TransportTime      *string    `json:"transport_time,omitempty"`
 	}{
 		Alias:              (*Alias)(lb),
 		ScheduledDeparture: nullTimeToPtr(lb.ScheduledDeparture),
@@ -317,6 +319,7 @@ func (lb *LoungeBooking) MarshalJSON() ([]byte, error) {
 		CancellationReason: nullStringToPtr(lb.CancellationReason),
 		TransportType:      nullStringToPtr(lb.TransportType),
 		PickupLocation:     nullStringToPtr(lb.PickupLocation),
+		TransportTime:      nullStringToPtr(lb.TransportTime),
 	})
 }
 
@@ -510,6 +513,7 @@ type CreateLoungeBookingRequest struct {
 	PickupLocation   *string  `json:"pickup_location,omitempty"`
 	PickupLocationID *string  `json:"pickup_location_id,omitempty"`
 	TransportCost    *float64 `json:"transport_cost,omitempty"`
+	TransportTime    *string  `json:"transport_time,omitempty"`
 }
 
 // GuestRequest represents a guest to add to a booking
