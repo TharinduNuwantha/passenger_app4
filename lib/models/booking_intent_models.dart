@@ -881,8 +881,8 @@ class ConfirmedBookingInfo {
   factory ConfirmedBookingInfo.fromJson(Map<String, dynamic> json) {
     return ConfirmedBookingInfo(
       id: json['id'] as String? ?? '',
-      reference: json['reference'] as String? ?? '',
-      qrCode: json['qr_code'] as String?,
+      reference: json['reference'] as String? ?? json['booking_reference'] as String? ?? '',
+      qrCode: json['qr_code'] as String? ?? json['qr_code_data'] as String?,
       totalAmount: _parseDouble(json['total_amount']),
     );
   }

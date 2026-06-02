@@ -1090,6 +1090,34 @@ class BookingResponse {
         ? json['booking'] as Map<String, dynamic>
         : json;
 
+    ConfirmedBookingInfo? preLounge;
+    ConfirmedBookingInfo? postLounge;
+
+    if (json['pre_lounge_booking'] != null) {
+      preLounge = ConfirmedBookingInfo.fromJson(
+        json['pre_lounge_booking'] as Map<String, dynamic>,
+      );
+    }
+    if (json['post_lounge_booking'] != null) {
+      postLounge = ConfirmedBookingInfo.fromJson(
+        json['post_lounge_booking'] as Map<String, dynamic>,
+      );
+    }
+
+    // Also check the lounge_bookings array returned by the API
+    if (bookingJson['lounge_bookings'] != null) {
+      final loungeBookings = bookingJson['lounge_bookings'] as List<dynamic>;
+      for (final lounge in loungeBookings) {
+        final lb = lounge as Map<String, dynamic>;
+        final type = lb['booking_type'] as String?;
+        if (type == 'pre_trip' || type == 'standalone') {
+          preLounge ??= ConfirmedBookingInfo.fromJson(lb);
+        } else if (type == 'post_trip') {
+          postLounge ??= ConfirmedBookingInfo.fromJson(lb);
+        }
+      }
+    }
+
     return BookingResponse(
       booking: MasterBooking.fromJson(bookingJson),
       busBooking: json['bus_booking'] != null
@@ -1101,16 +1129,8 @@ class BookingResponse {
               .toList() ??
           [],
       qrCode: json['qr_code'] as String?,
-      preLoungeBooking: json['pre_lounge_booking'] != null
-          ? ConfirmedBookingInfo.fromJson(
-              json['pre_lounge_booking'] as Map<String, dynamic>,
-            )
-          : null,
-      postLoungeBooking: json['post_lounge_booking'] != null
-          ? ConfirmedBookingInfo.fromJson(
-              json['post_lounge_booking'] as Map<String, dynamic>,
-            )
-          : null,
+      preLoungeBooking: preLounge,
+      postLoungeBooking: postLounge,
     );
   }
 }
