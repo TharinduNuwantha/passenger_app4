@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../config/api_config.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../providers/search_provider.dart';
@@ -41,10 +44,15 @@ class _BusListScreenState extends State<BusListScreen> {
       'Direct'; // Smart view option: Direct, Transit, Quickest, Cheapest
   final Set<String> _expandedCards =
       {}; // Track which cards are expanded for route info
+  String _resolvedPickup = '';
+  String _resolvedDrop = '';
 
   @override
   void initState() {
     super.initState();
+    _resolvedPickup = _cleanLocation(widget.pickup);
+    _resolvedDrop = _cleanLocation(widget.drop);
+    _resolveLocations();
     // Perform search when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _performSearch();
@@ -320,7 +328,7 @@ class _BusListScreenState extends State<BusListScreen> {
                 children: [
                   Flexible(
                     child: Text(
-                      _cleanLocation(widget.pickup),
+                      _resolvedPickup,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
@@ -339,7 +347,7 @@ class _BusListScreenState extends State<BusListScreen> {
                   ),
                   Flexible(
                     child: Text(
-                      _cleanLocation(widget.drop),
+                      _resolvedDrop,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
@@ -418,7 +426,7 @@ class _BusListScreenState extends State<BusListScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                _cleanLocation(widget.pickup),
+                                _resolvedPickup,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 24,
@@ -460,7 +468,7 @@ class _BusListScreenState extends State<BusListScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                _cleanLocation(widget.drop),
+                                _resolvedDrop,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 24,
@@ -785,17 +793,7 @@ class _BusListScreenState extends State<BusListScreen> {
     final bool isRouteOnly = trip.isRouteOnly;
     final bool isPartialCoverage = trip.isPartialCoverage;
 
-    // Format the date display
-    String dateLabel;
-    if (isRouteOnly) {
-      dateLabel = 'Selected Route Info';
-    } else if (isToday) {
-      dateLabel = 'Today';
-    } else if (isTomorrow) {
-      dateLabel = 'Tomorrow';
-    } else {
-      dateLabel = DateFormat('EEE, MMM d').format(tripDate);
-    }
+
 
     final bool isExpanded = _expandedCards.contains(trip.tripId);
 
@@ -973,7 +971,69 @@ class _BusListScreenState extends State<BusListScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
+                      // ── USER SEARCH CONTEXT ─────────────────────────
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: context.colors.scaffoldBackground,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: context.colors.cardBorder,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.my_location_rounded,
+                              size: 12,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                _resolvedPickup,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: context.colors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 12,
+                                color: context.colors.textSecondary.withOpacity(0.6),
+                              ),
+                            ),
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 12,
+                              color: AppColors.error,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                _resolvedDrop,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: context.colors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
                       Divider(
                         height: 1,
                         color: context.colors.dividerColor,
@@ -986,75 +1046,10 @@ class _BusListScreenState extends State<BusListScreen> {
 
                       const SizedBox(height: 14),
 
-                      // ── 3. INFO ROW: date label + seats + amenities ─
+                      // ── 3. INFO ROW: amenities ─
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Date chip
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: accentColor.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              dateLabel,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: accentColor,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Seats available chip
-                          if (!isRouteOnly) ...
-                          [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: trip.totalSeats < 10
-                                    ? AppColors.error.withOpacity(0.08)
-                                    : context.colors.scaffoldBackground,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: trip.totalSeats < 10
-                                      ? AppColors.error.withOpacity(0.3)
-                                      : context.colors.cardBorder,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.event_seat_rounded,
-                                    size: 10,
-                                    color: trip.totalSeats < 10
-                                        ? AppColors.error
-                                        : context.colors.iconSecondary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    trip.seatsDisplay,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: trip.totalSeats < 10
-                                          ? AppColors.error
-                                          : context.colors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                           const Spacer(),
                           _buildFeaturesRow(trip),
                         ],
@@ -1240,8 +1235,9 @@ class _BusListScreenState extends State<BusListScreen> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.end,
+                          spacing: 4,
                           children: [
                             Text(
                               trip.formattedFare,
@@ -1254,9 +1250,7 @@ class _BusListScreenState extends State<BusListScreen> {
                             ),
                             if (trip.isTransit &&
                                 trip.leg1 != null &&
-                                trip.leg2 != null) ...
-                            [
-                              const SizedBox(width: 4),
+                                trip.leg2 != null)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 3),
                                 child: Text(
@@ -1268,7 +1262,6 @@ class _BusListScreenState extends State<BusListScreen> {
                                   ),
                                 ),
                               ),
-                            ],
                           ],
                         ),
                       ],
@@ -1647,7 +1640,7 @@ class _BusListScreenState extends State<BusListScreen> {
           color: AppColors.success,
           isStart: true,
           distKm: trip.fromLoungeDistKm,
-          targetName: _cleanLocation(widget.pickup),
+          targetName: _resolvedPickup,
         ),
         if (trip.isTransit) ...[
           _buildTimelineConnector(),
@@ -1670,7 +1663,7 @@ class _BusListScreenState extends State<BusListScreen> {
           color: AppColors.error,
           isStart: false,
           distKm: trip.toLoungeDistKm,
-          targetName: _cleanLocation(widget.drop),
+          targetName: _resolvedDrop,
         ),
       ],
     );
@@ -2330,8 +2323,8 @@ class _BusListScreenState extends State<BusListScreen> {
           alightingStopId: alightingStopId,
           masterRouteId: trip.masterRouteId,
           // Pass the raw "From" city the user typed in the search box so that
-          originCity: _cleanLocation(widget.pickup),
-          destinationCity: _cleanLocation(widget.drop),
+          originCity: _resolvedPickup,
+          destinationCity: _resolvedDrop,
         ),
       ),
     );
@@ -2380,5 +2373,106 @@ class _BusListScreenState extends State<BusListScreen> {
       'December',
     ];
     return months[month - 1];
+  }
+
+  bool _isNumericLocation(String location) {
+    if (location.trim().isEmpty) return false;
+    if (double.tryParse(location.trim()) != null) return true;
+    
+    final parts = location.split(',');
+    if (parts.length == 2) {
+      final lat = double.tryParse(parts[0].trim());
+      final lng = double.tryParse(parts[1].trim());
+      if (lat != null && lng != null) return true;
+    }
+
+    final firstPart = location.split(',').first.trim();
+    final hasLetters = firstPart.replaceAll(RegExp(r'[\s\.\+\-\d]'), '').isNotEmpty;
+    if (!hasLetters) return true;
+
+    return false;
+  }
+
+  Future<void> _resolveLocations() async {
+    final apiKey = ApiConfig.googleMapsApiKey;
+    if (apiKey.isEmpty) return;
+
+    if (_isNumericLocation(_resolvedPickup) && widget.fromLat != null && widget.fromLng != null) {
+      _geocodeLatLng(widget.fromLat!, widget.fromLng!, apiKey).then((resolved) {
+        if (resolved != null && mounted) {
+          setState(() {
+            _resolvedPickup = resolved;
+          });
+        }
+      });
+    }
+
+    if (_isNumericLocation(_resolvedDrop) && widget.toLat != null && widget.toLng != null) {
+      _geocodeLatLng(widget.toLat!, widget.toLng!, apiKey).then((resolved) {
+        if (resolved != null && mounted) {
+          setState(() {
+            _resolvedDrop = resolved;
+          });
+        }
+      });
+    }
+  }
+
+  Future<String?> _geocodeLatLng(double lat, double lng, String apiKey) async {
+    try {
+      final String url =
+          'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'OK' && data['results'].isNotEmpty) {
+          final results = data['results'] as List;
+          final address = results[0]['formatted_address'] as String;
+          final components = results[0]['address_components'] as List;
+          
+          String? sublocality;
+          String? locality;
+          String? adminArea;
+          
+          for (var comp in components) {
+            final types = comp['types'] as List;
+            if (types.contains('sublocality') || types.contains('sublocality_level_1')) {
+              sublocality = comp['long_name'];
+            } else if (types.contains('locality')) {
+              locality = comp['long_name'];
+            } else if (types.contains('administrative_area_level_1')) {
+              adminArea = comp['long_name'];
+            }
+          }
+          
+          String cleanAddress = '';
+          if (sublocality != null && locality != null) {
+            cleanAddress = '$sublocality, $locality';
+          } else if (locality != null) {
+            cleanAddress = locality;
+          } else if (sublocality != null) {
+            cleanAddress = sublocality;
+          } else if (adminArea != null) {
+            cleanAddress = adminArea;
+          } else {
+            cleanAddress = address;
+          }
+          
+          cleanAddress = cleanAddress
+              .replaceAll(RegExp(r'\d+'), '')
+              .replaceAll(RegExp(r',\s*,'), ',')
+              .replaceAll(RegExp(r'^[\s,]+'), '')
+              .replaceAll(RegExp(r'[\s,]+$'), '')
+              .trim();
+              
+          if (cleanAddress.isNotEmpty) {
+            return cleanAddress;
+          }
+        }
+      }
+    } catch (e) {
+      print('Error geocoding LatLng: $e');
+    }
+    return null;
   }
 }

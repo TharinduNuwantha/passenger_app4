@@ -423,6 +423,30 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
     }
   }
 
+  String _formatLocationName(String location) {
+    if (location.isEmpty || location == 'null') return 'Unknown';
+    // Handle map coordinates gracefully
+    final RegExp coordRegExp = RegExp(r'^-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+$');
+    if (coordRegExp.hasMatch(location.trim())) {
+      return 'Map Location';
+    }
+    
+    // Clean up long addresses by taking the first significant part
+    List<String> parts = location.split(',');
+    if (parts.isNotEmpty) {
+      String mainPart = parts[0].trim();
+      mainPart = mainPart
+          .replaceAll(RegExp(r'\s+(Railway|Bus|Train)\s+Station', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+Bus\s+Stand', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+Terminal', caseSensitive: false), '')
+          .trim();
+      if (mainPart.length > 2) {
+        return mainPart;
+      }
+    }
+    return location;
+  }
+
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
@@ -780,6 +804,43 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         ? Icons.commute
         : (isBus ? Icons.directions_bus : Icons.weekend);
 
+    String fromLoc = 'Unknown';
+    String toLoc = '';
+    
+    if (booking.type == UnifiedBookingType.bus || booking.type == UnifiedBookingType.combined) {
+      if (booking.busBooking != null) {
+        fromLoc = booking.busBooking!.searchFromLounge?.isNotEmpty == true 
+            ? booking.busBooking!.searchFromLounge! 
+            : '';
+        toLoc = booking.busBooking!.searchToLounge?.isNotEmpty == true 
+            ? booking.busBooking!.searchToLounge! 
+            : '';
+        
+        if (fromLoc == 'Unknown' || fromLoc.isEmpty) {
+           final parts = booking.title.split(' - ');
+           if (parts.length >= 2) {
+             fromLoc = parts[0];
+             toLoc = parts[1];
+           } else {
+             fromLoc = booking.title;
+           }
+        }
+      } else {
+         final parts = booking.title.split(' - ');
+         if (parts.length >= 2) {
+           fromLoc = parts[0];
+           toLoc = parts[1];
+         } else {
+           fromLoc = booking.title;
+         }
+      }
+    } else {
+      fromLoc = booking.title;
+    }
+
+    fromLoc = _formatLocationName(fromLoc);
+    if (toLoc.isNotEmpty) toLoc = _formatLocationName(toLoc);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -837,84 +898,168 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
                 const SizedBox(height: 14),
 
-                // Title
-                Text(
-                  booking.title,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                const SizedBox(height: 4),
-
-                // Reference
-                Row(
-                  children: [
-                    Icon(
-                      Icons.confirmation_number_outlined,
-                      size: 14,
-                      color: context.colors.iconInactive,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      booking.bookingReference,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: context.colors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Date/Time and Amount row
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: context.colors.inputBackground,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
+                // ── Big Eye-Catching Locations ──
+                if (toLoc.isNotEmpty)
+                  Row(
                     children: [
-                      // Date & Time
+                      // FROM
                       Expanded(
-                        child: Row(
+                        flex: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: context.colors.cardBackground,
-                                borderRadius: BorderRadius.circular(8),
+                            Text(
+                              fromLoc,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: context.colors.textPrimary,
+                                letterSpacing: -0.5,
                               ),
-                              child: Icon(
-                                Icons.access_time,
-                                size: 18,
-                                color: typeColor,
-                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: 2),
+                            Row(
                               children: [
-                                Text(
-                                  booking.formattedDate,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: context.colors.textPrimary,
-                                  ),
-                                ),
+                                Icon(Icons.circle, size: 6, color: typeColor),
+                                const SizedBox(width: 4),
                                 Text(
                                   booking.formattedTime,
                                   style: TextStyle(
                                     fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: context.colors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // ARROW
+                      Expanded(
+                        flex: 1,
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: context.colors.iconInactive.withOpacity(0.5),
+                          size: 24,
+                        ),
+                      ),
+                      
+                      // TO
+                      Expanded(
+                        flex: 4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              toLoc,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: context.colors.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Icon(Icons.location_on, size: 10, color: context.colors.textTertiary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Drop-off',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
                                     color: context.colors.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  // Lounge Only case
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        fromLoc,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: context.colors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(Icons.circle, size: 6, color: typeColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            booking.formattedTime,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                const SizedBox(height: 16),
+
+                // ── Date, Reference and Amount row ──
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: context.colors.inputBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: context.colors.dividerColor.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      // Date & Reference
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              booking.formattedDate,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: context.colors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.confirmation_number_outlined,
+                                  size: 12,
+                                  color: context.colors.textTertiary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Ref: ${booking.bookingReference}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: context.colors.textSecondary,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -926,37 +1071,33 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                       // Divider
                       Container(
                         width: 1,
-                        height: 36,
+                        height: 30,
                         color: context.colors.dividerColor,
+                        margin: const EdgeInsets.symmetric(horizontal: 12),
                       ),
 
-                      // Amount
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  booking.formattedTotal,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF059669),
-                                  ),
-                                ),
-                                Text(
-                                  booking.subtitle,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: context.colors.textTertiary,
-                                  ),
-                                ),
-                              ],
+                      // Amount & Subtitle
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            booking.formattedTotal,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: context.colors.textPrimary,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            booking.subtitle,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: typeColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
