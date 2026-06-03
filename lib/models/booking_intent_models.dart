@@ -275,6 +275,8 @@ class BusIntentRequest {
   final String passengerPhone;
   final String? passengerEmail;
   final String? specialRequests;
+  final String? searchFromLounge;
+  final String? searchToLounge;
 
   BusIntentRequest({
     required this.scheduledTripId,
@@ -288,6 +290,8 @@ class BusIntentRequest {
     required this.passengerPhone,
     this.passengerEmail,
     this.specialRequests,
+    this.searchFromLounge,
+    this.searchToLounge,
   });
 
   Map<String, dynamic> toJson() {
@@ -303,6 +307,8 @@ class BusIntentRequest {
       'passenger_phone': passengerPhone,
       if (passengerEmail != null) 'passenger_email': passengerEmail,
       if (specialRequests != null) 'special_requests': specialRequests,
+      if (searchFromLounge != null) 'search_from_lounge': searchFromLounge,
+      if (searchToLounge != null) 'search_to_lounge': searchToLounge,
     };
   }
 }

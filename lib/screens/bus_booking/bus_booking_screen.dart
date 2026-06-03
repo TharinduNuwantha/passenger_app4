@@ -799,22 +799,40 @@ class _BusListScreenState extends State<BusListScreen> {
 
     final bool isExpanded = _expandedCards.contains(trip.tripId);
 
+    // Determine accent color
+    final Color accentColor = trip.isTransit
+        ? AppColors.secondary
+        : isPartialCoverage
+            ? AppColors.secondary
+            : AppColors.primary;
+
+    // Operator name display
+    final String operatorName = isRouteOnly
+        ? (trip.displayRouteName == 'Colombo - Kandy'
+            ? 'Colombo Express'
+            : trip.displayRouteName)
+        : (trip.scheduleName ??
+            trip.busOwnerName ??
+            (trip.displayRouteName == 'Colombo - Kandy'
+                ? 'Colombo Express'
+                : trip.displayRouteName));
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: context.colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: context.colors.shadowColor.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: accentColor.withOpacity(isExpanded ? 0.12 : 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(
           color: isExpanded
-              ? AppColors.primary.withOpacity(0.15)
+              ? accentColor.withOpacity(0.25)
               : context.colors.cardBorder,
           width: 1.5,
         ),
@@ -823,9 +841,27 @@ class _BusListScreenState extends State<BusListScreen> {
         borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
+            // ── TOP ACCENT STRIP ──────────────────────────────────────
+            Container(
+              height: 4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accentColor.withOpacity(0.7),
+                    accentColor,
+                    accentColor.withOpacity(0.7),
+                  ],
+                ),
+              ),
+            ),
+
             Material(
               color: Colors.transparent,
               child: InkWell(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
+                ),
                 onTap: () {
                   setState(() {
                     if (isExpanded) {
@@ -836,198 +872,266 @@ class _BusListScreenState extends State<BusListScreen> {
                   });
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- 1. OPERATOR & RATING ROW ---
+
+                      // ── 1. OPERATOR HEADER ─────────────────────────
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Bus icon badge
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: accentColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              trip.isTransit
+                                  ? Icons.alt_route_rounded
+                                  : Icons.directions_bus_filled_rounded,
+                              size: 22,
+                              color: accentColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
+                                Text(
+                                  operatorName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: context.colors.textPrimary,
+                                    letterSpacing: -0.2,
                                   ),
-                                  child: const Icon(
-                                    Icons.business,
-                                    size: 20,
-                                    color: AppColors.primary,
-                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                if (trip.mainRouteOrigin != null &&
+                                    trip.mainRouteDestination != null) ...
+                                [
+                                  const SizedBox(height: 2),
+                                  Row(
                                     children: [
-                                      Text(
-                                        isRouteOnly
-                                            ? (trip.displayRouteName == 'Colombo - Kandy' ? 'colombo express' : trip.displayRouteName)
-                                            : trip.scheduleName ??
-                                                  trip.busOwnerName ??
-                                                  (trip.displayRouteName == 'Colombo - Kandy' ? 'colombo express' : trip.displayRouteName),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: context.colors.textPrimary,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                      Icon(
+                                        Icons.route_outlined,
+                                        size: 12,
+                                        color: accentColor.withOpacity(0.7),
                                       ),
-                                      if (trip.mainRouteOrigin != null &&
-                                          trip.mainRouteDestination != null)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 4.0,
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          '${trip.mainRouteOrigin} ↔ ${trip.mainRouteDestination}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: accentColor.withOpacity(0.85),
+                                            fontWeight: FontWeight.w600,
                                           ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.route_outlined,
-                                                size: 14,
-                                                color: AppColors.primary
-                                                    .withOpacity(0.7),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${trip.mainRouteOrigin} ↔ ${trip.mainRouteDestination}',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: AppColors.primary
-                                                      .withOpacity(0.8),
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      if (trip.busOwnerName != null &&
-                                          trip.routeName.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 4.0,
-                                            bottom: 4.0,
-                                          ),
-                                          child: Text(
-                                            trip.routeName == 'Colombo - Kandy' 
-                                                ? 'colombo express' 
-                                                : trip.routeName,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: context.colors.textSecondary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
+                                      ),
                                     ],
                                   ),
-                                ),
+                                ] else if (trip.busOwnerName != null &&
+                                    trip.routeName.isNotEmpty) ...
+                                [
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    trip.routeName == 'Colombo - Kandy'
+                                        ? 'Colombo Express'
+                                        : trip.routeName,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: context.colors.textSecondary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
+                          // Type badge
                           _buildHeaderTag(
                             trip.isTransit
                                 ? 'TRANSIT'
                                 : isPartialCoverage
                                 ? 'PARTIAL'
                                 : trip.busType.toUpperCase(),
-                            trip.isTransit
-                                ? AppColors.secondary
-                                : isPartialCoverage
-                                ? AppColors.secondary
-                                : AppColors.primary,
+                            accentColor,
                             trip.isTransit
                                 ? Icons.alt_route_rounded
                                 : Icons.directions_bus_filled,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
 
-                      // --- 2. TIMES SECTION ---
-                      if (!isRouteOnly) _buildTimeAndDurationSection(trip),
+                      const SizedBox(height: 14),
+                      Divider(
+                        height: 1,
+                        color: context.colors.dividerColor,
+                      ),
+                      const SizedBox(height: 14),
 
-                      const SizedBox(height: 16),
+                      // ── 2. TIMES + LOCATION HIGHLIGHT ──────────────
+                      if (!isRouteOnly)
+                        _buildTimeAndDurationSection(trip, accentColor),
 
-                      // --- 3. AMENITIES & BADGES ---
+                      const SizedBox(height: 14),
+
+                      // ── 3. INFO ROW: date label + seats + amenities ─
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Expanded(child: _buildFeaturesRow(trip)),
-                          if (trip.totalSeats < 10)
+                          // Date chip
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accentColor.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              dateLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: accentColor,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Seats available chip
+                          if (!isRouteOnly) ...
+                          [
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
-                                vertical: 4,
+                                vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.error.withOpacity(0.1),
+                                color: trip.totalSeats < 10
+                                    ? AppColors.error.withOpacity(0.08)
+                                    : context.colors.scaffoldBackground,
                                 borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'FAST FILLING',
-                                style: TextStyle(
-                                  color: AppColors.error,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
+                                border: Border.all(
+                                  color: trip.totalSeats < 10
+                                      ? AppColors.error.withOpacity(0.3)
+                                      : context.colors.cardBorder,
                                 ),
                               ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.event_seat_rounded,
+                                    size: 10,
+                                    color: trip.totalSeats < 10
+                                        ? AppColors.error
+                                        : context.colors.iconSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    trip.seatsDisplay,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: trip.totalSeats < 10
+                                          ? AppColors.error
+                                          : context.colors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                          ],
+                          const Spacer(),
+                          _buildFeaturesRow(trip),
                         ],
                       ),
+
+                      // ── 4. ROUTE/PARTIAL INFO BANNER ───────────────
                       if (isRouteOnly || isPartialCoverage)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 12,
+                              horizontal: 12,
+                              vertical: 10,
                             ),
                             decoration: BoxDecoration(
                               color: isRouteOnly
-                                  ? AppColors.primary.withOpacity(0.08)
-                                  : AppColors.secondary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              isRouteOnly
-                                  ? 'Route available but no bus schedule is available on this date.'
-                                  : 'Partial coverage: ${trip.remainingGapKm.toStringAsFixed(1)} km gap remains for complete journey.',
-                              style: TextStyle(
-                                fontSize: 13,
+                                  ? AppColors.primary.withOpacity(0.06)
+                                  : AppColors.secondary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
                                 color: isRouteOnly
-                                    ? AppColors.primary
-                                    : AppColors.secondary,
-                                fontWeight: FontWeight.w600,
+                                    ? AppColors.primary.withOpacity(0.12)
+                                    : AppColors.secondary.withOpacity(0.15),
                               ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isRouteOnly
+                                      ? Icons.info_outline_rounded
+                                      : Icons.warning_amber_rounded,
+                                  size: 14,
+                                  color: isRouteOnly
+                                      ? AppColors.primary
+                                      : AppColors.secondary,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    isRouteOnly
+                                        ? 'Route available but no bus schedule is set for this date.'
+                                        : 'Partial coverage: ${trip.remainingGapKm.toStringAsFixed(1)} km gap remains.',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isRouteOnly
+                                          ? AppColors.primary
+                                          : AppColors.secondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        
-                      const SizedBox(height: 12),
+
+                      // ── 5. EXPAND TOGGLE ───────────────────────────
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            isExpanded ? 'Hide Details' : 'View Lounges & Details',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
                           Icon(
-                            isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                            size: 16,
-                            color: AppColors.primary,
+                            isExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 15,
+                            color: accentColor.withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isExpanded ? 'Hide Details' : 'Lounges & Route Info',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: accentColor.withOpacity(0.8),
+                            ),
                           ),
                         ],
                       ),
@@ -1037,7 +1141,7 @@ class _BusListScreenState extends State<BusListScreen> {
               ),
             ),
 
-            // --- 4. EXPANDABLE ROUTE SECTION ---
+            // ── EXPANDABLE ROUTE SECTION ─────────────────────────────
             AnimatedCrossFade(
               firstChild: const SizedBox.shrink(),
               secondChild: Container(
@@ -1045,31 +1149,59 @@ class _BusListScreenState extends State<BusListScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 decoration: BoxDecoration(
                   color: context.colors.scaffoldBackground,
-                  border: Border(top: BorderSide(color: context.colors.dividerColor)),
+                  border: Border(
+                    top: BorderSide(color: context.colors.dividerColor),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'JOURNEY DETAILS',
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primary,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 3,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: accentColor,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'JOURNEY DETAILS',
+                          style: TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w900,
+                            color: accentColor,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     _buildLocationTimeline(trip),
                     const SizedBox(height: 24),
-                    const Text(
-                      'ROUTE STOPS & SCHEDULE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primary,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 3,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: accentColor,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'ROUTE STOPS & SCHEDULE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w900,
+                            color: accentColor,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     _buildRoutePreview(trip),
@@ -1082,15 +1214,17 @@ class _BusListScreenState extends State<BusListScreen> {
               duration: const Duration(milliseconds: 300),
             ),
 
-            // --- 5. FOOTER: PRICE & BOOK ---
+            // ── FOOTER: PRICE & BOOK ─────────────────────────────────
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
               decoration: BoxDecoration(
                 color: context.colors.cardBackground,
-                border: Border(top: BorderSide(color: context.colors.dividerColor)),
+                border: Border(
+                  top: BorderSide(color: context.colors.dividerColor),
+                ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
@@ -1099,31 +1233,34 @@ class _BusListScreenState extends State<BusListScreen> {
                         Text(
                           'TOTAL FARE',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             letterSpacing: 1,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             color: context.colors.textSecondary,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
                               trip.formattedFare,
-                              style: const TextStyle(
-                                fontSize: 20,
+                              style: TextStyle(
+                                fontSize: 22,
                                 fontWeight: FontWeight.w900,
-                                color: AppColors.primary,
+                                color: accentColor,
+                                letterSpacing: -0.5,
                               ),
                             ),
                             if (trip.isTransit &&
                                 trip.leg1 != null &&
-                                trip.leg2 != null) ...[
+                                trip.leg2 != null) ...
+                            [
                               const SizedBox(width: 4),
                               Padding(
-                                padding: const EdgeInsets.only(bottom: 2),
+                                padding: const EdgeInsets.only(bottom: 3),
                                 child: Text(
-                                  '(LKR ${trip.leg1!.fare.toStringAsFixed(0)} + ${trip.leg2!.fare.toStringAsFixed(0)})',
+                                  '(${trip.leg1!.fare.toStringAsFixed(0)}+${trip.leg2!.fare.toStringAsFixed(0)})',
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -1137,30 +1274,43 @@ class _BusListScreenState extends State<BusListScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   SizedBox(
-                    width: 140,
+                    height: 44,
+                    width: 138,
                     child: ElevatedButton(
                       onPressed: trip.isBookable
                           ? () => _handleBookingPress(context, trip)
                           : () => _showRouteOnlyUnavailableMessage(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: trip.isBookable
-                            ? AppColors.primary
+                            ? accentColor
                             : Colors.grey.shade400,
                         foregroundColor: Colors.white,
-                        elevation: 0,
+                        elevation: trip.isBookable ? 2 : 0,
+                        shadowColor: accentColor.withOpacity(0.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.zero,
                       ),
-                      child: Text(
-                        trip.isBookable ? 'Book Now' : 'Not Bookable',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (trip.isBookable)
+                            const Icon(
+                              Icons.confirmation_num_outlined,
+                              size: 15,
+                            ),
+                          if (trip.isBookable) const SizedBox(width: 6),
+                          Text(
+                            trip.isBookable ? 'Book Now' : 'Unavailable',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1175,24 +1325,24 @@ class _BusListScreenState extends State<BusListScreen> {
 
   Widget _buildHeaderTag(String label, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.15), width: 1),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 6),
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.w900,
               color: color,
-              letterSpacing: 0.5,
+              letterSpacing: 0.6,
             ),
           ),
         ],
@@ -1200,142 +1350,269 @@ class _BusListScreenState extends State<BusListScreen> {
     );
   }
 
-  Widget _buildTimeAndDurationSection(TripResult trip) {
-    final fromName = (trip.fromLounge ?? trip.boardingPoint).replaceAll(" (Nearest Join Point)", "");
-    final toName = (trip.toLounge ?? trip.droppingPoint).replaceAll(" (Nearest Join Point)", "");
+  Widget _buildTimeAndDurationSection(TripResult trip, Color accentColor) {
+    final fromName = (trip.fromLounge ?? trip.boardingPoint)
+        .replaceAll(' (Nearest Join Point)', '');
+    final toName = (trip.toLounge ?? trip.droppingPoint)
+        .replaceAll(' (Nearest Join Point)', '');
+
+    // Check if the lounge name matches the user's selected location
+    final userPickup = _cleanLocation(widget.pickup).toLowerCase();
+    final userDrop = _cleanLocation(widget.drop).toLowerCase();
+    final fromMatches = fromName.toLowerCase().contains(userPickup) ||
+        userPickup.contains(fromName.toLowerCase().split(' ').first);
+    final toMatches = toName.toLowerCase().contains(userDrop) ||
+        userDrop.contains(toName.toLowerCase().split(' ').first);
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Departure
+        // ── DEPARTURE ──────────────────────────────────────────────
         Expanded(
-          flex: 3,
+          flex: 38,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                DateFormat('hh:mm').format(trip.departureTime),
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: context.colors.textPrimary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              Text(
-                DateFormat('a').format(trip.departureTime),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: context.colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                fromName,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.textPrimary,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        // Duration Visual
-        Expanded(
-          flex: 4,
-          child: Column(
-            children: [
-              Text(
-                trip.formattedDuration,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: context.colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Stack(
-                alignment: Alignment.center,
+              // Time row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Container(
-                    height: 2,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withOpacity(0.1),
-                          AppColors.primary,
-                          AppColors.primary.withOpacity(0.1),
-                        ],
-                      ),
+                  Text(
+                    DateFormat('hh:mm').format(trip.departureTime),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: context.colors.textPrimary,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: context.colors.cardBackground,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.directions_bus_rounded,
-                      size: 16,
-                      color: AppColors.primary,
+                  const SizedBox(width: 3),
+                  Text(
+                    DateFormat('a').format(trip.departureTime),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                trip.isTransit ? '1 STOP' : 'DIRECT',
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  color: trip.isTransit
-                      ? AppColors.secondary
-                      : AppColors.primary.withOpacity(0.6),
-                  letterSpacing: 1.5,
+              const SizedBox(height: 5),
+              // Location name with highlight
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: fromMatches
+                      ? accentColor.withOpacity(0.12)
+                      : context.colors.scaffoldBackground,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: fromMatches
+                        ? accentColor.withOpacity(0.3)
+                        : context.colors.cardBorder,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.trip_origin_rounded,
+                      size: 9,
+                      color: fromMatches
+                          ? accentColor
+                          : context.colors.iconSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        fromName,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: fromMatches
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                          color: fromMatches
+                              ? accentColor
+                              : context.colors.textSecondary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-        // Arrival
+
+        // ── MIDDLE CONNECTOR ───────────────────────────────────────
         Expanded(
-          flex: 3,
+          flex: 24,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Column(
+              children: [
+                Text(
+                  trip.formattedDuration,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: context.colors.textSecondary,
+                    letterSpacing: 0.2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 5),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      height: 1.5,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            accentColor.withOpacity(0.15),
+                            accentColor.withOpacity(0.8),
+                            accentColor.withOpacity(0.15),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: context.colors.cardBackground,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: accentColor.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.directions_bus_rounded,
+                        size: 14,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: trip.isTransit
+                        ? AppColors.secondary.withOpacity(0.1)
+                        : accentColor.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    trip.isTransit ? '1 STOP' : 'DIRECT',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      color: trip.isTransit
+                          ? AppColors.secondary
+                          : accentColor,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // ── ARRIVAL ────────────────────────────────────────────────
+        Expanded(
+          flex: 38,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                DateFormat('hh:mm').format(trip.estimatedArrival),
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: context.colors.textPrimary,
-                  letterSpacing: -0.5,
-                ),
+              // Time row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    DateFormat('a').format(trip.estimatedArrival),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    DateFormat('hh:mm').format(trip.estimatedArrival),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: context.colors.textPrimary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                DateFormat('a').format(trip.estimatedArrival),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: context.colors.textSecondary,
+              const SizedBox(height: 5),
+              // Location name with highlight
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 3,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                toName,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.textPrimary,
+                decoration: BoxDecoration(
+                  color: toMatches
+                      ? accentColor.withOpacity(0.12)
+                      : context.colors.scaffoldBackground,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: toMatches
+                        ? accentColor.withOpacity(0.3)
+                        : context.colors.cardBorder,
+                    width: 1,
+                  ),
                 ),
-                textAlign: TextAlign.right,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        toName,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: toMatches
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                          color: toMatches
+                              ? accentColor
+                              : context.colors.textSecondary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 9,
+                      color: toMatches
+                          ? accentColor
+                          : context.colors.iconSecondary,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
