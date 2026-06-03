@@ -532,7 +532,7 @@ class _MultiQRViewState extends State<_MultiQRView> {
         ),
         // PageView for QR cards
         SizedBox(
-          height: 320,
+          height: 350,
           child: PageView.builder(
             controller: _pageController,
             itemCount: widget.qrCards.length,
