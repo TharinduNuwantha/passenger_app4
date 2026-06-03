@@ -1178,10 +1178,10 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 			if passenger.PostalCode.Valid {
 				response.PostalCode = &passenger.PostalCode.String
 			}
-			if passenger.ProfilePhotoURL.Valid {
-				response.ProfilePhotoURL = &passenger.ProfilePhotoURL.String
+			// ProfilePhotoURL and Gender come from users table
+			if user.ProfilePhotoURL.Valid {
+				response.ProfilePhotoURL = &user.ProfilePhotoURL.String
 			}
-			// Gender comes from users table, not passengers table
 			if user.Gender.Valid {
 				response.Gender = &user.Gender.String
 			}

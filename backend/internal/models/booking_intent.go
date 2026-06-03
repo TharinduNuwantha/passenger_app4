@@ -107,11 +107,7 @@ type LoungeIntentPayload struct {
 	BasePrice        float64                `json:"base_price"` // price_per_guest * guest_count
 	PreOrderTotal    float64                `json:"pre_order_total"`
 	TotalPrice       float64                `json:"total_price"` // base_price + pre_order_total
-	TransportType    *string                `json:"transport_type,omitempty"`
-	PickupLocation   *string                `json:"pickup_location,omitempty"`
-	PickupLocationID *string                `json:"pickup_location_id,omitempty"`
-	TransportCost    float64                `json:"transport_cost,omitempty"`
-	TransportTime    *string                `json:"transport_time,omitempty"`
+
 }
 
 // LoungeIntentGuest represents a guest in lounge intent
@@ -138,6 +134,7 @@ type PricingSnapshot struct {
 	PreLoungeFare     float64             `json:"pre_lounge_fare"`
 	TransitLoungeFare float64             `json:"transit_lounge_fare"`
 	PostLoungeFare    float64             `json:"post_lounge_fare"`
+	TransportFare     float64             `json:"transport_fare,omitempty"`
 	Total             float64             `json:"total"`
 	Currency          string              `json:"currency"`
 	CalculatedAt      time.Time           `json:"calculated_at"`
@@ -152,6 +149,22 @@ type IntentDiscountInfo struct {
 	DiscountValue  float64 `json:"discount_value"`
 	DiscountAmount float64 `json:"discount_amount"` // Actual amount discounted
 }
+
+// TransportIntentPayload stores transport booking intent data in JSONB
+type TransportIntentPayload struct {
+	LoungeID                 *string `json:"lounge_id,omitempty"`
+	PickupLocationID         *string `json:"pickup_location_id,omitempty"`
+	VehicleType              string  `json:"vehicle_type"`
+	VehicleQuantity          int     `json:"vehicle_quantity"`
+	TransportPrice           float64 `json:"transport_price"`
+	TransportDate            string  `json:"transport_date"`
+	TransportTime            string  `json:"transport_time"`
+	EstimatedDurationMinutes *int    `json:"estimated_duration_minutes,omitempty"`
+}
+
+// TransportIntentPayloads is a slice of TransportIntentPayload that implements Scanner/Valuer
+type TransportIntentPayloads []TransportIntentPayload
+
 
 // ============================================================================
 // JSONB SCANNER/VALUER IMPLEMENTATIONS
@@ -203,6 +216,45 @@ func (p *PricingSnapshot) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, p)
 }
 
+func (p TransportIntentPayload) Value() (driver.Value, error) {
+	return json.Marshal(p)
+}
+
+func (p *TransportIntentPayload) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed for TransportIntentPayload")
+	}
+	return json.Unmarshal(bytes, p)
+}
+
+func (p TransportIntentPayloads) Value() (driver.Value, error) {
+	if len(p) == 0 {
+		return nil, nil // Return NULL when empty slice
+	}
+	return json.Marshal(p)
+}
+
+func (p *TransportIntentPayloads) Scan(value interface{}) error {
+	if value == nil {
+		*p = TransportIntentPayloads{}
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		// Handle string as well if postgres driver returns string
+		str, okStr := value.(string)
+		if !okStr {
+			return errors.New("type assertion to []byte/string failed for TransportIntentPayloads")
+		}
+		bytes = []byte(str)
+	}
+	return json.Unmarshal(bytes, p)
+}
+
 // ============================================================================
 // BOOKING INTENT MODEL (booking_intents table)
 // ============================================================================
@@ -221,6 +273,7 @@ type BookingIntent struct {
 	PreTripLoungeIntent  *LoungeIntentPayload `json:"pre_trip_lounge_intent,omitempty" db:"pre_trip_lounge_intent"`
 	TransitLoungeIntent  *LoungeIntentPayload `json:"transit_lounge_intent,omitempty" db:"transit_lounge_intent"`
 	PostTripLoungeIntent *LoungeIntentPayload `json:"post_trip_lounge_intent,omitempty" db:"post_trip_lounge_intent"`
+	TransportIntents     TransportIntentPayloads `json:"transport_intents,omitempty" db:"transport_intents"`
 
 	// Pricing (server-calculated, stored at intent time)
 	BusFare           float64         `json:"bus_fare" db:"bus_fare"`
@@ -247,6 +300,7 @@ type BookingIntent struct {
 	PreLoungeBookingID     *uuid.UUID `json:"pre_lounge_booking_id,omitempty" db:"pre_lounge_booking_id"`
 	TransitLoungeBookingID *uuid.UUID `json:"transit_lounge_booking_id,omitempty" db:"transit_lounge_booking_id"`
 	PostLoungeBookingID    *uuid.UUID `json:"post_lounge_booking_id,omitempty" db:"post_lounge_booking_id"`
+	TransportBookingIDs    []uuid.UUID `json:"transport_booking_ids,omitempty" db:"-"`
 
 	// TTL Management
 	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
@@ -312,6 +366,9 @@ type CreateBookingIntentRequest struct {
 	TransitLounge  *LoungeIntentRequest `json:"transit_lounge,omitempty"`
 	PostTripLounge *LoungeIntentRequest `json:"post_trip_lounge,omitempty"`
 
+	// Transport booking data (optional)
+	Transports []TransportIntentRequest `json:"transports,omitempty"`
+
 	// Idempotency key (optional)
 	IdempotencyKey *string `json:"idempotency_key,omitempty"`
 
@@ -352,11 +409,7 @@ type LoungeIntentRequest struct {
 	PricingType      string                        `json:"pricing_type" binding:"required"` // "1_hour", "2_hours", "3_hours", "until_bus"
 	Guests           []LoungeIntentGuestRequest    `json:"guests" binding:"required,min=1"`
 	PreOrders        []LoungeIntentPreOrderRequest `json:"pre_orders,omitempty"`
-	TransportType    *string                       `json:"transport_type,omitempty"`
-	PickupLocation   *string                       `json:"pickup_location,omitempty"`
-	PickupLocationID *string                       `json:"pickup_location_id,omitempty"`
-	TransportCost    *float64                      `json:"transport_cost,omitempty"`
-	TransportTime    *string                       `json:"transport_time,omitempty"`
+
 }
 
 // LoungeIntentGuestRequest represents a guest in the request
@@ -370,6 +423,19 @@ type LoungeIntentPreOrderRequest struct {
 	ProductID string `json:"product_id" binding:"required"`
 	Quantity  int    `json:"quantity" binding:"required,min=1"`
 }
+
+// TransportIntentRequest represents transport booking request data
+type TransportIntentRequest struct {
+	LoungeID                 *string `json:"lounge_id,omitempty"`
+	PickupLocationID         *string `json:"pickup_location_id,omitempty"`
+	VehicleType              string  `json:"vehicle_type" binding:"required"`
+	VehicleQuantity          int     `json:"vehicle_quantity" binding:"required,min=1"`
+	TransportPrice           float64 `json:"transport_price" binding:"required"`
+	TransportDate            string  `json:"transport_date" binding:"required"`
+	TransportTime            string  `json:"transport_time" binding:"required"`
+	EstimatedDurationMinutes *int    `json:"estimated_duration_minutes,omitempty"`
+}
+
 
 // Validate validates the booking intent request
 func (r *CreateBookingIntentRequest) Validate() error {
@@ -396,7 +462,11 @@ func (r *CreateBookingIntentRequest) Validate() error {
 			return errors.New("at least one lounge booking is required for combined intent")
 		}
 	default:
-		return errors.New("invalid intent_type: must be bus_only, lounge_only, or combined")
+		// Also allow independent transport intent if combined/lounge/bus types aren't strictly required
+		// For now we assume one of these three is used, or maybe a new "transport_only"
+		if r.IntentType != "transport_only" {
+			return errors.New("invalid intent_type: must be bus_only, lounge_only, combined, or transport_only")
+		}
 	}
 
 	// Validate bus seats

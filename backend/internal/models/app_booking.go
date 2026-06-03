@@ -151,9 +151,8 @@ type MasterBooking struct {
 	CompletedAt        *time.Time `json:"completed_at,omitempty" db:"completed_at"`
 	RefundedAt         *time.Time `json:"refunded_at,omitempty" db:"refunded_at"`
 
-	// Transport fields for Master Booking
-	TransportType *string `json:"transport_type,omitempty" db:"transport_type"`
-	TransportTime *string `json:"transport_time,omitempty" db:"transport_time"`
+	// Transport bookings
+	TransportBookings []TransportBooking `json:"transport_bookings,omitempty" db:"-"`
 
 	// Refund
 	RefundAmount    float64    `json:"refund_amount" db:"refund_amount"`

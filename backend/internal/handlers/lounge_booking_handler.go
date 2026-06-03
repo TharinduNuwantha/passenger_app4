@@ -782,26 +782,7 @@ func (h *LoungeBookingHandler) CreateLoungeBooking(c *gin.Context) {
 	booking.LoungeAddress.String = lounge.Address
 	booking.LoungeAddress.Valid = true
 
-	// Map transport / pickup details
-	if req.TransportType != nil {
-		booking.TransportType.String = *req.TransportType
-		booking.TransportType.Valid = true
-	}
-	if req.PickupLocation != nil {
-		booking.PickupLocation.String = *req.PickupLocation
-		booking.PickupLocation.Valid = true
-	}
-	if req.PickupLocationID != nil && *req.PickupLocationID != "" {
-		pickupLocID, err := uuid.Parse(*req.PickupLocationID)
-		if err == nil {
-			booking.PickupLocationID = &pickupLocID
-		}
-	}
-	if req.TransportCost != nil {
-		booking.TransportCost = strconv.FormatFloat(*req.TransportCost, 'f', 2, 64)
-	} else {
-		booking.TransportCost = "0.00"
-	}
+
 
 	// Handle scheduled departure
 	if req.ScheduledDeparture != nil {
@@ -898,14 +879,12 @@ func (h *LoungeBookingHandler) CreateLoungeBooking(c *gin.Context) {
 
 	booking.PreOrderTotal = strconv.FormatFloat(preOrderTotal, 'f', 2, 64)
 
-	// Calculate total amount (basePrice + preOrderTotal + transportCost - discount)
-	var basePriceFloat, discountFloat, transportCostFloat float64
+	// Calculate total amount (basePrice + preOrderTotal - discount)
+	var basePriceFloat, discountFloat float64
 	basePriceFloat, _ = strconv.ParseFloat(basePrice, 64)
 	discountFloat, _ = strconv.ParseFloat(booking.DiscountAmount, 64)
-	if req.TransportCost != nil {
-		transportCostFloat = *req.TransportCost
-	}
-	totalAmount := basePriceFloat + preOrderTotal + transportCostFloat - discountFloat
+	
+	totalAmount := basePriceFloat + preOrderTotal - discountFloat
 	booking.TotalAmount = strconv.FormatFloat(totalAmount, 'f', 2, 64)
 
 	// Create booking
