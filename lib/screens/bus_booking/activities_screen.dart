@@ -765,13 +765,20 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
   Widget _buildBookingCard(UnifiedBooking booking) {
     final isBus = booking.type == UnifiedBookingType.bus;
+    final isCombined = booking.type == UnifiedBookingType.combined;
 
     // Color theming based on type
-    final Color typeColor = isBus ? AppColors.primary : const Color(0xFF7C3AED);
-    final Color typeBgColor = isBus
-        ? AppColors.primary.withOpacity(0.1)
-        : const Color(0xFF7C3AED).withOpacity(0.1);
-    final IconData typeIcon = isBus ? Icons.directions_bus : Icons.weekend;
+    final Color typeColor = isCombined
+        ? const Color(0xFF0D9488) // Teal
+        : (isBus ? AppColors.primary : const Color(0xFF7C3AED));
+    final Color typeBgColor = isCombined
+        ? const Color(0xFF0D9488).withOpacity(0.1)
+        : (isBus
+            ? AppColors.primary.withOpacity(0.1)
+            : const Color(0xFF7C3AED).withOpacity(0.1));
+    final IconData typeIcon = isCombined
+        ? Icons.commute
+        : (isBus ? Icons.directions_bus : Icons.weekend);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -811,7 +818,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           Icon(typeIcon, size: 14, color: typeColor),
                           const SizedBox(width: 4),
                           Text(
-                            isBus ? 'Bus' : 'Lounge',
+                            booking.type.displayName,
                             style: TextStyle(
                               color: typeColor,
                               fontSize: 12,
@@ -1013,7 +1020,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   }
 
   void _navigateToDetail(UnifiedBooking booking) {
-    if (booking.type == UnifiedBookingType.bus && booking.busBooking != null) {
+    if ((booking.type == UnifiedBookingType.bus || booking.type == UnifiedBookingType.combined) && booking.busBooking != null) {
       Navigator.push(
         context,
         MaterialPageRoute(

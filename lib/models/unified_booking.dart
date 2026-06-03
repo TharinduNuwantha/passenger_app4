@@ -112,10 +112,14 @@ class UnifiedBooking {
       mappedStatus = _mapBusStatus(booking.bookingStatus);
     }
 
+    final type = booking.bookingType == BookingType.busWithLounge
+        ? UnifiedBookingType.combined
+        : UnifiedBookingType.bus;
+
     return UnifiedBooking(
       id: booking.id,
       bookingReference: booking.bookingReference,
-      type: UnifiedBookingType.bus,
+      type: type,
       status: mappedStatus,
       dateTime: booking.departureDatetime ?? booking.createdAt,
       totalAmount: booking.totalAmount,
