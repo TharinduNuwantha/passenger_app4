@@ -1054,12 +1054,16 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                                   color: context.colors.textTertiary,
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  'Ref: ${booking.bookingReference}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: context.colors.textSecondary,
-                                    fontWeight: FontWeight.w500,
+                                Expanded(
+                                  child: Text(
+                                    'Ref: ${booking.bookingReference}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: context.colors.textSecondary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
