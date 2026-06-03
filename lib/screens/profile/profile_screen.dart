@@ -143,14 +143,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.white.withOpacity(0.2),
-                      child: Text(
-                        _getInitials(displayName),
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      backgroundImage: (_user?.profilePhotoUrl != null && _user!.profilePhotoUrl!.isNotEmpty)
+                          ? NetworkImage(_user!.profilePhotoUrl!)
+                          : null,
+                      child: (_user?.profilePhotoUrl == null || _user!.profilePhotoUrl!.isEmpty)
+                          ? Text(
+                              _getInitials(displayName),
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                   const SizedBox(height: 16),
