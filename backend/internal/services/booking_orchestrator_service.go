@@ -326,6 +326,8 @@ func (s *BookingOrchestratorService) processBusIntent(
 		PassengerPhone:    req.PassengerPhone,
 		PassengerEmail:    req.PassengerEmail,
 		SpecialRequests:   req.SpecialRequests,
+		SearchFromLounge:  req.SearchFromLounge,
+		SearchToLounge:    req.SearchToLounge,
 		TripInfo:          tripInfo,
 	}
 
@@ -870,6 +872,8 @@ func (s *BookingOrchestratorService) createBusBookingFromIntent(intent *models.B
 		PassengerPhone:       busIntent.PassengerPhone,
 		PassengerEmail:       busIntent.PassengerEmail,
 		BookingSource:        models.BookingSourceApp,
+		SearchFromLounge:     busIntent.SearchFromLounge,
+		SearchToLounge:       busIntent.SearchToLounge,
 	}
 
 	// Pull transport details from the first available lounge intent that has transport

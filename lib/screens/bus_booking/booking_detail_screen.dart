@@ -361,6 +361,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   children: [
                     _buildDetailRow(Icons.route, 'Route', busBooking.routeName),
                     const Divider(height: 20),
+                    if (booking.searchFromLounge != null && booking.searchFromLounge!.isNotEmpty)
+                      _buildDetailRow(
+                        Icons.meeting_room,
+                        'From Lounge',
+                        booking.searchFromLounge!,
+                      ),
+                    if (booking.searchToLounge != null && booking.searchToLounge!.isNotEmpty)
+                      _buildDetailRow(
+                        Icons.meeting_room,
+                        'To Lounge',
+                        booking.searchToLounge!,
+                      ),
+                    if (booking.searchFromLounge != null || booking.searchToLounge != null)
+                      const Divider(height: 20),
                     _buildDetailRow(
                       Icons.location_on_outlined,
                       'From',

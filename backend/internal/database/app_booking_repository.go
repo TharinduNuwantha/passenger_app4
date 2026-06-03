@@ -149,10 +149,11 @@ func (r *AppBookingRepository) CreateBooking(
 			payment_status, payment_method, booking_status,
 			passenger_name, passenger_phone, passenger_email,
 			booking_source, device_info, notes,
-			transport_type, transport_time
+			transport_type, transport_time,
+			search_from_lounge, search_to_lounge
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
+			$11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
 		) RETURNING id, created_at, updated_at`
 
 	err = tx.QueryRowx(bookingQuery,
@@ -164,6 +165,7 @@ func (r *AppBookingRepository) CreateBooking(
 		booking.PassengerName, booking.PassengerPhone, booking.PassengerEmail,
 		booking.BookingSource, deviceInfoJSON, booking.Notes,
 		booking.TransportType, booking.TransportTime,
+		booking.SearchFromLounge, booking.SearchToLounge,
 	).Scan(&booking.ID, &booking.CreatedAt, &booking.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create booking: %w", err)
@@ -347,6 +349,7 @@ func (r *AppBookingRepository) GetBookingsByUserID(userID string, limit, offset 
 			b.id, b.booking_reference, b.booking_type,
 			b.total_amount, b.payment_status, b.booking_status,
 			b.passenger_name, b.created_at,
+			b.search_from_lounge, b.search_to_lounge,
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
@@ -372,6 +375,7 @@ func (r *AppBookingRepository) GetUpcomingBookingsByUserID(userID string, limit,
 			b.id, b.booking_reference, b.booking_type,
 			b.total_amount, b.payment_status, b.booking_status,
 			b.passenger_name, b.created_at,
+			b.search_from_lounge, b.search_to_lounge,
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
@@ -399,6 +403,7 @@ func (r *AppBookingRepository) GetCompletedBookingsByUserID(userID string, limit
 			b.id, b.booking_reference, b.booking_type,
 			b.total_amount, b.payment_status, b.booking_status,
 			b.passenger_name, b.created_at,
+			b.search_from_lounge, b.search_to_lounge,
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
@@ -429,6 +434,7 @@ func (r *AppBookingRepository) GetExpiredOrCancelledBookingsByUserID(userID stri
 			b.id, b.booking_reference, b.booking_type,
 			b.total_amount, b.payment_status, b.booking_status,
 			b.passenger_name, b.created_at,
+			b.search_from_lounge, b.search_to_lounge,
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,

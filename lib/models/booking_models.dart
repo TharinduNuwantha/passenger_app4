@@ -520,6 +520,8 @@ class MasterBooking {
 
   // Metadata
   final String bookingSource;
+  final String? searchFromLounge;
+  final String? searchToLounge;
   final Map<String, dynamic>? deviceInfo;
   final String? notes;
 
@@ -564,6 +566,8 @@ class MasterBooking {
     this.refundReference,
     this.refundedAt,
     required this.bookingSource,
+    this.searchFromLounge,
+    this.searchToLounge,
     this.deviceInfo,
     this.notes,
     required this.createdAt,
@@ -620,6 +624,8 @@ class MasterBooking {
           ? DateTime.parse(json['refunded_at'] as String)
           : null,
       bookingSource: json['booking_source'] as String? ?? 'app',
+      searchFromLounge: json['search_from_lounge'] as String?,
+      searchToLounge: json['search_to_lounge'] as String?,
       deviceInfo: json['device_info'] as Map<String, dynamic>?,
       notes: json['notes'] as String?,
       createdAt: json['created_at'] != null
@@ -1153,6 +1159,10 @@ class BookingListItem {
   final BusBookingStatus? busStatus;
   final String? qrCodeData;
 
+  // Search details
+  final String? searchFromLounge;
+  final String? searchToLounge;
+
   BookingListItem({
     required this.id,
     required this.bookingReference,
@@ -1167,6 +1177,8 @@ class BookingListItem {
     this.numberOfSeats,
     this.busStatus,
     this.qrCodeData,
+    this.searchFromLounge,
+    this.searchToLounge,
   });
 
   factory BookingListItem.fromJson(Map<String, dynamic> json) {
@@ -1194,6 +1206,8 @@ class BookingListItem {
           ? BusBookingStatus.fromJson(json['bus_status'] as String?)
           : null,
       qrCodeData: json['qr_code_data'] as String?,
+      searchFromLounge: json['search_from_lounge'] as String?,
+      searchToLounge: json['search_to_lounge'] as String?,
     );
   }
 

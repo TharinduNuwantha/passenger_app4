@@ -153,9 +153,11 @@ func (h *AppBookingHandler) CreateBooking(c *gin.Context) {
 		BookingStatus:  models.MasterBookingConfirmed,
 		PassengerName:  req.PassengerName,
 		PassengerPhone: req.PassengerPhone,
-		PassengerEmail: req.PassengerEmail,
-		BookingSource:  models.BookingSourceApp,
-		DeviceInfo:     req.DeviceInfo,
+		PassengerEmail:   req.PassengerEmail,
+		BookingSource:    models.BookingSourceApp,
+		DeviceInfo:       req.DeviceInfo,
+		SearchFromLounge: req.SearchFromLounge,
+		SearchToLounge:   req.SearchToLounge,
 	}
 
 	// Build bus booking (normalized - only store IDs, not denormalized data)

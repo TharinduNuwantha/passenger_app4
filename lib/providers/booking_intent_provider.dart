@@ -163,6 +163,8 @@ class BookingIntentProvider with ChangeNotifier {
     required String passengerName,
     required String passengerPhone,
     String? passengerEmail,
+    String? searchFromLounge,
+    String? searchToLounge,
     List<BusIntentLegRequest>? legs,
   }) async {
     final request = CreateBookingIntentRequest(
@@ -180,6 +182,8 @@ class BookingIntentProvider with ChangeNotifier {
         passengerName: passengerName,
         passengerPhone: passengerPhone,
         passengerEmail: passengerEmail,
+        searchFromLounge: searchFromLounge,
+        searchToLounge: searchToLounge,
       ),
     );
     return createIntent(request);
@@ -196,6 +200,8 @@ class BookingIntentProvider with ChangeNotifier {
     required String passengerName,
     required String passengerPhone,
     String? passengerEmail,
+    String? searchFromLounge,
+    String? searchToLounge,
     LoungeIntentRequest? preTripLounge,
     LoungeIntentRequest? transitLounge,
     LoungeIntentRequest? postTripLounge,
@@ -233,6 +239,8 @@ class BookingIntentProvider with ChangeNotifier {
         passengerName: passengerName,
         passengerPhone: passengerPhone,
         passengerEmail: passengerEmail,
+        searchFromLounge: searchFromLounge,
+        searchToLounge: searchToLounge,
       ),
       preTripLounge: preTripLounge,
       transitLounge: transitLounge,

@@ -160,9 +160,11 @@ type MasterBooking struct {
 	RefundReference *string    `json:"refund_reference,omitempty" db:"refund_reference"`
 
 	// Metadata
-	BookingSource BookingSource `json:"booking_source" db:"booking_source"`
-	DeviceInfo    DeviceInfo    `json:"device_info,omitempty" db:"device_info"`
-	Notes         *string       `json:"notes,omitempty" db:"notes"`
+	BookingSource    BookingSource `json:"booking_source" db:"booking_source"`
+	SearchFromLounge *string       `json:"search_from_lounge,omitempty" db:"search_from_lounge"`
+	SearchToLounge   *string       `json:"search_to_lounge,omitempty" db:"search_to_lounge"`
+	DeviceInfo       DeviceInfo    `json:"device_info,omitempty" db:"device_info"`
+	Notes            *string       `json:"notes,omitempty" db:"notes"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
@@ -307,6 +309,10 @@ type CreateAppBookingRequest struct {
 	// Special Requests
 	SpecialRequests *string `json:"special_requests,omitempty"`
 
+	// Search Coordinates / Lounges
+	SearchFromLounge *string `json:"search_from_lounge,omitempty"`
+	SearchToLounge   *string `json:"search_to_lounge,omitempty"`
+
 	// Device Info
 	DeviceInfo DeviceInfo `json:"device_info,omitempty"`
 }
@@ -373,6 +379,10 @@ type BookingListItem struct {
 	NumberOfSeats     *int              `json:"number_of_seats,omitempty" db:"number_of_seats"`
 	BusStatus         *BusBookingStatus `json:"bus_status,omitempty" db:"bus_status"`
 	QRCodeData        *string           `json:"qr_code_data,omitempty" db:"qr_code_data"`
+	
+	// Search Data
+	SearchFromLounge *string `json:"search_from_lounge,omitempty" db:"search_from_lounge"`
+	SearchToLounge   *string `json:"search_to_lounge,omitempty" db:"search_to_lounge"`
 }
 
 // ============================================================================

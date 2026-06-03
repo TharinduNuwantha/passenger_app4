@@ -66,6 +66,8 @@ type BusIntentPayload struct {
 	PassengerPhone    string             `json:"passenger_phone"`
 	PassengerEmail    *string            `json:"passenger_email,omitempty"`
 	SpecialRequests   *string            `json:"special_requests,omitempty"`
+	SearchFromLounge  *string            `json:"search_from_lounge,omitempty"`
+	SearchToLounge    *string            `json:"search_to_lounge,omitempty"`
 	TripInfo          *BusIntentTripInfo `json:"trip_info,omitempty"` // Denormalized for display
 }
 
@@ -312,6 +314,10 @@ type CreateBookingIntentRequest struct {
 
 	// Idempotency key (optional)
 	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+
+	// Search Coordinates / Lounges (optional)
+	SearchFromLounge *string `json:"search_from_lounge,omitempty"`
+	SearchToLounge   *string `json:"search_to_lounge,omitempty"`
 }
 
 // BusIntentRequest represents bus booking request data
@@ -326,6 +332,8 @@ type BusIntentRequest struct {
 	PassengerPhone    string                 `json:"passenger_phone" binding:"required"`
 	PassengerEmail    *string                `json:"passenger_email,omitempty"`
 	SpecialRequests   *string                `json:"special_requests,omitempty"`
+	SearchFromLounge  *string                `json:"search_from_lounge,omitempty"`
+	SearchToLounge    *string                `json:"search_to_lounge,omitempty"`
 }
 
 // BusIntentSeatRequest represents a seat in the request
