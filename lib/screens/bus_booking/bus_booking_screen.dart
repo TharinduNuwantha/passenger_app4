@@ -735,64 +735,319 @@ class _BusListScreenState extends State<BusListScreen> {
 
   Widget _buildEmptyState(SearchProvider provider) {
     final response = provider.searchResponse;
-    final bool hasRouteOnlyDiscovery = response?.hasRouteOnlyDiscovery ?? false;
-    final bool hasPartialCoverage = response?.hasPartialCoverage ?? false;
-    final String message = hasPartialCoverage
-        ? 'A route exists, but only partial coverage is available. A remaining gap of ${response?.remainingGapKm.toStringAsFixed(1) ?? '0.0'} km remains.'
-        : hasRouteOnlyDiscovery
-        ? 'A route is available, but no buses are scheduled for this date. Try a different date or check back soon.'
-        : 'We couldn\'t find any buses for your search criteria on this date.';
+    final bool hasRoute = response?.hasRouteOnlyDiscovery ?? false;
+    final bool hasPartial = response?.hasPartialCoverage ?? false;
+    final bool routeKnown = hasRoute || hasPartial;
 
-    return Container(
-      padding: const EdgeInsets.all(40),
+    final String dateText = widget.date != null
+        ? DateFormat('EEEE, MMMM d').format(widget.date!)
+        : 'Selected Date';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
       child: Column(
         children: [
-          Icon(
-            hasRouteOnlyDiscovery || hasPartialCoverage
-                ? Icons.info_outline
-                : Icons.directions_bus_filled_outlined,
-            size: 80,
-            color: hasRouteOnlyDiscovery || hasPartialCoverage
-                ? AppColors.primary
-                : context.colors.iconInactive,
+          // ── Route Badge ──────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: routeKnown
+                    ? [AppColors.primary.withOpacity(0.08), AppColors.primary.withOpacity(0.03)]
+                    : [Colors.grey.withOpacity(0.07), Colors.grey.withOpacity(0.02)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: routeKnown
+                    ? AppColors.primary.withOpacity(0.2)
+                    : context.colors.cardBorder,
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              children: [
+                // From → To
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FROM',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: context.colors.textSecondary,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _resolvedPickup.isNotEmpty ? _resolvedPickup : widget.pickup,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: context.colors.textPrimary,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: routeKnown
+                            ? AppColors.primary.withOpacity(0.12)
+                            : context.colors.cardBorder.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: routeKnown ? AppColors.primary : context.colors.iconInactive,
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'TO',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: context.colors.textSecondary,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _resolvedDrop.isNotEmpty ? _resolvedDrop : widget.drop,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: context.colors.textPrimary,
+                              height: 1.2,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Divider
+                Container(height: 1, color: context.colors.dividerColor),
+                const SizedBox(height: 14),
+                // Date chip
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.calendar_month_rounded,
+                      size: 14,
+                      color: context.colors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      dateText,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 32),
+
+          // ── Main Illustration ─────────────────────────────────────────
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Soft glow ring
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: routeKnown
+                      ? AppColors.primary.withOpacity(0.06)
+                      : Colors.grey.withOpacity(0.06),
+                ),
+              ),
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: routeKnown
+                      ? AppColors.primary.withOpacity(0.1)
+                      : Colors.grey.withOpacity(0.1),
+                ),
+              ),
+              Icon(
+                routeKnown
+                    ? Icons.directions_bus_outlined
+                    : Icons.search_off_rounded,
+                size: 48,
+                color: routeKnown
+                    ? AppColors.primary.withOpacity(0.5)
+                    : context.colors.iconInactive,
+              ),
+              // Cross-out badge for "no service today"
+              if (routeKnown)
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF59E0B),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.schedule_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // ── Headline ──────────────────────────────────────────────────
           Text(
-            'No Buses Found',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: context.colors.textPrimary),
+            routeKnown
+                ? 'No Buses on This Date'
+                : 'No Buses Available',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: context.colors.textPrimary,
+              letterSpacing: -0.3,
+            ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.colors.textSecondary),
+
+          // ── Sub-message ───────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: routeKnown
+                  ? const Color(0xFFF59E0B).withOpacity(0.08)
+                  : context.colors.cardBackground,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: routeKnown
+                    ? const Color(0xFFF59E0B).withOpacity(0.25)
+                    : context.colors.cardBorder,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  routeKnown ? Icons.info_outline_rounded : Icons.info_outline_rounded,
+                  size: 16,
+                  color: routeKnown
+                      ? const Color(0xFFF59E0B)
+                      : context.colors.iconSecondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    hasPartial
+                        ? 'A route exists for this journey, but only partial coverage is available right now. There is a gap of ${response?.remainingGapKm.toStringAsFixed(1) ?? '0.0'} km with no scheduled service.'
+                        : hasRoute
+                        ? 'The route between these locations exists, but no buses are scheduled for $dateText. Try a different date or check back closer to the travel day.'
+                        : 'We couldn\'t find any buses or routes matching your journey on $dateText. Try adjusting your locations or pick another date.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: routeKnown
+                          ? const Color(0xFF92400E)
+                          : context.colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 30),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Modify Search'),
+
+          const SizedBox(height: 28),
+
+          // ── Action Buttons ─────────────────────────────────────────────
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: const Text(
+                'Change Search',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 2,
+                shadowColor: AppColors.primary.withOpacity(0.3),
+              ),
+            ),
           ),
+          if (routeKnown) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _performSearch(),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text(
+                  'Try Again',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: AppColors.primary.withOpacity(0.4)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildTripCard(BuildContext context, TripResult trip) {
-    // Check if the trip is today
-    final now = DateTime.now();
-    final tripDate = trip.departureTime;
-    final isToday =
-        tripDate.year == now.year &&
-        tripDate.month == now.month &&
-        tripDate.day == now.day;
-    final isTomorrow =
-        tripDate.year == now.year &&
-        tripDate.month == now.month &&
-        tripDate.day == now.day + 1;
 
+  Widget _buildTripCard(BuildContext context, TripResult trip) {
     final bool isRouteOnly = trip.isRouteOnly;
     final bool isPartialCoverage = trip.isPartialCoverage;
-
 
 
     final bool isExpanded = _expandedCards.contains(trip.tripId);
