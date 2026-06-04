@@ -167,8 +167,18 @@ class BookingSuccessScreenV2 extends StatelessWidget {
                     const Divider(height: 20),
                     if (busBooking != null) ...[
                       _buildDetailRow('Route', busBooking!.routeName),
-                      _buildDetailRow('From', busBooking!.boardingStopName),
-                      _buildDetailRow('To', busBooking!.alightingStopName),
+                      _buildDetailRow(
+                        'From',
+                        booking.searchFromLounge != null && booking.searchFromLounge!.isNotEmpty
+                            ? booking.searchFromLounge!
+                            : busBooking!.boardingStopName,
+                      ),
+                      _buildDetailRow(
+                        'To',
+                        booking.searchToLounge != null && booking.searchToLounge!.isNotEmpty
+                            ? booking.searchToLounge!
+                            : busBooking!.alightingStopName,
+                      ),
                       _buildDetailRow(
                         'Date & Time',
                         _formatDateTime(busBooking!.departureDatetime),

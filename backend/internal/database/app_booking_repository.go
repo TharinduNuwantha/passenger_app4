@@ -280,7 +280,7 @@ func (r *AppBookingRepository) GetBookingByID(bookingID string) (*models.MasterB
 		       booking_status, passenger_name, passenger_phone, passenger_email,
 		       confirmed_at, cancelled_at, cancellation_reason, cancelled_by_user_id,
 		       completed_at, refund_amount, refund_reference, refunded_at,
-		       booking_source, device_info, notes, created_at, updated_at
+		       booking_source, device_info, notes, search_from_lounge, search_to_lounge, created_at, updated_at
 		FROM bookings WHERE id = $1`
 
 	err := r.db.Get(booking, query, bookingID)
@@ -322,7 +322,7 @@ func (r *AppBookingRepository) GetBookingByReference(reference string) (*models.
 		       booking_status, passenger_name, passenger_phone, passenger_email,
 		       confirmed_at, cancelled_at, cancellation_reason, cancelled_by_user_id,
 		       completed_at, refund_amount, refund_reference, refunded_at,
-		       booking_source, device_info, notes, created_at, updated_at
+		       booking_source, device_info, notes, search_from_lounge, search_to_lounge, created_at, updated_at
 		FROM bookings WHERE booking_reference = $1`
 
 	err := r.db.Get(booking, query, reference)
@@ -478,6 +478,7 @@ func (r *AppBookingRepository) GetNotCompletedBookingsByUserID(userID string, li
 			b.id, b.booking_reference, b.booking_type,
 			b.total_amount, b.payment_status, b.booking_status,
 			b.passenger_name, b.created_at,
+			b.search_from_lounge, b.search_to_lounge,
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
