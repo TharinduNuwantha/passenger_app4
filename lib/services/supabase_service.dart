@@ -23,7 +23,8 @@ class SupabaseService {
       final String publicUrl =
           _supabase.storage.from('avatars').getPublicUrl(filePath);
 
-      return publicUrl;
+      // Append timestamp query param to bypass client image caching
+      return '$publicUrl?t=${DateTime.now().millisecondsSinceEpoch}';
     } catch (e) {
       throw 'Error uploading image: $e';
     }

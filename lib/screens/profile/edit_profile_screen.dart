@@ -253,6 +253,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted) {
         authProvider.updateUser(updatedUser);
+        setState(() {
+          _currentPhotoUrl = updatedUser.profilePhotoUrl;
+          _imageFile = null;
+        });
         _showSuccessDialog();
       }
     } catch (e) {

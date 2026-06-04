@@ -20,7 +20,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
-  UserModel? _user;
   bool isLoading = true;
   String? errorMessage;
 
@@ -32,21 +31,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       setState(() {
-        isLoading = true;
+        isLoading = authProvider.user == null;
         errorMessage = null;
       });
 
       final user = await _userService.getProfile();
-      setState(() {
-        _user = user;
-        isLoading = false;
-      });
+      if (mounted) {
+        authProvider.updateUser(user);
+        setState(() {
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        errorMessage = e.toString();
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          errorMessage = e.toString();
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -63,7 +67,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    final user = Provider.of<AuthProvider>(context).user;
+
+    if (isLoading && user == null) {
       return Scaffold(
         backgroundColor: context.colors.scaffoldBackground,
         appBar: AppBar(
@@ -78,7 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    if (errorMessage != null) {
+    if (errorMessage != null && user == null) {
       return Scaffold(
         backgroundColor: context.colors.scaffoldBackground,
         appBar: AppBar(
@@ -124,8 +130,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final displayName = _user?.fullName.isNotEmpty == true ? _user!.fullName : 'Passenger';
-    final displayPhone = _user != null ? _formatPhoneNumber(_user!.phoneNumber) : '';
+    final displayName = user?.fullName.isNotEmpty == true ? user!.fullName : 'Passenger';
+    final displayPhone = user != null ? _formatPhoneNumber(user.phoneNumber) : '';
 
     return Scaffold(
       backgroundColor: context.colors.scaffoldBackground,
@@ -143,10 +149,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.white.withOpacity(0.2),
-                      backgroundImage: (_user?.profilePhotoUrl != null && _user!.profilePhotoUrl!.isNotEmpty)
-                          ? NetworkImage(_user!.profilePhotoUrl!)
+                      backgroundImage: (user?.profilePhotoUrl != null && user!.profilePhotoUrl!.isNotEmpty)
+                          ? NetworkImage(user.profilePhotoUrl!)
                           : null,
-                      child: (_user?.profilePhotoUrl == null || _user!.profilePhotoUrl!.isEmpty)
+                      child: (user?.profilePhotoUrl == null || user!.profilePhotoUrl!.isEmpty)
                           ? Text(
                               _getInitials(displayName),
                               style: const TextStyle(
@@ -170,10 +176,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white.withOpacity(0.9),
                     ),
                   ),
-                  if (_user?.email != null && _user!.email!.isNotEmpty) ...[
+                  if (user?.email != null && user!.email!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      _user!.email!,
+                      user.email!,
                       style: AppTextStyles.small.copyWith(
                         color: Colors.white.withOpacity(0.7),
                       ),
