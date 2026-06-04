@@ -514,7 +514,7 @@ func (r *SearchRepository) FindDirectTrips(
 		SELECT 
 			COUNT(*) as total_trips,
 			COUNT(*) FILTER (WHERE is_bookable = true) as bookable_trips,
-			COUNT(*) FILTER (WHERE departure_datetime > $1) as future_trips,
+			COUNT(*) FILTER (WHERE departure_datetime > ($1 AT TIME ZONE 'Asia/Colombo')) as future_trips,
 			COUNT(*) FILTER (WHERE status IN ('scheduled', 'confirmed')) as valid_status,
 			COUNT(*) FILTER (WHERE bus_owner_route_id IS NOT NULL) as with_bor_route
 		FROM scheduled_trips
@@ -583,7 +583,7 @@ func (r *SearchRepository) FindDirectTrips(
 			st.is_bookable = true
 			AND st.status IN ('scheduled', 'confirmed')
 			-- Departure must be in the future
-			AND st.departure_datetime > $3
+			AND st.departure_datetime > ($3 AT TIME ZONE 'Asia/Colombo')
 			-- Stops must be in correct order
 			AND check_from.stop_order < check_to.stop_order
 			-- For bus owner routes, check if stops are selected
@@ -660,7 +660,7 @@ func (r *SearchRepository) FindDirectTrips(
 				st.departure_datetime as departure,
 				st.is_bookable,
 				st.status,
-				st.departure_datetime > $3 as is_future,
+				st.departure_datetime > ($3 AT TIME ZONE 'Asia/Colombo') as is_future,
 				st.bus_owner_route_id IS NOT NULL as has_bor_route,
 				CASE WHEN bor.id IS NOT NULL THEN array_length(bor.selected_stop_ids, 1) END as selected_stops_count,
 				CASE WHEN bor.id IS NOT NULL AND bor.selected_stop_ids IS NOT NULL 
@@ -680,7 +680,7 @@ func (r *SearchRepository) FindDirectTrips(
 				) as stops_connected
 			FROM scheduled_trips st
 			LEFT JOIN bus_owner_routes bor ON st.bus_owner_route_id = bor.id
-			WHERE st.departure_datetime > $3 - INTERVAL '24 hours'
+			WHERE st.departure_datetime > ($3 AT TIME ZONE 'Asia/Colombo') - INTERVAL '24 hours'
 			ORDER BY st.departure_datetime
 			LIMIT 10
 		`
@@ -1536,7 +1536,7 @@ direct_results AS (
         LEFT JOIN bus_seat_layout_templates bslt ON bslt.id = b.seat_layout_id
         WHERE COALESCE(bor.master_route_id,rp.master_route_id) = dp.route_id
           AND st.is_bookable = true AND st.status IN ('scheduled','confirmed')
-          AND st.departure_datetime > $6
+          AND st.departure_datetime > ($6 AT TIME ZONE 'Asia/Colombo')
         ORDER BY st.departure_datetime ASC
     ) s1 ON true
 ),
@@ -1590,7 +1590,7 @@ transit_results AS (
         LEFT JOIN bus_seat_layout_templates bslt ON bslt.id = b.seat_layout_id
         WHERE COALESCE(bor.master_route_id,rp.master_route_id) = tc.r1_id
           AND st.is_bookable = true AND st.status IN ('scheduled','confirmed')
-          AND st.departure_datetime > $6
+          AND st.departure_datetime > ($6 AT TIME ZONE 'Asia/Colombo')
         ORDER BY st.departure_datetime ASC
     ) l1 ON true
     JOIN LATERAL (
