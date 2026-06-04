@@ -199,7 +199,10 @@ class _BusListScreenState extends State<BusListScreen> {
       backgroundColor: context.colors.scaffoldBackground,
       body: Consumer<SearchProvider>(
         builder: (context, searchProvider, child) {
-          List<TripResult> trips = searchProvider.tripResults;
+          final now = DateTime.now();
+          List<TripResult> trips = searchProvider.tripResults
+              .where((t) => t.departureTime.isAfter(now))
+              .toList();
 
           // Find nearest lounges among all direct trips
           String? nearestFromLounge;
