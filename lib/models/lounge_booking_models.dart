@@ -651,6 +651,13 @@ class LoungeBooking {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // Transport
+  final String? transportType;
+  final String? transportPickupLocation;
+  final String? transportPickupLocationId;
+  final double transportCost;
+  final DateTime? transportTime;
+
   // Related data
   final List<LoungeBookingGuest> guests;
   final List<LoungePreOrderItem> preOrders;
@@ -676,6 +683,11 @@ class LoungeBooking {
     this.cancellationReason,
     required this.createdAt,
     required this.updatedAt,
+    this.transportType,
+    this.transportPickupLocation,
+    this.transportPickupLocationId,
+    this.transportCost = 0.0,
+    this.transportTime,
     this.guests = const [],
     this.preOrders = const [],
     this.lounge,
@@ -724,6 +736,13 @@ class LoungeBooking {
       updatedAt: updatedAtStr != null
           ? DateTime.parse(updatedAtStr as String)
           : DateTime.now(),
+      transportType: json['transport_type'] as String?,
+      transportPickupLocation: json['transport_pickup_location'] as String?,
+      transportPickupLocationId: json['transport_pickup_location_id'] as String?,
+      transportCost: Lounge._parseDouble(json['transport_cost']) ?? 0.0,
+      transportTime: json['transport_time'] != null
+          ? DateTime.parse(json['transport_time'] as String)
+          : null,
       guests:
           (json['guests'] as List<dynamic>?)
               ?.map(

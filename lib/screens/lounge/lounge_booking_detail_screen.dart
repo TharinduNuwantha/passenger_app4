@@ -707,10 +707,20 @@ class _LoungeBookingDetailScreenState extends State<LoungeBookingDetailScreen> {
               children: [
                 Text('Lounge Fee', style: TextStyle(color: Colors.grey[600])),
                 Text(
-                  'LKR ${(_booking.totalAmount - _booking.preOrderTotal).toStringAsFixed(2)}',
+                  'LKR ${(_booking.totalAmount - _booking.preOrderTotal - _booking.transportCost).toStringAsFixed(2)}',
                 ),
               ],
             ),
+            if (_booking.transportCost > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Transport Fee', style: TextStyle(color: Colors.grey[600])),
+                  Text('LKR ${_booking.transportCost.toStringAsFixed(2)}'),
+                ],
+              ),
+            ],
             if (_booking.preOrderTotal > 0) ...[
               const SizedBox(height: 8),
               Row(

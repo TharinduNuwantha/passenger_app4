@@ -1303,6 +1303,29 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                       ],
                     ),
                   ),
+                if (_preTripLounge!.transportCost > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '• Transport (${_preTripLounge!.transportType?.toUpperCase() ?? ""})',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          'LKR ${_preTripLounge!.transportCost.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
               // Transit lounge
               if (_transitLounge != null &&
@@ -1353,6 +1376,29 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                       ],
                     ),
                   ),
+                if (_transitLounge!.transportCost > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '• Transport (${_transitLounge!.transportType?.toUpperCase() ?? ""})',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          'LKR ${_transitLounge!.transportCost.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
               // Arrival lounge
               if (_postTripLounge != null &&
@@ -1395,6 +1441,29 @@ class _BookingIntentFlowScreenState extends State<BookingIntentFlowScreen> {
                         ),
                         Text(
                           'LKR ${_postTripLounge!.preOrderTotal.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (_postTripLounge!.transportCost > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '• Transport (${_postTripLounge!.transportType?.toUpperCase() ?? ""})',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          'LKR ${_postTripLounge!.transportCost.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 11,
                             color: context.colors.textSecondary,

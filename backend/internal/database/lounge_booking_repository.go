@@ -417,10 +417,11 @@ func (r *LoungeBookingRepository) CreateLoungeBooking(
 			discount_amount, total_amount, status, payment_status,
 			lounge_name, lounge_address, lounge_phone,
 			primary_guest_name, primary_guest_phone, promo_code, special_requests,
+			transport_type, transport_pickup_location, transport_pickup_location_id, transport_cost, transport_time,
 			qr_code_data, qr_generated_at,
 			created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34
 		)
 	`
 	_, err = tx.Exec(bookingQuery,
@@ -432,6 +433,7 @@ func (r *LoungeBookingRepository) CreateLoungeBooking(
 		booking.Status, booking.PaymentStatus,
 		booking.LoungeName, booking.LoungeAddress, booking.LoungePhone,
 		booking.PrimaryGuestName, booking.PrimaryGuestPhone, booking.PromoCode, booking.SpecialRequests,
+		booking.TransportType, booking.TransportPickupLocation, booking.TransportPickupLocationID, booking.TransportCost, booking.TransportTime,
 		booking.QRCodeData, booking.QRGeneratedAt,
 		booking.CreatedAt, booking.UpdatedAt,
 	)
@@ -499,6 +501,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingByID(bookingID uuid.UUID) (*mo
 			lb.discount_amount, lb.total_amount, lb.status, lb.payment_status,
 			lb.primary_guest_name, lb.primary_guest_phone, lb.promo_code, lb.special_requests,
 			lb.internal_notes, lb.cancelled_at, lb.cancellation_reason, lb.created_at, lb.updated_at,
+			lb.transport_type, lb.transport_pickup_location, lb.transport_pickup_location_id, lb.transport_cost, lb.transport_time,
 			lb.qr_code_data,
 			l.lounge_name, l.address as lounge_address
 		FROM lounge_bookings lb
@@ -515,6 +518,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingByID(bookingID uuid.UUID) (*mo
 		&booking.DiscountAmount, &booking.TotalAmount, &booking.Status, &booking.PaymentStatus,
 		&booking.PrimaryGuestName, &booking.PrimaryGuestPhone, &booking.PromoCode, &booking.SpecialRequests,
 		&booking.InternalNotes, &booking.CancelledAt, &booking.CancellationReason, &booking.CreatedAt, &booking.UpdatedAt,
+		&booking.TransportType, &booking.TransportPickupLocation, &booking.TransportPickupLocationID, &booking.TransportCost, &booking.TransportTime,
 		&booking.QRCodeData,
 		&booking.LoungeName, &booking.LoungeAddress,
 	)
@@ -581,6 +585,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingsByBookingID(masterBookingID s
 			lb.discount_amount, lb.total_amount, lb.status, lb.payment_status,
 			lb.primary_guest_name, lb.primary_guest_phone, lb.promo_code, lb.special_requests,
 			lb.internal_notes, lb.cancelled_at, lb.cancellation_reason, lb.created_at, lb.updated_at,
+			lb.transport_type, lb.transport_pickup_location, lb.transport_pickup_location_id, lb.transport_cost, lb.transport_time,
 			lb.qr_code_data,
 			l.lounge_name, l.address as lounge_address
 		FROM lounge_bookings lb
@@ -605,6 +610,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingsByBookingID(masterBookingID s
 			&booking.DiscountAmount, &booking.TotalAmount, &booking.Status, &booking.PaymentStatus,
 			&booking.PrimaryGuestName, &booking.PrimaryGuestPhone, &booking.PromoCode, &booking.SpecialRequests,
 			&booking.InternalNotes, &booking.CancelledAt, &booking.CancellationReason, &booking.CreatedAt, &booking.UpdatedAt,
+			&booking.TransportType, &booking.TransportPickupLocation, &booking.TransportPickupLocationID, &booking.TransportCost, &booking.TransportTime,
 			&booking.QRCodeData,
 			&booking.LoungeName, &booking.LoungeAddress,
 		)

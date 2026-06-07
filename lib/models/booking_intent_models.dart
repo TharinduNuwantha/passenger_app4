@@ -436,9 +436,9 @@ class LoungeIntentRequest {
       'pre_order_total': preOrderTotal,
       'total_price': totalPrice,
       if (transportType != null) 'transport_type': transportType,
-      if (pickupLocation != null) 'pickup_location': pickupLocation,
-      if (pickupLocationId != null) 'pickup_location_id': pickupLocationId,
-      if (transportCost != null) 'transport_cost': transportCost,
+      if (pickupLocation != null) 'transport_pickup_location': pickupLocation,
+      if (pickupLocationId != null) 'transport_pickup_location_id': pickupLocationId,
+      if (transportCost != null) 'transport_cost': transportCost!.toStringAsFixed(2),
       if (transportTime != null) 'transport_time': transportTime,
     };
   }

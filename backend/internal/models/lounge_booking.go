@@ -247,6 +247,13 @@ type LoungeBooking struct {
 	Status        LoungeBookingStatus `db:"status" json:"status"`
 	PaymentStatus LoungePaymentStatus `db:"payment_status" json:"payment_status"`
 
+	// Transport
+	TransportType             sql.NullString `db:"transport_type" json:"transport_type,omitempty"`
+	TransportPickupLocation   sql.NullString `db:"transport_pickup_location" json:"transport_pickup_location,omitempty"`
+	TransportPickupLocationID *uuid.UUID     `db:"transport_pickup_location_id" json:"transport_pickup_location_id,omitempty"`
+	TransportCost             string         `db:"transport_cost" json:"transport_cost"` // DECIMAL
+	TransportTime             sql.NullTime   `db:"transport_time" json:"transport_time,omitempty"`
+
 	// Contact
 	PrimaryGuestName  string `db:"primary_guest_name" json:"primary_guest_name"`
 	PrimaryGuestPhone string `db:"primary_guest_phone" json:"primary_guest_phone"`
@@ -296,6 +303,9 @@ func (lb *LoungeBooking) MarshalJSON() ([]byte, error) {
 		LoungeAddress      *string    `json:"lounge_address,omitempty"`
 		LoungePhone        *string    `json:"lounge_phone,omitempty"`
 		CancellationReason *string    `json:"cancellation_reason,omitempty"`
+		TransportType           *string    `json:"transport_type,omitempty"`
+		TransportPickupLocation *string    `json:"transport_pickup_location,omitempty"`
+		TransportTime           *time.Time `json:"transport_time,omitempty"`
 
 	}{
 		Alias:              (*Alias)(lb),
@@ -309,6 +319,9 @@ func (lb *LoungeBooking) MarshalJSON() ([]byte, error) {
 		LoungeAddress:      nullStringToPtr(lb.LoungeAddress),
 		LoungePhone:        nullStringToPtr(lb.LoungePhone),
 		CancellationReason: nullStringToPtr(lb.CancellationReason),
+		TransportType:           nullStringToPtr(lb.TransportType),
+		TransportPickupLocation: nullStringToPtr(lb.TransportPickupLocation),
+		TransportTime:           nullTimeToPtr(lb.TransportTime),
 
 	})
 }
@@ -484,6 +497,13 @@ type CreateLoungeBookingRequest struct {
 
 	// Pricing
 	PricingType string `json:"pricing_type" binding:"required"` // 1_hour, 2_hours, 3_hours, until_bus
+
+	// Transport
+	TransportType             *string `json:"transport_type,omitempty"`
+	TransportPickupLocation   *string `json:"transport_pickup_location,omitempty"`
+	TransportPickupLocationID *string `json:"transport_pickup_location_id,omitempty"`
+	TransportCost             *string `json:"transport_cost,omitempty"`
+	TransportTime             *string `json:"transport_time,omitempty"` // ISO 8601
 
 	// Pre-orders
 	PreOrders []PreOrderRequest `json:"pre_orders,omitempty"`
