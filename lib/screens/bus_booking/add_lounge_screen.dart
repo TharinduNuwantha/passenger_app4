@@ -3352,18 +3352,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.08),
+                        color: Colors.orange.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: Colors.orange.withOpacity(0.4),
                         ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.info_outline,
                             size: 18,
-                            color: AppColors.primary,
+                            color: Colors.orange[800],
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -3376,10 +3376,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                 if (_selectedPricingType == '1_hour') stayHours = 1;
                                 else if (_selectedPricingType == '2_hours') stayHours = 2;
                                 else if (_selectedPricingType == '3_hours') stayHours = 3;
-                                else if (_selectedPricingType == 'until_bus') stayHours = widget.isPreTrip ? 2 : 5;
+                                else if (_selectedPricingType == 'until_bus') stayHours = 5;
                                 
                                 final pickupTime = widget.isPreTrip 
-                                    ? widget.busDepartureTime.subtract(Duration(hours: stayHours)).subtract(Duration(minutes: estDuration))
+                                    ? widget.busDepartureTime.subtract(Duration(minutes: estDuration + 15))
                                     : (widget.busArrivalTime ?? widget.busDepartureTime).add(Duration(hours: stayHours));
                                     
                                 return Column(
@@ -3391,7 +3391,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                         : 'Transport will pick you up at ${DateFormat('hh:mm a').format(pickupTime)}',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: context.colors.textPrimary,
+                                        color: Colors.orange[900],
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -3400,7 +3400,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                       'Driver will contact you once the booking is confirmed for specific pickup timing.',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: context.colors.textSecondary,
+                                        color: Colors.orange[800],
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
