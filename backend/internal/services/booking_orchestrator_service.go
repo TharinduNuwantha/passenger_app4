@@ -34,10 +34,11 @@ type BookingOrchestratorService struct {
 	appBookingRepo    *database.AppBookingRepository
 	loungeBookingRepo *database.LoungeBookingRepository
 	loungeRepo        *database.LoungeRepository
-	busOwnerRouteRepo *database.BusOwnerRouteRepository
-	payableService    *PAYableService
-	config            BookingOrchestratorConfig
-	logger            *logrus.Logger
+	busOwnerRouteRepo    *database.BusOwnerRouteRepository
+	transportBookingRepo *database.TransportBookingRepository
+	payableService       *PAYableService
+	config               BookingOrchestratorConfig
+	logger               *logrus.Logger
 }
 
 // NewBookingOrchestratorService creates a new orchestrator service
@@ -49,21 +50,23 @@ func NewBookingOrchestratorService(
 	loungeBookingRepo *database.LoungeBookingRepository,
 	loungeRepo *database.LoungeRepository,
 	busOwnerRouteRepo *database.BusOwnerRouteRepository,
+	transportBookingRepo *database.TransportBookingRepository,
 	payableService *PAYableService,
 	config BookingOrchestratorConfig,
 	logger *logrus.Logger,
 ) *BookingOrchestratorService {
 	return &BookingOrchestratorService{
-		intentRepo:        intentRepo,
-		tripSeatRepo:      tripSeatRepo,
-		scheduledTripRepo: scheduledTripRepo,
-		appBookingRepo:    appBookingRepo,
-		loungeBookingRepo: loungeBookingRepo,
-		loungeRepo:        loungeRepo,
-		busOwnerRouteRepo: busOwnerRouteRepo,
-		payableService:    payableService,
-		config:            config,
-		logger:            logger,
+		intentRepo:           intentRepo,
+		tripSeatRepo:         tripSeatRepo,
+		scheduledTripRepo:    scheduledTripRepo,
+		appBookingRepo:       appBookingRepo,
+		loungeBookingRepo:    loungeBookingRepo,
+		loungeRepo:           loungeRepo,
+		busOwnerRouteRepo:    busOwnerRouteRepo,
+		transportBookingRepo: transportBookingRepo,
+		payableService:       payableService,
+		config:               config,
+		logger:               logger,
 	}
 }
 
@@ -414,20 +417,30 @@ func (s *BookingOrchestratorService) processLoungeIntent(
 		preOrderTotal += unitPrice * float64(po.Quantity)
 	}
 
-	totalPrice := basePrice + preOrderTotal
+	var transportCost float64
+	if req.TransportCost != nil && *req.TransportCost != "" {
+		fmt.Sscanf(*req.TransportCost, "%f", &transportCost)
+	}
+
+	totalPrice := basePrice + preOrderTotal + transportCost
 
 	// 6. Build payload
 	payload := &models.LoungeIntentPayload{
-		LoungeID:         req.LoungeID,
-		LoungeName:       lounge.LoungeName,
-		PricingType:      req.PricingType,
-		GuestCount:       guestCount,
-		Guests:           guests,
-		PreOrders:        preOrders,
-		PricePerGuest:    pricePerGuest,
-		BasePrice:        basePrice,
-		PreOrderTotal:    preOrderTotal,
-		TotalPrice:       totalPrice,
+		LoungeID:                  req.LoungeID,
+		LoungeName:                lounge.LoungeName,
+		PricingType:               req.PricingType,
+		GuestCount:                guestCount,
+		Guests:                    guests,
+		PreOrders:                 preOrders,
+		PricePerGuest:             pricePerGuest,
+		BasePrice:                 basePrice,
+		PreOrderTotal:             preOrderTotal,
+		TotalPrice:                totalPrice,
+		TransportType:             req.TransportType,
+		TransportPickupLocation:   req.TransportPickupLocation,
+		TransportPickupLocationID: req.TransportPickupLocationID,
+		TransportCost:             req.TransportCost,
+		TransportTime:             req.TransportTime,
 	}
 
 	return payload, totalPrice, nil
@@ -713,6 +726,11 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 			if masterRef == "" {
 				masterRef = preLoungeBooking.BookingReference
 			}
+
+			// Create transport booking if requested
+			if err := s.createTransportBookingFromIntent(intent, intent.PreTripLoungeIntent, masterBookingID); err != nil {
+				s.logger.WithError(err).Error("Failed to create transport booking for pre-trip lounge")
+			}
 		}
 	} else {
 		s.logger.WithField("intent_id", intent.ID).Info("No pre-trip lounge intent found - skipping lounge booking creation")
@@ -736,6 +754,11 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 			if masterRef == "" {
 				masterRef = transitLoungeBooking.BookingReference
 			}
+
+			// Create transport booking if requested
+			if err := s.createTransportBookingFromIntent(intent, intent.TransitLoungeIntent, masterBookingID); err != nil {
+				s.logger.WithError(err).Error("Failed to create transport booking for transit lounge")
+			}
 		}
 	}
 
@@ -753,6 +776,11 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 			postLoungeBookingID = &id
 			if masterRef == "" {
 				masterRef = postLoungeBooking.BookingReference
+			}
+
+			// Create transport booking if requested
+			if err := s.createTransportBookingFromIntent(intent, intent.PostTripLoungeIntent, masterBookingID); err != nil {
+				s.logger.WithError(err).Error("Failed to create transport booking for post-trip lounge")
 			}
 		}
 	}
@@ -997,6 +1025,77 @@ func (s *BookingOrchestratorService) createLoungeBookingFromIntent(
 
 	// Create booking
 	return s.loungeBookingRepo.CreateLoungeBooking(booking, guests, preOrders)
+}
+
+// createTransportBookingFromIntent creates a transport booking from lounge intent data
+func (s *BookingOrchestratorService) createTransportBookingFromIntent(
+	intent *models.BookingIntent,
+	loungeIntent *models.LoungeIntentPayload,
+	masterBookingID *uuid.UUID,
+) error {
+	if loungeIntent.TransportType == nil || *loungeIntent.TransportType == "" {
+		return nil // No transport requested
+	}
+
+	var transportPrice float64
+	if loungeIntent.TransportCost != nil && *loungeIntent.TransportCost != "" {
+		fmt.Sscanf(*loungeIntent.TransportCost, "%f", &transportPrice)
+	}
+
+	if transportPrice <= 0 {
+		return nil // Invalid or zero price
+	}
+
+	var transportDate, transportTime time.Time
+	if loungeIntent.TransportTime != nil && *loungeIntent.TransportTime != "" {
+		// Attempt to parse ISO8601 from flutter
+		parsedTime, err := time.Parse(time.RFC3339, *loungeIntent.TransportTime)
+		if err == nil {
+			transportDate = parsedTime
+			transportTime = parsedTime
+		} else {
+			// Fallback if it's not full ISO8601
+			s.logger.WithError(err).Warn("Failed to parse transport time")
+			transportDate = time.Now()
+			transportTime = time.Now()
+		}
+	} else {
+		transportDate = time.Now()
+		transportTime = time.Now()
+	}
+
+	var masterBookingIDStr *string
+	if masterBookingID != nil {
+		idStr := masterBookingID.String()
+		masterBookingIDStr = &idStr
+	}
+
+	var loungeID *string
+	if loungeIntent.LoungeID != "" {
+		loungeID = &loungeIntent.LoungeID
+	}
+
+	transportBooking := &models.TransportBooking{
+		BookingID:        masterBookingIDStr,
+		UserID:           intent.UserID.String(),
+		LoungeID:         loungeID,
+		PickupLocationID: loungeIntent.TransportPickupLocationID,
+		VehicleType:      *loungeIntent.TransportType,
+		VehicleQuantity:  1, // Default to 1
+		TransportPrice:   transportPrice,
+		TransportDate:    transportDate,
+		TransportTime:    transportTime,
+		Status:           models.TransportBookingConfirmed,
+		PaymentStatus:    models.TransportPaymentPaid,
+	}
+
+	err := s.transportBookingRepo.CreateTransportBooking(transportBooking)
+	if err != nil {
+		s.logger.WithError(err).Error("Failed to create transport booking")
+		return err
+	}
+
+	return nil
 }
 
 // ============================================================================

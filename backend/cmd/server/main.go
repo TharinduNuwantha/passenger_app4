@@ -328,6 +328,7 @@ func main() {
 	// ============================================================================
 	logger.Info("🎯 Initializing Booking Orchestration system...")
 	bookingIntentRepo := database.NewBookingIntentRepository(sqlxDB.DB)
+	transportBookingRepo := database.NewTransportBookingRepository(sqlxDB.DB)
 	bookingOrchestratorConfig := services.DefaultOrchestratorConfig()
 
 	// Initialize PAYable payment service
@@ -350,6 +351,7 @@ func main() {
 		loungeBookingRepo,
 		loungeRepository,
 		busOwnerRouteRepo,
+		transportBookingRepo,
 		payableService,
 		bookingOrchestratorConfig,
 		logger,

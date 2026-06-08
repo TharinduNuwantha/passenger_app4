@@ -108,6 +108,12 @@ type LoungeIntentPayload struct {
 	PreOrderTotal    float64                `json:"pre_order_total"`
 	TotalPrice       float64                `json:"total_price"` // base_price + pre_order_total
 
+	// Legacy transport fields sent by the mobile app inside lounge intent
+	TransportType             *string  `json:"transport_type,omitempty"`
+	TransportPickupLocation   *string  `json:"transport_pickup_location,omitempty"`
+	TransportPickupLocationID *string  `json:"transport_pickup_location_id,omitempty"`
+	TransportCost             *string  `json:"transport_cost,omitempty"`
+	TransportTime             *string  `json:"transport_time,omitempty"`
 }
 
 // LoungeIntentGuest represents a guest in lounge intent
@@ -410,6 +416,12 @@ type LoungeIntentRequest struct {
 	Guests           []LoungeIntentGuestRequest    `json:"guests" binding:"required,min=1"`
 	PreOrders        []LoungeIntentPreOrderRequest `json:"pre_orders,omitempty"`
 
+	// Transport / Pickup details sent by mobile app
+	TransportType             *string `json:"transport_type,omitempty"`
+	TransportPickupLocation   *string `json:"transport_pickup_location,omitempty"`
+	TransportPickupLocationID *string `json:"transport_pickup_location_id,omitempty"`
+	TransportCost             *string `json:"transport_cost,omitempty"`
+	TransportTime             *string `json:"transport_time,omitempty"`
 }
 
 // LoungeIntentGuestRequest represents a guest in the request
