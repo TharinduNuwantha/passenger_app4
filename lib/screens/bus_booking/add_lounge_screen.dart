@@ -2509,12 +2509,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    color: AppColors.primary.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ]
-              : [],
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
           children: [
@@ -2638,11 +2644,19 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           final guest = _guests[index];
           final isPrimary = index == 0;
           return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              border: Border.all(color: context.colors.cardBorder),
-              borderRadius: BorderRadius.circular(12),
+              color: context.colors.cardBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.colors.cardBorder.withOpacity(0.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -2719,57 +2733,92 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         }),
         // Add guest form
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: context.colors.inputBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.colors.cardBorder),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.colors.cardBorder.withOpacity(0.5)),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Add Another Guest',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: context.colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
               TextField(
                 controller: _guestNameController,
-                style: TextStyle(color: context.colors.textPrimary),
+                style: TextStyle(color: context.colors.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
                   labelText: 'Guest Name',
-                  labelStyle: TextStyle(color: context.colors.textSecondary),
+                  labelStyle: TextStyle(color: context.colors.textSecondary, fontSize: 13),
                   filled: true,
                   fillColor: context.colors.cardBackground,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: context.colors.cardBorder.withOpacity(0.5)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                    horizontal: 16,
+                    vertical: 14,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _guestPhoneController,
-                style: TextStyle(color: context.colors.textPrimary),
+                style: TextStyle(color: context.colors.textPrimary, fontSize: 14),
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: 'Phone (Optional)',
-                  labelStyle: TextStyle(color: context.colors.textSecondary),
+                  labelStyle: TextStyle(color: context.colors.textSecondary, fontSize: 13),
                   filled: true,
                   fillColor: context.colors.cardBackground,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: context.colors.cardBorder.withOpacity(0.5)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                    horizontal: 16,
+                    vertical: 14,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   onPressed: _addGuest,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Guest'),
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Add Guest', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -3067,7 +3116,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               borderRadius: BorderRadius.circular(16),
               gradient: _selectedPricingType != null
                   ? const LinearGradient(
-                      colors: [Color(0xFFFFC300), Color(0xFFFFAB00)],
+                      colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
                     )
                   : null,
               color: _selectedPricingType == null
@@ -3076,9 +3125,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               boxShadow: _selectedPricingType != null
                   ? [
                       BoxShadow(
-                        color: const Color(0xFFFFC300).withOpacity(0.45),
+                        color: const Color(0xFF0D47A1).withOpacity(0.3),
                         blurRadius: 14,
-                        offset: const Offset(0, 5),
+                        offset: const Offset(0, 6),
                       ),
                     ]
                   : null,
@@ -3089,7 +3138,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
                 disabledBackgroundColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -3098,22 +3147,22 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.check_rounded,
+                    widget.isPreTrip ? Icons.flight_takeoff_rounded : Icons.flight_land_rounded,
                     color: _selectedPricingType != null
-                        ? const Color(0xFF0D47A1)
+                        ? Colors.white
                         : context.colors.iconInactive,
-                    size: 20,
+                    size: 22,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Text(
                     'Add ${widget.isPreTrip ? "Pre-Trip" : "Post-Trip"} Lounge',
                     style: TextStyle(
                       color: _selectedPricingType != null
-                          ? const Color(0xFF0D47A1)
+                          ? Colors.white
                           : context.colors.textSecondary,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 16,
-                      letterSpacing: 0.3,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ],
@@ -3561,9 +3610,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : context.colors.cardBackground,
+          color: isSelected ? AppColors.primary.withOpacity(0.08) : context.colors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.primary : context.colors.cardBorder,
@@ -3572,60 +3621,75 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
-                    blurRadius: 10,
+                    color: AppColors.primary.withOpacity(0.15),
+                    blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ]
-              : [],
-        ),
-        child: Column(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 28)),
-            const SizedBox(height: 8),
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : context.colors.textPrimary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              capacity,
-              style: TextStyle(
-                fontSize: 10,
-                color: isSelected
-                    ? Colors.white.withOpacity(0.8)
-                    : context.colors.textSecondary,
-              ),
-            ),
-            if (priceLabel.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.white.withOpacity(0.2)
-                      : context.colors.chipBackground,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  priceLabel,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected
-                        ? Colors.white
-                        : context.colors.textPrimary,
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  textAlign: TextAlign.center,
+                ],
+        ),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            if (isSelected)
+              Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
                 ),
+                padding: const EdgeInsets.all(2),
+                child: const Icon(Icons.check, color: Colors.white, size: 12),
               ),
-            ],
+            Column(
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 32)),
+                const SizedBox(height: 10),
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? AppColors.primary : context.colors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  capacity,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: isSelected ? AppColors.primary.withOpacity(0.8) : context.colors.textSecondary,
+                  ),
+                ),
+                if (priceLabel.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary.withOpacity(0.15) : context.colors.chipBackground,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      priceLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? AppColors.primary : context.colors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),
