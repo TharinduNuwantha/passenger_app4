@@ -739,6 +739,10 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
         initialData: existingSelection?.lounge.id == lounge.id
             ? existingSelection
             : null,
+        startLat: widget.startLat,
+        startLng: widget.startLng,
+        dropLat: widget.dropLat,
+        dropLng: widget.dropLng,
         onDraftChanged: (draft) {
           setState(() {
             if (isPreTrip) {
@@ -1604,6 +1608,10 @@ class _LoungeConfigurationSheet extends StatefulWidget {
   final String passengerPhone;
   final SelectedLoungeData? initialData;
   final ValueChanged<SelectedLoungeData>? onDraftChanged;
+  final double? startLat;
+  final double? startLng;
+  final double? dropLat;
+  final double? dropLng;
 
   const _LoungeConfigurationSheet({
     required this.lounge,
@@ -1614,6 +1622,10 @@ class _LoungeConfigurationSheet extends StatefulWidget {
     required this.passengerPhone,
     this.initialData,
     this.onDraftChanged,
+    this.startLat,
+    this.startLng,
+    this.dropLat,
+    this.dropLng,
   });
 
   @override
@@ -1742,6 +1754,57 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         widget.lounge.id,
       );
       if (!mounted) return;
+
+      // Distance sorting logic
+      final targetLat = widget.isPreTrip ? widget.startLat : widget.dropLat;
+      final targetLng = widget.isPreTrip ? widget.startLng : widget.dropLng;
+
+      if (targetLat != null && targetLng != null && list.isNotEmpty) {
+        for (var opt in list) {
+          if (opt.latitude != null && opt.longitude != null) {
+            opt.distanceKm = Geolocator.distanceBetween(
+                  targetLat,
+                  targetLng,
+                  opt.latitude!,
+                  opt.longitude!,
+                ) /
+                1000.0;
+          }
+        }
+        list.sort((a, b) {
+          final distA = a.distanceKm ?? double.infinity;
+          final distB = b.distanceKm ?? double.infinity;
+          return distA.compareTo(distB);
+        });
+
+        // Auto-select nearest if not already selected
+        if (widget.isPreTrip) {
+          if (_preTripPickupLocation == null && list.isNotEmpty) {
+            _preTripPickupLocation = list.first.id;
+            // Also auto-select a default vehicle if available
+            if (list.first.threeWheelerPrice > 0) {
+              _preTripTransportType = 'three_wheeler';
+            } else if (list.first.carPrice > 0) {
+              _preTripTransportType = 'car';
+            } else if (list.first.vanPrice > 0) {
+              _preTripTransportType = 'van';
+            }
+          }
+        } else {
+          if (_postTripPickupLocation == null && list.isNotEmpty) {
+            _postTripPickupLocation = list.first.id;
+            // Also auto-select a default vehicle if available
+            if (list.first.threeWheelerPrice > 0) {
+              _postTripTransportType = 'three_wheeler';
+            } else if (list.first.carPrice > 0) {
+              _postTripTransportType = 'car';
+            } else if (list.first.vanPrice > 0) {
+              _postTripTransportType = 'van';
+            }
+          }
+        }
+      }
+
       setState(() {
         _transportOptions = list;
         _isLoadingTransport = false;
@@ -2207,7 +2270,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Get picked up from your location to the lounge',
+                        widget.isPreTrip
+                            ? 'Get picked up from your location to the lounge'
+                            : 'Get dropped off from the lounge to your destination',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey.shade600,
@@ -3062,7 +3127,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Select Pick-up Station',
+              widget.isPreTrip ? 'Select Pick-up Station' : 'Select Drop-off Location',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -3302,13 +3367,46 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              'Driver will contact you once the booking is confirmed for specific pickup timing.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: context.colors.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                final loc = _optionById(selectedLocation);
+                                final estDuration = loc?.estDurationMinutes ?? 0;
+                                
+                                int stayHours = 1;
+                                if (_selectedPricingType == '1_hour') stayHours = 1;
+                                else if (_selectedPricingType == '2_hours') stayHours = 2;
+                                else if (_selectedPricingType == '3_hours') stayHours = 3;
+                                else if (_selectedPricingType == 'until_bus') stayHours = widget.isPreTrip ? 2 : 5;
+                                
+                                final pickupTime = widget.isPreTrip 
+                                    ? widget.busDepartureTime.subtract(Duration(hours: stayHours)).subtract(Duration(minutes: estDuration))
+                                    : (widget.busArrivalTime ?? widget.busDepartureTime).add(Duration(hours: stayHours));
+                                    
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.isPreTrip 
+                                        ? 'Please arrive at the transport location by ${DateFormat('hh:mm a').format(pickupTime)}'
+                                        : 'Transport will pick you up at ${DateFormat('hh:mm a').format(pickupTime)}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: context.colors.textPrimary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Driver will contact you once the booking is confirmed for specific pickup timing.',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: context.colors.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
                             ),
                           ),
                         ],
@@ -3641,15 +3739,41 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    widget.isPreTrip
-                        ? 'Defaulted to pick you up to arrive before bus departure.'
-                        : 'Defaulted to pick you up after your ${_selectedPricingType == "until_bus" ? "5 hour" : "lounge stay"} duration.',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: context.colors.textSecondary,
-                      height: 1.4,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.isPreTrip
+                            ? 'Defaulted to pick you up to arrive before bus departure.'
+                            : 'Defaulted to pick you up after your ${_selectedPricingType == "until_bus" ? "5 hour" : "lounge stay"} duration.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: context.colors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            size: 14,
+                            color: AppColors.warningDark,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Please arrive at the pickup location 15 minutes before the selected time.',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.warningDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],

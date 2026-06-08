@@ -421,7 +421,7 @@ class LoungeTransportLocationOption {
   final double latitude;
   final double longitude;
   final int? estDurationMinutes;
-  final double? distanceKm;
+  double? distanceKm;
   final double threeWheelerPrice;
   final double carPrice;
   final double vanPrice;
