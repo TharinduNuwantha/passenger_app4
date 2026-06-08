@@ -1106,6 +1106,98 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                     ],
                   ),
                 ),
+
+                if (booking.hasTransport) ...[
+                  const SizedBox(height: 12),
+                  Builder(builder: (context) {
+                    final status = booking.transportStatus;
+                    Color badgeColor;
+                    Color badgeBg;
+                    switch (status) {
+                      case 'confirmed':
+                        badgeColor = const Color(0xFF059669);
+                        badgeBg = const Color(0xFF059669).withOpacity(0.1);
+                        break;
+                      case 'in_progress':
+                        badgeColor = const Color(0xFF2563EB);
+                        badgeBg = const Color(0xFF2563EB).withOpacity(0.1);
+                        break;
+                      case 'completed':
+                        badgeColor = const Color(0xFF6B7280);
+                        badgeBg = const Color(0xFF6B7280).withOpacity(0.1);
+                        break;
+                      case 'cancelled':
+                        badgeColor = const Color(0xFFDC2626);
+                        badgeBg = const Color(0xFFDC2626).withOpacity(0.1);
+                        break;
+                      case 'pending':
+                      default:
+                        badgeColor = const Color(0xFFD97706);
+                        badgeBg = const Color(0xFFF59E0B).withOpacity(0.1);
+                        break;
+                    }
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: badgeColor.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.local_taxi, size: 16, color: badgeColor),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Transport Booked',
+                              style: TextStyle(
+                                color: badgeColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: badgeColor,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              booking.transportStatusDisplay,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ] else ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        // Action not needed right now
+                      },
+                      icon: const Icon(Icons.local_taxi, size: 18),
+                      label: const Text('Book Transport', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                        backgroundColor: AppColors.primary.withOpacity(0.05),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

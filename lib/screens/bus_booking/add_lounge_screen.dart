@@ -889,10 +889,7 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
             ),
             title: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: context.colors.textPrimary,
-                ),
+                Icon(Icons.info_outline, color: context.colors.textPrimary),
                 const SizedBox(width: 8),
                 Text(
                   'Transport Booking Pending',
@@ -1733,7 +1730,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   DateTime _calculateDefaultTime() {
     final type =
         _selectedPricingType ?? (widget.isPreTrip ? 'until_bus' : '1_hour');
-    final locId = widget.isPreTrip ? _preTripPickupLocation : _postTripPickupLocation;
+    final locId = widget.isPreTrip
+        ? _preTripPickupLocation
+        : _postTripPickupLocation;
     final loc = _optionById(locId);
     final estDuration = loc?.estDurationMinutes ?? 0;
 
@@ -1753,9 +1752,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         } else if (type == 'until_bus') {
           hoursBefore = 2;
         }
-        return widget.busDepartureTime.subtract(
-          Duration(hours: hoursBefore),
-        );
+        return widget.busDepartureTime.subtract(Duration(hours: hoursBefore));
       }
     } else {
       final tripDate = widget.busArrivalTime ?? widget.busDepartureTime;
@@ -1775,7 +1772,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
   void _updateDefaultTransportDateTime() {
     final defaultDateTime = _calculateDefaultTime();
-    if (_transportDateTime == null || _transportDateTime!.isBefore(defaultDateTime)) {
+    if (_transportDateTime == null ||
+        _transportDateTime!.isBefore(defaultDateTime)) {
       _transportDateTime = defaultDateTime;
     }
   }
@@ -1852,7 +1850,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       if (targetLat != null && targetLng != null && list.isNotEmpty) {
         for (var opt in list) {
           if (opt.latitude != null && opt.longitude != null) {
-            opt.distanceKm = Geolocator.distanceBetween(
+            opt.distanceKm =
+                Geolocator.distanceBetween(
                   targetLat,
                   targetLng,
                   opt.latitude!,
@@ -2649,7 +2648,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             decoration: BoxDecoration(
               color: context.colors.cardBackground,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: context.colors.cardBorder.withOpacity(0.5)),
+              border: Border.all(
+                color: context.colors.cardBorder.withOpacity(0.5),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.02),
@@ -2737,7 +2738,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           decoration: BoxDecoration(
             color: context.colors.inputBackground,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.colors.cardBorder.withOpacity(0.5)),
+            border: Border.all(
+              color: context.colors.cardBorder.withOpacity(0.5),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2753,10 +2756,16 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               const SizedBox(height: 12),
               TextField(
                 controller: _guestNameController,
-                style: TextStyle(color: context.colors.textPrimary, fontSize: 14),
+                style: TextStyle(
+                  color: context.colors.textPrimary,
+                  fontSize: 14,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Guest Name',
-                  labelStyle: TextStyle(color: context.colors.textSecondary, fontSize: 13),
+                  labelStyle: TextStyle(
+                    color: context.colors.textSecondary,
+                    fontSize: 13,
+                  ),
                   filled: true,
                   fillColor: context.colors.cardBackground,
                   border: OutlineInputBorder(
@@ -2765,11 +2774,16 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: context.colors.cardBorder.withOpacity(0.5)),
+                    borderSide: BorderSide(
+                      color: context.colors.cardBorder.withOpacity(0.5),
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -2780,11 +2794,17 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
               const SizedBox(height: 8),
               TextField(
                 controller: _guestPhoneController,
-                style: TextStyle(color: context.colors.textPrimary, fontSize: 14),
+                style: TextStyle(
+                  color: context.colors.textPrimary,
+                  fontSize: 14,
+                ),
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: 'Phone (Optional)',
-                  labelStyle: TextStyle(color: context.colors.textSecondary, fontSize: 13),
+                  labelStyle: TextStyle(
+                    color: context.colors.textSecondary,
+                    fontSize: 13,
+                  ),
                   filled: true,
                   fillColor: context.colors.cardBackground,
                   border: OutlineInputBorder(
@@ -2793,11 +2813,16 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: context.colors.cardBorder.withOpacity(0.5)),
+                    borderSide: BorderSide(
+                      color: context.colors.cardBorder.withOpacity(0.5),
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -2811,7 +2836,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 child: TextButton.icon(
                   onPressed: _addGuest,
                   icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Add Guest', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'Add Guest',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -3147,7 +3175,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    widget.isPreTrip ? Icons.flight_takeoff_rounded : Icons.flight_land_rounded,
+                    widget.isPreTrip
+                        ? Icons.flight_takeoff_rounded
+                        : Icons.flight_land_rounded,
                     color: _selectedPricingType != null
                         ? Colors.white
                         : context.colors.iconInactive,
@@ -3274,7 +3304,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              widget.isPreTrip ? 'Select Pick-up Station' : 'Select Drop-off Location',
+              widget.isPreTrip
+                  ? 'Select Pick-up Station'
+                  : 'Select Drop-off Location',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -3500,12 +3532,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     ),
                     const SizedBox(height: 20),
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 8,
+                      ),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF3CD),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFFECB5), width: 1.5),
+                        border: Border.all(
+                          color: const Color(0xFFFFECB5),
+                          width: 1.5,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -3519,25 +3557,36 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                             child: Builder(
                               builder: (context) {
                                 final loc = _optionById(selectedLocation);
-                                final estDuration = loc?.estDurationMinutes ?? 0;
-                                
+                                final estDuration =
+                                    loc?.estDurationMinutes ?? 0;
+
                                 int stayHours = 1;
-                                if (_selectedPricingType == '1_hour') stayHours = 1;
-                                else if (_selectedPricingType == '2_hours') stayHours = 2;
-                                else if (_selectedPricingType == '3_hours') stayHours = 3;
-                                else if (_selectedPricingType == 'until_bus') stayHours = 5;
-                                
-                                final pickupTime = _transportDateTime ?? (widget.isPreTrip 
-                                    ? widget.busDepartureTime.subtract(Duration(minutes: estDuration + 15))
-                                    : (widget.busArrivalTime ?? widget.busDepartureTime).add(Duration(hours: stayHours)));
-                                    
+                                if (_selectedPricingType == '1_hour')
+                                  stayHours = 1;
+                                else if (_selectedPricingType == '2_hours')
+                                  stayHours = 2;
+                                else if (_selectedPricingType == '3_hours')
+                                  stayHours = 3;
+                                else if (_selectedPricingType == 'until_bus')
+                                  stayHours = 5;
+
+                                final pickupTime =
+                                    _transportDateTime ??
+                                    (widget.isPreTrip
+                                        ? widget.busDepartureTime.subtract(
+                                            Duration(minutes: estDuration + 15),
+                                          )
+                                        : (widget.busArrivalTime ??
+                                                  widget.busDepartureTime)
+                                              .add(Duration(hours: stayHours)));
+
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      widget.isPreTrip 
-                                        ? 'Please arrive at the transport location by ${DateFormat('hh:mm a').format(pickupTime)}'
-                                        : 'Transport will pick you up at ${DateFormat('hh:mm a').format(pickupTime)}',
+                                      widget.isPreTrip
+                                          ? 'Please arrive at the transport location by ${DateFormat('hh:mm a').format(pickupTime)}'
+                                          : 'Transport will pick you up at ${DateFormat('hh:mm a').format(pickupTime)}',
                                       style: const TextStyle(
                                         fontSize: 13,
                                         color: Color(0xFF856404),
@@ -3555,7 +3604,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                     ),
                                   ],
                                 );
-                              }
+                              },
                             ),
                           ),
                         ],
@@ -3612,7 +3661,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.08) : context.colors.cardBackground,
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.08)
+              : context.colors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.primary : context.colors.cardBorder,
@@ -3655,7 +3706,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? AppColors.primary : context.colors.textPrimary,
+                    color: isSelected
+                        ? AppColors.primary
+                        : context.colors.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -3666,15 +3719,22 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? AppColors.primary.withOpacity(0.8) : context.colors.textSecondary,
+                    color: isSelected
+                        ? AppColors.primary.withOpacity(0.8)
+                        : context.colors.textSecondary,
                   ),
                 ),
                 if (priceLabel.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary.withOpacity(0.15) : context.colors.chipBackground,
+                      color: isSelected
+                          ? AppColors.primary.withOpacity(0.15)
+                          : context.colors.chipBackground,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -3682,7 +3742,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: isSelected ? AppColors.primary : context.colors.textPrimary,
+                        color: isSelected
+                            ? AppColors.primary
+                            : context.colors.textPrimary,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -3952,7 +4014,11 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   Future<void> _selectTransportDate() async {
     final defaultDateTime = _calculateDefaultTime();
     final initialDate = _transportDateTime ?? defaultDateTime;
-    final firstDate = DateTime(defaultDateTime.year, defaultDateTime.month, defaultDateTime.day);
+    final firstDate = DateTime(
+      defaultDateTime.year,
+      defaultDateTime.month,
+      defaultDateTime.day,
+    );
 
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -3997,7 +4063,9 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     final defaultDateTime = _calculateDefaultTime();
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_transportDateTime ?? defaultDateTime),
+      initialTime: TimeOfDay.fromDateTime(
+        _transportDateTime ?? defaultDateTime,
+      ),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(

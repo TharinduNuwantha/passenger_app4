@@ -363,7 +363,9 @@ func (r *AppBookingRepository) GetBookingsByUserID(userID string, limit, offset 
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
-			bb.status as bus_status, bb.qr_code_data
+			bb.status as bus_status, bb.qr_code_data,
+			EXISTS(SELECT 1 FROM transport_bookings tb WHERE tb.booking_id = b.id) as has_transport,
+			(SELECT tb.status FROM transport_bookings tb WHERE tb.booking_id = b.id ORDER BY tb.created_at DESC LIMIT 1) as transport_status
 		FROM bookings b
 		LEFT JOIN bus_bookings bb ON bb.booking_id = b.id
 		LEFT JOIN scheduled_trips st ON st.id = bb.scheduled_trip_id
@@ -389,7 +391,9 @@ func (r *AppBookingRepository) GetUpcomingBookingsByUserID(userID string, limit,
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
-			bb.status as bus_status, bb.qr_code_data
+			bb.status as bus_status, bb.qr_code_data,
+			EXISTS(SELECT 1 FROM transport_bookings tb WHERE tb.booking_id = b.id) as has_transport,
+			(SELECT tb.status FROM transport_bookings tb WHERE tb.booking_id = b.id ORDER BY tb.created_at DESC LIMIT 1) as transport_status
 		FROM bookings b
 		INNER JOIN bus_bookings bb ON bb.booking_id = b.id
 		INNER JOIN scheduled_trips st ON st.id = bb.scheduled_trip_id
@@ -417,7 +421,9 @@ func (r *AppBookingRepository) GetCompletedBookingsByUserID(userID string, limit
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
-			bb.status as bus_status, bb.qr_code_data
+			bb.status as bus_status, bb.qr_code_data,
+			EXISTS(SELECT 1 FROM transport_bookings tb WHERE tb.booking_id = b.id) as has_transport,
+			(SELECT tb.status FROM transport_bookings tb WHERE tb.booking_id = b.id ORDER BY tb.created_at DESC LIMIT 1) as transport_status
 		FROM bookings b
 		LEFT JOIN bus_bookings bb ON bb.booking_id = b.id
 		LEFT JOIN scheduled_trips st ON st.id = bb.scheduled_trip_id
@@ -448,7 +454,9 @@ func (r *AppBookingRepository) GetExpiredOrCancelledBookingsByUserID(userID stri
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
-			bb.status as bus_status, bb.qr_code_data
+			bb.status as bus_status, bb.qr_code_data,
+			EXISTS(SELECT 1 FROM transport_bookings tb WHERE tb.booking_id = b.id) as has_transport,
+			(SELECT tb.status FROM transport_bookings tb WHERE tb.booking_id = b.id ORDER BY tb.created_at DESC LIMIT 1) as transport_status
 		FROM bookings b
 		LEFT JOIN bus_bookings bb ON bb.booking_id = b.id
 		LEFT JOIN scheduled_trips st ON st.id = bb.scheduled_trip_id
@@ -482,7 +490,9 @@ func (r *AppBookingRepository) GetNotCompletedBookingsByUserID(userID string, li
 			bor.custom_route_name as route_name, 
 			st.departure_datetime, 
 			bb.number_of_seats,
-			bb.status as bus_status, bb.qr_code_data
+			bb.status as bus_status, bb.qr_code_data,
+			EXISTS(SELECT 1 FROM transport_bookings tb WHERE tb.booking_id = b.id) as has_transport,
+			(SELECT tb.status FROM transport_bookings tb WHERE tb.booking_id = b.id ORDER BY tb.created_at DESC LIMIT 1) as transport_status
 		FROM bookings b
 		INNER JOIN bus_bookings bb ON bb.booking_id = b.id
 		INNER JOIN scheduled_trips st ON st.id = bb.scheduled_trip_id

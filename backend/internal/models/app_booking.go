@@ -382,6 +382,10 @@ type BookingListItem struct {
 	// Search Data
 	SearchFromLounge *string `json:"search_from_lounge,omitempty" db:"search_from_lounge"`
 	SearchToLounge   *string `json:"search_to_lounge,omitempty" db:"search_to_lounge"`
+
+	// Transport
+	HasTransport    bool    `json:"has_transport" db:"has_transport"`
+	TransportStatus *string `json:"transport_status,omitempty" db:"transport_status"`
 }
 
 // ============================================================================

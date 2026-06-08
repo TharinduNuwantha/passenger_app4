@@ -1162,6 +1162,8 @@ class BookingListItem {
   // Search details
   final String? searchFromLounge;
   final String? searchToLounge;
+  final bool hasTransport;
+  final String? transportStatus;
 
   BookingListItem({
     required this.id,
@@ -1179,6 +1181,8 @@ class BookingListItem {
     this.qrCodeData,
     this.searchFromLounge,
     this.searchToLounge,
+    this.hasTransport = false,
+    this.transportStatus,
   });
 
   factory BookingListItem.fromJson(Map<String, dynamic> json) {
@@ -1208,6 +1212,8 @@ class BookingListItem {
       qrCodeData: json['qr_code_data'] as String?,
       searchFromLounge: json['search_from_lounge'] as String?,
       searchToLounge: json['search_to_lounge'] as String?,
+      hasTransport: json['has_transport'] as bool? ?? false,
+      transportStatus: json['transport_status'] as String?,
     );
   }
 

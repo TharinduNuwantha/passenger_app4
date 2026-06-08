@@ -230,4 +230,44 @@ class UnifiedBooking {
       status == UnifiedBookingStatus.upcoming &&
       dateTime.isAfter(DateTime.now());
   bool get isPast => dateTime.isBefore(DateTime.now());
+
+  bool get hasTransport =>
+      (busBooking?.hasTransport == true) ||
+      (loungeBooking?.transportType?.isNotEmpty == true) ||
+      (preLoungeBooking?.transportType?.isNotEmpty == true) ||
+      (postLoungeBooking?.transportType?.isNotEmpty == true);
+
+  String get transportStatus {
+    // Bus booking transport status from backend
+    if (busBooking?.transportStatus != null) {
+      return busBooking!.transportStatus!;
+    }
+    // Lounge booking transport
+    if (loungeBooking?.transportType?.isNotEmpty == true) {
+      return 'pending';
+    }
+    if (preLoungeBooking?.transportType?.isNotEmpty == true) {
+      return 'pending';
+    }
+    if (postLoungeBooking?.transportType?.isNotEmpty == true) {
+      return 'pending';
+    }
+    return 'pending';
+  }
+
+  String get transportStatusDisplay {
+    switch (transportStatus) {
+      case 'confirmed':
+        return 'Confirmed';
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'pending':
+      default:
+        return 'Pending';
+    }
+  }
 }
