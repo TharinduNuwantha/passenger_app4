@@ -1085,7 +1085,7 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 		TransportPrice:   transportPrice,
 		TransportDate:    transportDate,
 		TransportTime:    transportTime,
-		Status:           models.TransportBookingConfirmed,
+		Status:           models.TransportBookingPending,
 		PaymentStatus:    models.TransportPaymentPaid,
 	}
 

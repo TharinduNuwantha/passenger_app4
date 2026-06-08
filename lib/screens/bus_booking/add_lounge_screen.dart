@@ -863,13 +863,86 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
 
   /// Continue with selected lounges
   void _continueWithLounges() {
-    Navigator.pop(
-      context,
-      AddLoungeResult(
-        preTripLounge: _selectedPreTripLounge,
-        postTripLounge: _selectedPostTripLounge,
-      ),
-    );
+    bool hasTransportBooked = false;
+    if (_selectedPreTripLounge != null &&
+        _selectedPreTripLounge!.isExplicitlyBooked &&
+        _selectedPreTripLounge!.transportType != null &&
+        _selectedPreTripLounge!.transportType!.isNotEmpty) {
+      hasTransportBooked = true;
+    }
+    if (_selectedPostTripLounge != null &&
+        _selectedPostTripLounge!.isExplicitlyBooked &&
+        _selectedPostTripLounge!.transportType != null &&
+        _selectedPostTripLounge!.transportType!.isNotEmpty) {
+      hasTransportBooked = true;
+    }
+
+    if (hasTransportBooked) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            backgroundColor: context.colors.cardBackground,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: context.colors.textPrimary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Transport Booking Pending',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'This booking is currently pending. We will notify you once it is confirmed.',
+              style: TextStyle(
+                fontSize: 14,
+                color: context.colors.textSecondary,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext); // Close dialog
+                  Navigator.pop(
+                    context, // Go back with results
+                    AddLoungeResult(
+                      preTripLounge: _selectedPreTripLounge,
+                      postTripLounge: _selectedPostTripLounge,
+                    ),
+                  );
+                },
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      Navigator.pop(
+        context,
+        AddLoungeResult(
+          preTripLounge: _selectedPreTripLounge,
+          postTripLounge: _selectedPostTripLounge,
+        ),
+      );
+    }
   }
 
   @override
