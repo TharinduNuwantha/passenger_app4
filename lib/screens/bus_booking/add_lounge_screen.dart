@@ -3350,20 +3350,19 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     ),
                     const SizedBox(height: 20),
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.orange.withOpacity(0.4),
-                        ),
+                        color: const Color(0xFFFFF3CD),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFFFECB5), width: 1.5),
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 18,
-                            color: Colors.orange[800],
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            size: 24,
+                            color: Color(0xFF856404),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -3389,18 +3388,18 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                                       widget.isPreTrip 
                                         ? 'Please arrive at the transport location by ${DateFormat('hh:mm a').format(pickupTime)}'
                                         : 'Transport will pick you up at ${DateFormat('hh:mm a').format(pickupTime)}',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 13,
-                                        color: Colors.orange[900],
+                                        color: Color(0xFF856404),
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
+                                    const Text(
                                       'Driver will contact you once the booking is confirmed for specific pickup timing.',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: Colors.orange[800],
+                                        color: Color(0xFF856404),
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),

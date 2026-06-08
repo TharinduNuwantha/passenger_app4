@@ -1080,6 +1080,7 @@ class CreateLoungeBookingRequest {
   final String? promoCode;
   final List<GuestEntry> guests;
   final List<PreOrderEntry> preOrders;
+  final TransportBookingRequest? transport;
 
   CreateLoungeBookingRequest({
     required this.loungeId,
@@ -1095,6 +1096,7 @@ class CreateLoungeBookingRequest {
     this.promoCode,
     this.guests = const [],
     this.preOrders = const [],
+    this.transport,
   });
 
   Map<String, dynamic> toJson() {
@@ -1125,6 +1127,40 @@ class CreateLoungeBookingRequest {
       'guests': allGuests,
       if (preOrders.isNotEmpty)
         'pre_orders': preOrders.map((p) => p.toJson()).toList(),
+      if (transport != null) 'transport': transport!.toJson(),
+    };
+  }
+}
+
+class TransportBookingRequest {
+  final String pickupLocationId;
+  final String vehicleType;
+  final int vehicleQuantity;
+  final String transportPrice;
+  final String transportDate;
+  final String transportTime;
+  final int? estimatedDurationMinutes;
+
+  TransportBookingRequest({
+    required this.pickupLocationId,
+    required this.vehicleType,
+    this.vehicleQuantity = 1,
+    required this.transportPrice,
+    required this.transportDate,
+    required this.transportTime,
+    this.estimatedDurationMinutes,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'pickup_location_id': pickupLocationId,
+      'vehicle_type': vehicleType,
+      'vehicle_quantity': vehicleQuantity,
+      'transport_price': transportPrice,
+      'transport_date': transportDate,
+      'transport_time': transportTime,
+      if (estimatedDurationMinutes != null)
+        'estimated_duration_minutes': estimatedDurationMinutes,
     };
   }
 }
