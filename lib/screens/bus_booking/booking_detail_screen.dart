@@ -28,6 +28,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   bool _isCancelling = false;
 
   final PageController _qrPageController = PageController();
+  final ScrollController _scrollController = ScrollController();
   int _currentQrPage = 0;
 
   @override
@@ -39,6 +40,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   @override
   void dispose() {
     _qrPageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -176,7 +178,45 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
-  Widget _buildTransportCard(TransportBooking transport) {
+  void _viewTransportQr(int activeTransportIndex) {
+    final booking = _bookingResponse?.booking;
+    if (booking == null) return;
+
+    final busBooking = _bookingResponse!.busBooking;
+    final preLounge = _bookingResponse!.preLoungeBooking;
+    final postLounge = _bookingResponse!.postLoungeBooking;
+    final qrCode = _bookingResponse!.qrCode ?? busBooking?.qrCodeData ?? '';
+
+    int qrIndex = 0;
+    if (qrCode.isNotEmpty &&
+        booking.bookingStatus != MasterBookingStatus.cancelled) {
+      qrIndex++;
+    }
+    if (booking.bookingStatus != MasterBookingStatus.cancelled) {
+      if (preLounge != null) qrIndex++;
+      if (postLounge != null) qrIndex++;
+    }
+
+    qrIndex += activeTransportIndex;
+
+    // Scroll to the top to show the QR area
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+
+    // If there are multiple QR codes, switch the PageView to the target index
+    if (_qrPageController.hasClients) {
+      _qrPageController.animateToPage(
+        qrIndex,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  Widget _buildTransportCard(TransportBooking transport, int activeTransportIndex) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -247,34 +287,53 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             transport.driverId != null ? 'Driver Assigned' : 'Pending Driver',
           ),
 
-          if (!transport.isCancelled && !transport.isCompleted) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _isCancelling
-                    ? null
-                    : () => _cancelTransportBooking(transport.id),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _viewTransportQr(activeTransportIndex),
+                  icon: const Icon(Icons.qr_code, size: 18),
+                  label: const Text('View QR'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE65100),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
-                child: _isCancelling
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.red,
-                        ),
-                      )
-                    : const Text('Cancel Transport'),
               ),
-            ),
-          ],
+              if (!transport.isCompleted) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isCancelling
+                        ? null
+                        : () => _cancelTransportBooking(transport.id),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isCancelling
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.red,
+                            ),
+                          )
+                        : const Text('Cancel Transport'),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );
@@ -357,7 +416,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final List<Widget> qrCards = [];
     if (qrCode.isNotEmpty &&
         booking.bookingStatus != MasterBookingStatus.cancelled) {
-      qrCards.add(_buildBusQRCodeCard(busBooking, booking, qrCode));
+      qrCards.add(_buildBusQRCodeCard(busBooking, booking, qrCode, seats));
     }
 
     if ((preLounge != null || postLounge != null) &&
@@ -412,69 +471,115 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         busBooking != null &&
         booking.bookingStatus == MasterBookingStatus.confirmed &&
         busBooking.departureDatetime.isAfter(DateTime.now());
-    final double pageViewHeight = showTimer ? 510 : 420;
+    final double pageViewHeight = showTimer ? 490 : 430;
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.background,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
         ),
       ),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Reference and Status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Reference',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+            // Top Reference and Status Bar Card
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
                       children: [
-                        Text(
-                          booking.bookingReference,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long,
                             color: AppColors.primary,
+                            size: 20,
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.copy, size: 18),
-                          onPressed: () {
-                            Clipboard.setData(
-                              ClipboardData(text: booking.bookingReference),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Reference copied'),
-                                duration: Duration(seconds: 1),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Booking Reference',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
-                            );
-                          },
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          color: AppColors.primary.withOpacity(0.6),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      booking.bookingReference,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Clipboard.setData(
+                                        ClipboardData(text: booking.bookingReference),
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Reference copied'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    },
+                                    child: Icon(
+                                      Icons.copy,
+                                      size: 14,
+                                      color: AppColors.primary.withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                _buildStatusChip(booking.bookingStatus),
-              ],
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatusChip(booking.bookingStatus),
+                ],
+              ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // QR Cards Carousel
             if (qrCards.isNotEmpty) ...[
@@ -506,42 +611,31 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
-                      height: 8,
-                      width: _currentQrPage == index ? 24 : 8,
+                      height: 6,
+                      width: _currentQrPage == index ? 16 : 6,
                       decoration: BoxDecoration(
                         color: _currentQrPage == index
                             ? AppColors.primary
                             : AppColors.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     );
                   }),
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
             ],
 
             // Trip Details
             if (busBooking != null) ...[
-              const Text(
-                'Trip Details',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 12),
+              _buildSectionHeader('Trip Details', Icons.route_outlined),
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: _sectionCardDecoration(),
                 child: Column(
                   children: [
                     _buildDetailRow(Icons.route, 'Route', busBooking.routeName),
-                    const Divider(height: 20),
+                    const Divider(height: 1),
                     _buildDetailRow(
                       Icons.location_on_outlined,
                       'From',
@@ -550,6 +644,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           ? booking.searchFromLounge!
                           : busBooking.boardingStopName,
                     ),
+                    const Divider(height: 1),
                     _buildDetailRow(
                       Icons.location_on,
                       'To',
@@ -558,50 +653,42 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           ? booking.searchToLounge!
                           : busBooking.alightingStopName,
                     ),
-                    const Divider(height: 20),
+                    const Divider(height: 1),
                     _buildDetailRow(
                       Icons.calendar_today,
                       'Date & Time',
                       _formatDateTime(busBooking.departureDatetime),
                     ),
-                    if (busBooking.busType != null)
+                    if (busBooking.busType != null) ...[
+                      const Divider(height: 1),
                       _buildDetailRow(
                         Icons.directions_bus,
                         'Bus Type',
                         busBooking.busTypeDisplay,
                       ),
-                    if (busBooking.busNumber != null)
+                    ],
+                    if (busBooking.busNumber != null) ...[
+                      const Divider(height: 1),
                       _buildDetailRow(
                         Icons.confirmation_number,
                         'Bus Number',
                         busBooking.busNumber!,
                       ),
+                    ],
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
             ],
 
-            const SizedBox(height: 20),
-
             // Seat Details
-            const Text(
-              'Seat Details',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
+            _buildSectionHeader('Seat Details', Icons.event_seat_outlined),
             if (seats.isNotEmpty)
               ...seats.map((seat) => _buildSeatCard(seat))
-            else if (busBooking != null)
+            else if (busBooking != null) ...[
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: _sectionCardDecoration(),
                 child: Row(
                   children: [
                     const Icon(Icons.event_seat, color: AppColors.primary),
@@ -610,30 +697,23 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       '${busBooking.numberOfSeats} seat(s)',
                       style: const TextStyle(
                         fontSize: 14,
-                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
                 ),
               ),
-
+            ],
             const SizedBox(height: 20),
 
             // Transport Details
             if (activeTransportBookings.isNotEmpty) ...[
-              const Text(
-                'Transport Details',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...activeTransportBookings.map((t) => _buildTransportCard(t)),
+              _buildSectionHeader('Transport Details', Icons.local_taxi_outlined),
+              ...activeTransportBookings.asMap().entries.map((entry) => _buildTransportCard(entry.value, entry.key)),
               const SizedBox(height: 20),
             ] else if (booking.canBeCancelled) ...[
-              const SizedBox(height: 12),
+              _buildSectionHeader('Transport Details', Icons.local_taxi_outlined),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -649,6 +729,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -659,31 +740,23 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ],
 
             // Passenger Info
-            const Text(
-              'Passenger Information',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
+            _buildSectionHeader('Passenger Information', Icons.person_outline),
             Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade200),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: _sectionCardDecoration(),
               child: Column(
                 children: [
                   _buildDetailRow(Icons.person, 'Name', booking.passengerName),
+                  const Divider(height: 1),
                   _buildDetailRow(Icons.phone, 'Phone', booking.passengerPhone),
-                  if (booking.passengerEmail != null)
+                  if (booking.passengerEmail != null) ...[
+                    const Divider(height: 1),
                     _buildDetailRow(
                       Icons.email,
                       'Email',
                       booking.passengerEmail!,
                     ),
+                  ],
                 ],
               ),
             ),
@@ -691,21 +764,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             const SizedBox(height: 20),
 
             // Payment Summary
-            const Text(
-              'Payment Summary',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
+            _buildSectionHeader('Payment Summary', Icons.payment_outlined),
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: _sectionCardDecoration(),
               child: Column(
                 children: [
                   _buildPriceRow('Subtotal', booking.subtotal),
@@ -722,11 +784,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Total',
+                        'Total Amount',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       Text(
@@ -739,8 +801,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildPaymentStatusChip(booking.paymentStatus),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Payment Status',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      _buildPaymentStatusChip(booking.paymentStatus),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -749,7 +823,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
             // Action Buttons
             if (booking.canBeCancelled) ...[
-              if (booking.paymentStatus == MasterPaymentStatus.pending)
+              if (booking.paymentStatus == MasterPaymentStatus.pending) ...[
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -767,9 +841,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      foregroundColor: AppColors.primary,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -783,7 +858,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     ),
                   ),
                 ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
@@ -823,31 +899,77 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  BoxDecoration _sectionCardDecoration() {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.only(bottom: 12, top: 8),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.primary.withOpacity(0.6)),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.primary.withOpacity(0.6),
-              ),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: AppColors.primary),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+              letterSpacing: 0.3,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary.withOpacity(0.8)),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primary,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -859,18 +981,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade200),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: _sectionCardDecoration(),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
               child: Text(
@@ -892,27 +1011,29 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   seat.passengerName,
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                if (seat.passengerPhone != null)
+                if (seat.passengerPhone != null) ...[
+                  const SizedBox(height: 2),
                   Text(
                     seat.passengerPhone!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.primary.withOpacity(0.6),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
                     ),
                   ),
+                ],
               ],
             ),
           ),
           Text(
             seat.formattedPrice,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF4CAF50),
+              color: AppColors.success,
             ),
           ),
         ],
@@ -929,182 +1050,542 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 4.0),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color.withOpacity(0.08), Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withOpacity(0.12)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.05),
-            blurRadius: 18,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 8),
-                Text(
-                  title.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                    color: color,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: color,
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          color: Colors.white.withOpacity(0.95),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // QR Code
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: 110,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Show this QR code at entry',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary.withOpacity(0.8),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ],
-            ),
-            child: QrImageView(
-              data: qrData,
-              version: QrVersions.auto,
-              size: 160,
-              backgroundColor: Colors.white,
-            ),
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: color.withOpacity(0.75),
-            ),
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  String _getCityName(String stopName) {
+    if (stopName.isEmpty) return 'N/A';
+    final parts = stopName.split(' ');
+    if (parts.isNotEmpty) {
+      return parts[0];
+    }
+    return stopName;
   }
 
   Widget _buildBusQRCodeCard(
     BusBooking? busBooking,
     MasterBooking booking,
     String qrCode,
+    List<BusBookingSeat> seats,
   ) {
+    final seatNumbers = seats.isNotEmpty
+        ? seats.map((s) => s.seatNumber).join(', ')
+        : (busBooking?.numberOfSeats != null ? '${busBooking!.numberOfSeats} Seats' : 'N/A');
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 4.0),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary.withOpacity(0.08), Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'BOARDING PASS',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-                color: AppColors.primary,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            children: [
+              // Ticket Header
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.directions_bus, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'BOARDING PASS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        color: Colors.white.withOpacity(0.95),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+
+              // Journey route summary on ticket
+              if (busBooking != null) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getCityName(booking.searchFromLounge ?? busBooking.boardingStopName),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              booking.searchFromLounge ?? busBooking.boardingStopName,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 40,
+                              child: Divider(
+                                color: AppColors.primary.withOpacity(0.5),
+                                thickness: 1.5,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.directions_bus,
+                              color: AppColors.primary,
+                              size: 16,
+                            ),
+                            SizedBox(
+                              width: 40,
+                              child: Divider(
+                                color: AppColors.primary.withOpacity(0.5),
+                                thickness: 1.5,
+                              ),
+                            ),
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppColors.primary, width: 1.5),
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _getCityName(booking.searchToLounge ?? busBooking.alightingStopName),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              booking.searchToLounge ?? busBooking.alightingStopName,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
-            child: QrImageView(
-              data: qrCode,
-              version: QrVersions.auto,
-              size: 160,
-              backgroundColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Ready for Boarding',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary.withOpacity(0.9),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Provide this QR to the bus conductor',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.primary.withOpacity(0.5),
-            ),
-          ),
-          if (busBooking != null &&
-              booking.bookingStatus == MasterBookingStatus.confirmed &&
-              busBooking.departureDatetime.isAfter(DateTime.now())) ...[
-            const Divider(height: 24),
-            const Text(
-              'TIME UNTIL DEPARTURE',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
-                color: AppColors.primary,
+
+              // Dashed Ticket Divider inside the card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  height: 24,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Dashed line
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          return Flex(
+                            direction: Axis.horizontal,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: List.generate(
+                              (constraints.constrainWidth() / 8).floor(),
+                              (index) => SizedBox(
+                                width: 4,
+                                height: 1,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Left cutout (colored white to mask container background)
+                      Positioned(
+                        left: -28,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: const BoxDecoration(
+                            color: AppColors.background, // Match screen background color
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      // Right cutout
+                      Positioned(
+                        right: -28,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: const BoxDecoration(
+                            color: AppColors.background,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            BookingCountdownTimer(targetDateTime: busBooking.departureDatetime),
-          ],
-        ],
+
+              // QR Code and Boarding Instructions
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade100),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: QrImageView(
+                        data: qrCode,
+                        version: QrVersions.auto,
+                        size: 140,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Ready for Boarding',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Scan this QR code with the conductor',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Dotted divider before metadata details
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  height: 24,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Flex(
+                        direction: Axis.horizontal,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(
+                          (constraints.constrainWidth() / 8).floor(),
+                          (index) => SizedBox(
+                            width: 4,
+                            height: 1,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // Metadata grid (Passenger, Seat, Departure)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'PASSENGER',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            booking.passengerName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'SEAT',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            seatNumbers,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text(
+                            'DEPARTURE',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            busBooking != null
+                                ? _formatTime(busBooking.departureDatetime)
+                                : 'N/A',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Countdown Timer Section
+              if (busBooking != null &&
+                  booking.bookingStatus == MasterBookingStatus.confirmed &&
+                  busBooking.departureDatetime.isAfter(DateTime.now())) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.04),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(24),
+                      bottomRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'TIME UNTIL DEPARTURE',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
+                          color: AppColors.primary.withOpacity(0.8),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      BookingCountdownTimer(targetDateTime: busBooking.departureDatetime),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1115,15 +1596,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     bool isDiscount = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: AppColors.primary.withOpacity(0.7),
+              color: AppColors.textSecondary,
             ),
           ),
           Text(
@@ -1132,7 +1613,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 : 'LKR ${amount.toStringAsFixed(2)}',
             style: TextStyle(
               fontSize: 14,
-              color: isDiscount ? Colors.red : AppColors.primary,
+              fontWeight: FontWeight.w600,
+              color: isDiscount ? Colors.red : AppColors.textPrimary,
             ),
           ),
         ],
@@ -1147,28 +1629,28 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     switch (status) {
       case MasterBookingStatus.confirmed:
-        bgColor = const Color(0xFF4CAF50).withOpacity(0.1);
+        bgColor = const Color(0xFF4CAF50).withOpacity(0.12);
         textColor = const Color(0xFF4CAF50);
         text = 'Confirmed';
         break;
       case MasterBookingStatus.pending:
-        bgColor = Colors.orange.withOpacity(0.1);
-        textColor = Colors.orange;
+        bgColor = Colors.orange.withOpacity(0.12);
+        textColor = Colors.orange.shade800;
         text = 'Pending';
         break;
       case MasterBookingStatus.completed:
-        bgColor = Colors.blue.withOpacity(0.1);
-        textColor = Colors.blue;
+        bgColor = Colors.blue.withOpacity(0.12);
+        textColor = Colors.blue.shade700;
         text = 'Completed';
         break;
       case MasterBookingStatus.cancelled:
-        bgColor = Colors.red.withOpacity(0.1);
+        bgColor = Colors.red.withOpacity(0.12);
         textColor = Colors.red;
         text = 'Cancelled';
         break;
       default:
-        bgColor = Colors.grey.withOpacity(0.1);
-        textColor = Colors.grey;
+        bgColor = Colors.grey.withOpacity(0.12);
+        textColor = Colors.grey.shade700;
         text = status.displayName;
     }
 
@@ -1183,7 +1665,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         style: TextStyle(
           color: textColor,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
