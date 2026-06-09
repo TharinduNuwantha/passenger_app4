@@ -891,17 +891,19 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
               children: [
                 Icon(Icons.info_outline, color: context.colors.textPrimary),
                 const SizedBox(width: 8),
-                Text(
-                  'Transport Booking Pending',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.textPrimary,
+                Expanded(
+                  child: Text(
+                    'Transport Booking Pending',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.textPrimary,
+                    ),
                   ),
                 ),
               ],
             ),
             content: Text(
-              'This booking is currently pending. We will notify you once it is confirmed.',
+              'This transport booking is currently pending. We will notify you once it is confirmed.',
               style: TextStyle(
                 fontSize: 14,
                 color: context.colors.textSecondary,
@@ -919,9 +921,13 @@ class _AddLoungeScreenState extends State<AddLoungeScreen> {
                     ),
                   );
                 },
-                child: const Text(
-                  'OK',
-                  style: TextStyle(
+                child: Text(
+                  _selectedPreTripLounge != null && _selectedPostTripLounge != null
+                      ? 'Add Lounges'
+                      : _selectedPreTripLounge != null
+                          ? 'Add Pre-Trip Lounge'
+                          : 'Add Post-Trip Lounge',
+                  style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
                   ),

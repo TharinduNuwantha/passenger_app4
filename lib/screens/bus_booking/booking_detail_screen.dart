@@ -120,6 +120,154 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
+  Future<void> _cancelTransportBooking(String transportId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Transport Booking'),
+        content: const Text(
+          'Are you sure you want to cancel this transport booking?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No, Keep it'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isCancelling = true);
+
+    try {
+      await _bookingService.cancelTransportBooking(transportId);
+      await _loadBookingDetails();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transport booking cancelled successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      _logger.e('Failed to cancel transport booking: $e');
+      setState(() => _isCancelling = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildTransportCard(TransportBooking transport) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.local_taxi, color: Color(0xFFE65100)),
+                  const SizedBox(width: 8),
+                  Text(
+                    transport.vehicleType,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE65100).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  transport.status.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE65100),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+              Icons.location_on, 'Pickup Location', transport.pickupLocationName ?? 'N/A'),
+          const SizedBox(height: 8),
+          _buildDetailRow(
+              Icons.access_time, 'Pickup Time', _formatTime(transport.transportTime)),
+          const SizedBox(height: 8),
+          _buildDetailRow(
+              Icons.person,
+              'Driver Status',
+              transport.driverId != null ? 'Driver Assigned' : 'Pending Driver'),
+          
+          if (!transport.isCancelled && !transport.isCompleted) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isCancelling ? null : () => _cancelTransportBooking(transport.id),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _isCancelling
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                      )
+                    : const Text('Cancel Transport'),
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -226,6 +374,26 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ),
         );
       }
+    }
+
+    final activeTransportBookings = booking.transportBookings
+        .where((t) => !t.isCancelled)
+        .toList();
+
+    for (var i = 0; i < activeTransportBookings.length; i++) {
+      final transport = activeTransportBookings[i];
+      final title = activeTransportBookings.length > 1
+          ? 'Transport Booking ${i + 1}'
+          : 'Transport Booking';
+      qrCards.add(
+        _buildLoungeQRCodeCard(
+          title: title,
+          qrData: transport.bookingReference ?? transport.id,
+          subtitle: 'Show to your driver',
+          icon: Icons.local_taxi,
+          color: const Color(0xFFE65100), // Orange
+        ),
+      );
     }
 
     final showTimer = busBooking != null &&
@@ -435,6 +603,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               ),
 
             const SizedBox(height: 20),
+
+            // Transport Details
+            if (activeTransportBookings.isNotEmpty) ...[
+              const Text(
+                'Transport Details',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...activeTransportBookings.map((t) => _buildTransportCard(t)),
+              const SizedBox(height: 20),
+            ],
 
             // Passenger Info
             const Text(
@@ -1058,5 +1241,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}, ${hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} $period';
+  }
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '${hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} $period';
   }
 }

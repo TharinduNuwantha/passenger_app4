@@ -301,8 +301,20 @@ func (r *AppBookingRepository) GetBookingByID(bookingID string) (*models.MasterB
 	}
 
 	// Get transport bookings if exists
-	transportRepo := NewTransportBookingRepository(r.db)
-	transportBookings, err := transportRepo.GetTransportBookingsByBookingID(bookingID)
+	var transportBookings []models.TransportBooking
+	queryTransport := `
+		SELECT 
+			tb.id, tb.booking_id, tb.user_id, tb.lounge_id, tb.pickup_location_id,
+			tb.vehicle_type, tb.vehicle_quantity, tb.transport_price, tb.transport_date, tb.transport_time,
+			tb.estimated_duration_minutes, tb.booking_reference, tb.status, tb.payment_status,
+			tb.payment_reference, tb.driver_id, tb.driver_assigned_at, tb.cancellation_reason,
+			tb.refund_status, tb.refund_amount, tb.created_at, tb.updated_at,
+			l.lounge_name, ptl.name as pickup_location_name
+		FROM transport_bookings tb
+		LEFT JOIN lounges l ON tb.lounge_id = l.id
+		LEFT JOIN lounge_transport_locations ptl ON tb.pickup_location_id = ptl.id
+		WHERE tb.booking_id = $1`
+	err = r.db.Select(&transportBookings, queryTransport, bookingID)
 	if err == nil && len(transportBookings) > 0 {
 		booking.TransportBookings = transportBookings
 	}
@@ -596,6 +608,31 @@ func (r *AppBookingRepository) CancelBooking(bookingID, userID string, reason *s
 	}
 
 	return tx.Commit()
+}
+
+// CancelTransportBooking cancels a specific transport booking
+func (r *AppBookingRepository) CancelTransportBooking(transportID string, userID string, reason *string) error {
+	query := `
+		UPDATE transport_bookings
+		SET status = 'cancelled',
+		    cancellation_reason = $1,
+		    updated_at = NOW()
+		WHERE id = $2 AND user_id = $3`
+
+	res, err := r.db.Exec(query, reason, transportID, userID)
+	if err != nil {
+		return err
+	}
+	
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("transport booking not found or unauthorized")
+	}
+
+	return nil
 }
 
 // ============================================================================

@@ -324,6 +324,29 @@ class BookingService {
     }
   }
 
+  /// Cancel a specific transport booking
+  ///
+  /// [transportId] - The ID of the transport booking to cancel
+  Future<void> cancelTransportBooking(String transportId) async {
+    try {
+      _logger.i('Cancelling transport booking: $transportId');
+
+      final response = await _apiService.post(
+        '/api/v1/bookings/transport/$transportId/cancel',
+        data: const {'reason': 'Cancelled by user'},
+      );
+
+      _logger.d('Cancel transport response: ${response.data}');
+      _logger.i('Transport booking cancelled successfully: $transportId');
+    } on DioException catch (e) {
+      _logger.e('Failed to cancel transport booking: ${e.message}');
+      throw ErrorHandler.handleError(e);
+    } catch (e) {
+      _logger.e('Unexpected error cancelling transport booking: $e');
+      throw Exception('Failed to cancel transport booking: $e');
+    }
+  }
+
   /// Confirm payment for a booking
   ///
   /// [bookingId] - The booking ID

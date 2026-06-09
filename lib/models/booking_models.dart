@@ -468,6 +468,108 @@ class TripSeat {
 }
 
 // ============================================================================
+// TRANSPORT BOOKING MODEL
+// ============================================================================
+
+class TransportBooking {
+  final String id;
+  final String? bookingId;
+  final String userId;
+  final String? loungeId;
+  final String? pickupLocationId;
+  final String vehicleType;
+  final int vehicleQuantity;
+  final double transportPrice;
+  final DateTime transportDate;
+  final DateTime transportTime;
+  final int? estimatedDurationMinutes;
+  final String? bookingReference;
+  final String status;
+  final String paymentStatus;
+  final String? paymentReference;
+  final String? driverId;
+  final DateTime? driverAssignedAt;
+  final String? cancellationReason;
+  final String? refundStatus;
+  final double refundAmount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  // Joined fields
+  final String? pickupLocationName;
+  final String? loungeName;
+
+  TransportBooking({
+    required this.id,
+    this.bookingId,
+    required this.userId,
+    this.loungeId,
+    this.pickupLocationId,
+    required this.vehicleType,
+    required this.vehicleQuantity,
+    required this.transportPrice,
+    required this.transportDate,
+    required this.transportTime,
+    this.estimatedDurationMinutes,
+    this.bookingReference,
+    required this.status,
+    required this.paymentStatus,
+    this.paymentReference,
+    this.driverId,
+    this.driverAssignedAt,
+    this.cancellationReason,
+    this.refundStatus,
+    required this.refundAmount,
+    required this.createdAt,
+    required this.updatedAt,
+    this.pickupLocationName,
+    this.loungeName,
+  });
+
+  factory TransportBooking.fromJson(Map<String, dynamic> json) {
+    return TransportBooking(
+      id: json['id'] as String? ?? '',
+      bookingId: json['booking_id'] as String?,
+      userId: json['user_id'] as String? ?? '',
+      loungeId: json['lounge_id'] as String?,
+      pickupLocationId: json['pickup_location_id'] as String?,
+      vehicleType: json['vehicle_type'] as String? ?? '',
+      vehicleQuantity: json['vehicle_quantity'] as int? ?? 1,
+      transportPrice: (json['transport_price'] as num?)?.toDouble() ?? 0.0,
+      transportDate: json['transport_date'] != null
+          ? DateTime.parse(json['transport_date'] as String)
+          : DateTime.now(),
+      transportTime: json['transport_time'] != null
+          ? parseUtcDate(json['transport_time'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      estimatedDurationMinutes: json['estimated_duration_minutes'] as int?,
+      bookingReference: json['booking_reference'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      paymentStatus: json['payment_status'] as String? ?? 'pending',
+      paymentReference: json['payment_reference'] as String?,
+      driverId: json['driver_id'] as String?,
+      driverAssignedAt: json['driver_assigned_at'] != null
+          ? DateTime.parse(json['driver_assigned_at'] as String)
+          : null,
+      cancellationReason: json['cancellation_reason'] as String?,
+      refundStatus: json['refund_status'] as String?,
+      refundAmount: (json['refund_amount'] as num?)?.toDouble() ?? 0.0,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
+      pickupLocationName: json['pickup_location_name'] as String?,
+      loungeName: json['lounge_name'] as String?,
+    );
+  }
+
+  bool get isCancelled => status == 'cancelled';
+  bool get isCompleted => status == 'completed';
+}
+
+// ============================================================================
 // MASTER BOOKING MODEL
 // ============================================================================
 
@@ -530,6 +632,7 @@ class MasterBooking {
 
   // Related
   final BusBooking? busBooking;
+  final List<TransportBooking> transportBookings;
 
   var totalPrice;
 
@@ -573,6 +676,7 @@ class MasterBooking {
     required this.createdAt,
     required this.updatedAt,
     this.busBooking,
+    this.transportBookings = const [],
   });
 
   factory MasterBooking.fromJson(Map<String, dynamic> json) {
@@ -637,6 +741,10 @@ class MasterBooking {
       busBooking: json['bus_booking'] != null
           ? BusBooking.fromJson(json['bus_booking'] as Map<String, dynamic>)
           : null,
+      transportBookings: (json['transport_bookings'] as List<dynamic>?)
+              ?.map((e) => TransportBooking.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 

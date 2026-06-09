@@ -566,6 +566,51 @@ func (h *AppBookingHandler) CancelBooking(c *gin.Context) {
 	})
 }
 
+// CancelTransportBooking cancels a transport booking
+// @Summary Cancel transport booking
+// @Description Cancel a specific transport booking
+// @Tags App Bookings
+// @Accept json
+// @Produce json
+// @Param id path string true "Transport Booking ID"
+// @Param request body models.CancelAppBookingRequest true "Cancellation reason"
+// @Success 200 {object} map[string]interface{} "Transport Booking cancelled"
+// @Failure 400 {object} map[string]interface{} "Cannot cancel"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Failure 404 {object} map[string]interface{} "Not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Security BearerAuth
+// @Router /api/v1/bookings/transport/{id}/cancel [post]
+func (h *AppBookingHandler) CancelTransportBooking(c *gin.Context) {
+	userCtx, exists := middleware.GetUserContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	transportID := c.Param("id")
+
+	var req models.CancelAppBookingRequest
+	c.ShouldBindJSON(&req) // Reason is optional
+
+	reason := &req.Reason
+	if req.Reason == "" {
+		reason = nil
+	}
+
+	err := h.bookingRepo.CancelTransportBooking(transportID, userCtx.UserID.String(), reason)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel transport booking", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Transport booking cancelled successfully",
+		"transport_id":  transportID,
+	})
+}
+
 // GetBookingQR retrieves QR code for a booking
 // @Summary Get booking QR code
 // @Description Get QR code data for boarding
