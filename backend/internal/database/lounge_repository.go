@@ -542,3 +542,16 @@ func (r *LoungeRepository) GetLoungeTransportOptions(loungeID uuid.UUID) ([]mode
 	}
 	return out, nil
 }
+
+// GetLoungeTransportBufferMins returns the buffer minutes from lounge_transport_settings table.
+func (r *LoungeRepository) GetLoungeTransportBufferMins() (int, error) {
+	var bufferMins int
+	query := `SELECT buffer_minutes FROM lounge_transport_settings LIMIT 1`
+	err := r.db.Get(&bufferMins, query)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch transport buffer minutes: %v. Using default of 15.", err)
+		return 15, nil
+	}
+	return bufferMins, nil
+}
+

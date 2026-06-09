@@ -130,11 +130,17 @@ func (h *LoungeBookingHandler) GetLoungeTransportOptions(c *gin.Context) {
 		return
 	}
 
-	log.Printf("INFO: Successfully retrieved %d transport location(s) for lounge %s", len(locations), loungeID)
+	bufferMins, err := h.loungeRepo.GetLoungeTransportBufferMins()
+	if err != nil {
+		bufferMins = 15 // fallback
+	}
+
+	log.Printf("INFO: Successfully retrieved %d transport location(s) for lounge %s (buffer: %d mins)", len(locations), loungeID, bufferMins)
 	c.JSON(http.StatusOK, gin.H{
-		"lounge_id": loungeID,
-		"locations": locations,
-		"total":     len(locations),
+		"lounge_id":      loungeID,
+		"locations":      locations,
+		"total":          len(locations),
+		"buffer_minutes": bufferMins,
 	})
 }
 

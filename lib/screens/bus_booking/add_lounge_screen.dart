@@ -1656,6 +1656,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   List<LoungeTransportLocationOption> _transportOptions = [];
   bool _isLoadingTransport = true;
   String? _transportLoadError;
+  int _transportBufferMinutes = 15;
 
   DateTime _calculateDefaultTime() {
     final type =
@@ -1677,12 +1678,12 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       } else if (type == '3_hours') {
         loungeStayHours = 3;
       } else if (type == 'until_bus') {
-        loungeStayHours = 2;
+        loungeStayHours = 0;
       }
 
       if (loc != null) {
         calculatedTime = widget.busDepartureTime.subtract(
-          Duration(minutes: estDuration + 15 + (loungeStayHours * 60)),
+          Duration(minutes: estDuration + _transportBufferMinutes + (loungeStayHours * 60)),
         );
       } else {
         calculatedTime = widget.busDepartureTime.subtract(
@@ -1789,6 +1790,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       );
       if (!mounted) return;
 
+      _transportBufferMinutes = _loungeService.transportBufferMinutes;
+
       // Distance sorting logic
       final targetLat = widget.isPreTrip ? widget.startLat : widget.dropLat;
       final targetLng = widget.isPreTrip ? widget.startLng : widget.dropLng;
@@ -1843,6 +1846,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       setState(() {
         _transportOptions = list;
         _isLoadingTransport = false;
+        _updateDefaultTransportDateTime();
       });
     } catch (e) {
       if (!mounted) return;

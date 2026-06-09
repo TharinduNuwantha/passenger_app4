@@ -13,6 +13,7 @@ class LoungeBookingService {
 
   final ApiService _apiService = ApiService();
   final Logger _logger = Logger();
+  int transportBufferMinutes = 15;
 
   // ============================================================================
   // LOUNGE DISCOVERY (Marketplace)
@@ -139,6 +140,12 @@ class LoungeBookingService {
       final response = await _apiService.get(
         '/api/v1/lounges/near-stop/discovery/$loungeId',
       );
+
+      if (response.data['buffer_minutes'] != null) {
+        transportBufferMinutes = response.data['buffer_minutes'] as int;
+      } else {
+        transportBufferMinutes = 15;
+      }
 
       final list =
           (response.data['locations'] as List<dynamic>?)
