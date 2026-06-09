@@ -1742,23 +1742,28 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
     final loc = _optionById(locId);
     final estDuration = loc?.estDurationMinutes ?? 0;
 
+    DateTime calculatedTime;
+
     if (widget.isPreTrip) {
+      int loungeStayHours = 1;
+      if (type == '1_hour') {
+        loungeStayHours = 1;
+      } else if (type == '2_hours') {
+        loungeStayHours = 2;
+      } else if (type == '3_hours') {
+        loungeStayHours = 3;
+      } else if (type == 'until_bus') {
+        loungeStayHours = 2;
+      }
+
       if (loc != null) {
-        return widget.busDepartureTime.subtract(
-          Duration(minutes: estDuration + 15),
+        calculatedTime = widget.busDepartureTime.subtract(
+          Duration(minutes: estDuration + 15 + (loungeStayHours * 60)),
         );
       } else {
-        int hoursBefore = 1;
-        if (type == '1_hour') {
-          hoursBefore = 1;
-        } else if (type == '2_hours') {
-          hoursBefore = 2;
-        } else if (type == '3_hours') {
-          hoursBefore = 3;
-        } else if (type == 'until_bus') {
-          hoursBefore = 2;
-        }
-        return widget.busDepartureTime.subtract(Duration(hours: hoursBefore));
+        calculatedTime = widget.busDepartureTime.subtract(
+          Duration(hours: loungeStayHours),
+        );
       }
     } else {
       final tripDate = widget.busArrivalTime ?? widget.busDepartureTime;
@@ -1772,16 +1777,27 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       } else if (type == 'until_bus') {
         stayHours = 5;
       }
-      return tripDate.add(Duration(hours: stayHours));
+      calculatedTime = tripDate.add(Duration(hours: stayHours));
     }
+
+    // Off-Duty Time Handling (Only applies to Post-Trip to avoid missing the bus for Pre-Trip)
+    // Automatically move the pickup time forward to 04:00 AM 
+    // if the calculated time falls between 00:00 and 04:00 (12:00 AM - 4:00 AM).
+    if (!widget.isPreTrip && calculatedTime.hour >= 0 && calculatedTime.hour < 4) {
+      calculatedTime = DateTime(
+        calculatedTime.year,
+        calculatedTime.month,
+        calculatedTime.day,
+        4,
+        0,
+      );
+    }
+
+    return calculatedTime;
   }
 
   void _updateDefaultTransportDateTime() {
-    final defaultDateTime = _calculateDefaultTime();
-    if (_transportDateTime == null ||
-        _transportDateTime!.isBefore(defaultDateTime)) {
-      _transportDateTime = defaultDateTime;
-    }
+    _transportDateTime = _calculateDefaultTime();
   }
 
   static const List<String> _locationIconPool = [
@@ -3562,29 +3578,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                           Expanded(
                             child: Builder(
                               builder: (context) {
-                                final loc = _optionById(selectedLocation);
-                                final estDuration =
-                                    loc?.estDurationMinutes ?? 0;
-
-                                int stayHours = 1;
-                                if (_selectedPricingType == '1_hour')
-                                  stayHours = 1;
-                                else if (_selectedPricingType == '2_hours')
-                                  stayHours = 2;
-                                else if (_selectedPricingType == '3_hours')
-                                  stayHours = 3;
-                                else if (_selectedPricingType == 'until_bus')
-                                  stayHours = 5;
-
                                 final pickupTime =
-                                    _transportDateTime ??
-                                    (widget.isPreTrip
-                                        ? widget.busDepartureTime.subtract(
-                                            Duration(minutes: estDuration + 15),
-                                          )
-                                        : (widget.busArrivalTime ??
-                                                  widget.busDepartureTime)
-                                              .add(Duration(hours: stayHours)));
+                                    _transportDateTime ?? _calculateDefaultTime();
 
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -3977,7 +3972,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                     children: [
                       Text(
                         widget.isPreTrip
-                            ? 'Defaulted to pick you up to arrive before bus departure (Earliest allowed: ${DateFormat('hh:mm a').format(_calculateDefaultTime())}).'
+                            ? 'Defaulted to pick you up to arrive before bus departure (Latest allowed: ${DateFormat('hh:mm a').format(_calculateDefaultTime())}).'
                             : 'Defaulted to pick you up after your ${_selectedPricingType == "until_bus" ? "5 hour" : "lounge stay"} duration (Earliest allowed: ${DateFormat('hh:mm a').format(_calculateDefaultTime())}).',
                         style: TextStyle(
                           fontSize: 11.5,
@@ -4020,17 +4015,25 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
   Future<void> _selectTransportDate() async {
     final defaultDateTime = _calculateDefaultTime();
     final initialDate = _transportDateTime ?? defaultDateTime;
-    final firstDate = DateTime(
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final defaultDate = DateTime(
       defaultDateTime.year,
       defaultDateTime.month,
       defaultDateTime.day,
     );
+    final firstDate = widget.isPreTrip ? today : defaultDate;
+    final lastDate = widget.isPreTrip ? defaultDate : today.add(const Duration(days: 30));
+    
+    DateTime safeInitialDate = initialDate;
+    if (safeInitialDate.isBefore(firstDate)) safeInitialDate = firstDate;
+    if (safeInitialDate.isAfter(lastDate)) safeInitialDate = lastDate;
 
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: initialDate.isBefore(firstDate) ? firstDate : initialDate,
+      initialDate: safeInitialDate,
       firstDate: firstDate,
-      lastDate: DateTime.now().add(const Duration(days: 30)),
+      lastDate: lastDate,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -4053,11 +4056,20 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         _transportDateTime?.hour ?? defaultDateTime.hour,
         _transportDateTime?.minute ?? defaultDateTime.minute,
       );
-      if (newDateTime.isBefore(defaultDateTime)) {
-        _showErrorSnackBar(
-          'Selected date/time cannot be earlier than the default time (${DateFormat('yyyy-MM-dd hh:mm a').format(defaultDateTime)}).',
-        );
-        return;
+      if (widget.isPreTrip) {
+        if (newDateTime.isAfter(defaultDateTime)) {
+          _showErrorSnackBar(
+            'Selected date/time cannot be later than the default time (${DateFormat('yyyy-MM-dd hh:mm a').format(defaultDateTime)}).',
+          );
+          return;
+        }
+      } else {
+        if (newDateTime.isBefore(defaultDateTime)) {
+          _showErrorSnackBar(
+            'Selected date/time cannot be earlier than the default time (${DateFormat('yyyy-MM-dd hh:mm a').format(defaultDateTime)}).',
+          );
+          return;
+        }
       }
       _updateState(() {
         _transportDateTime = newDateTime;
@@ -4095,11 +4107,20 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
         picked.hour,
         picked.minute,
       );
-      if (newDateTime.isBefore(defaultDateTime)) {
-        _showErrorSnackBar(
-          'Selected time cannot be earlier than the default time (${DateFormat('hh:mm a').format(defaultDateTime)}).',
-        );
-        return;
+      if (widget.isPreTrip) {
+        if (newDateTime.isAfter(defaultDateTime)) {
+          _showErrorSnackBar(
+            'Selected time cannot be later than the default time (${DateFormat('hh:mm a').format(defaultDateTime)}).',
+          );
+          return;
+        }
+      } else {
+        if (newDateTime.isBefore(defaultDateTime)) {
+          _showErrorSnackBar(
+            'Selected time cannot be earlier than the default time (${DateFormat('hh:mm a').format(defaultDateTime)}).',
+          );
+          return;
+        }
       }
       _updateState(() {
         _transportDateTime = newDateTime;
