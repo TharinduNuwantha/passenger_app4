@@ -52,7 +52,7 @@ func (r *TransportBookingRepository) GetTransportBookingsByUserID(userID string,
 			tb.estimated_duration_minutes, tb.booking_reference, tb.status, tb.payment_status,
 			tb.payment_reference, tb.driver_id, tb.driver_assigned_at, tb.cancellation_reason,
 			tb.refund_status, tb.refund_amount, tb.created_at, tb.updated_at,
-			l.lounge_name, ptl.name as pickup_location_name
+			l.lounge_name, ptl.location as pickup_location_name
 		FROM transport_bookings tb
 		LEFT JOIN lounges l ON tb.lounge_id = l.id
 		LEFT JOIN lounge_transport_locations ptl ON tb.pickup_location_id = ptl.id
@@ -75,7 +75,7 @@ func (r *TransportBookingRepository) GetTransportBookingByID(bookingID string) (
 			tb.estimated_duration_minutes, tb.booking_reference, tb.status, tb.payment_status,
 			tb.payment_reference, tb.driver_id, tb.driver_assigned_at, tb.cancellation_reason,
 			tb.refund_status, tb.refund_amount, tb.created_at, tb.updated_at,
-			l.lounge_name, ptl.name as pickup_location_name
+			l.lounge_name, ptl.location as pickup_location_name
 		FROM transport_bookings tb
 		LEFT JOIN lounges l ON tb.lounge_id = l.id
 		LEFT JOIN lounge_transport_locations ptl ON tb.pickup_location_id = ptl.id
@@ -99,7 +99,7 @@ func (r *TransportBookingRepository) GetTransportBookingsByBookingID(masterBooki
 			tb.estimated_duration_minutes, tb.booking_reference, tb.status, tb.payment_status,
 			tb.payment_reference, tb.driver_id, tb.driver_assigned_at, tb.cancellation_reason,
 			tb.refund_status, tb.refund_amount, tb.created_at, tb.updated_at,
-			l.lounge_name, ptl.name as pickup_location_name
+			l.lounge_name, ptl.location as pickup_location_name
 		FROM transport_bookings tb
 		LEFT JOIN lounges l ON tb.lounge_id = l.id
 		LEFT JOIN lounge_transport_locations ptl ON tb.pickup_location_id = ptl.id

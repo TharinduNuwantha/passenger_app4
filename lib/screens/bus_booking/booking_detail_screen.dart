@@ -230,22 +230,31 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
-              Icons.location_on, 'Pickup Location', transport.pickupLocationName ?? 'N/A'),
+            Icons.location_on,
+            'Pickup Location',
+            transport.pickupLocationName ?? 'N/A',
+          ),
           const SizedBox(height: 8),
           _buildDetailRow(
-              Icons.access_time, 'Pickup Time', _formatTime(transport.transportTime)),
+            Icons.access_time,
+            'Pickup Time',
+            _formatTime(transport.transportTime),
+          ),
           const SizedBox(height: 8),
           _buildDetailRow(
-              Icons.person,
-              'Driver Status',
-              transport.driverId != null ? 'Driver Assigned' : 'Pending Driver'),
-          
+            Icons.person,
+            'Driver Status',
+            transport.driverId != null ? 'Driver Assigned' : 'Pending Driver',
+          ),
+
           if (!transport.isCancelled && !transport.isCompleted) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: _isCancelling ? null : () => _cancelTransportBooking(transport.id),
+                onPressed: _isCancelling
+                    ? null
+                    : () => _cancelTransportBooking(transport.id),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
                   side: const BorderSide(color: Colors.red),
@@ -257,12 +266,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.red,
+                        ),
                       )
                     : const Text('Cancel Transport'),
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
@@ -396,7 +408,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       );
     }
 
-    final showTimer = busBooking != null &&
+    final showTimer =
+        busBooking != null &&
         booking.bookingStatus == MasterBookingStatus.confirmed &&
         busBooking.departureDatetime.isAfter(DateTime.now());
     final double pageViewHeight = showTimer ? 510 : 420;
@@ -532,14 +545,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     _buildDetailRow(
                       Icons.location_on_outlined,
                       'From',
-                      booking.searchFromLounge != null && booking.searchFromLounge!.isNotEmpty
+                      booking.searchFromLounge != null &&
+                              booking.searchFromLounge!.isNotEmpty
                           ? booking.searchFromLounge!
                           : busBooking.boardingStopName,
                     ),
                     _buildDetailRow(
                       Icons.location_on,
                       'To',
-                      booking.searchToLounge != null && booking.searchToLounge!.isNotEmpty
+                      booking.searchToLounge != null &&
+                              booking.searchToLounge!.isNotEmpty
                           ? booking.searchToLounge!
                           : busBooking.alightingStopName,
                     ),
@@ -616,6 +631,30 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               ),
               const SizedBox(height: 12),
               ...activeTransportBookings.map((t) => _buildTransportCard(t)),
+              const SizedBox(height: 20),
+            ] else if (booking.canBeCancelled) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Action not required currently
+                  },
+                  icon: const Icon(Icons.local_taxi),
+                  label: const Text(
+                    'Book Transport',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
             ],
 
@@ -975,10 +1014,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: 16,
-        horizontal: 20,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -999,10 +1035,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 6,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
@@ -1056,11 +1089,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ),
           ),
           if (busBooking != null &&
-              booking.bookingStatus ==
-                  MasterBookingStatus.confirmed &&
-              busBooking.departureDatetime.isAfter(
-                DateTime.now(),
-              )) ...[
+              booking.bookingStatus == MasterBookingStatus.confirmed &&
+              busBooking.departureDatetime.isAfter(DateTime.now())) ...[
             const Divider(height: 24),
             const Text(
               'TIME UNTIL DEPARTURE',
@@ -1072,9 +1102,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            BookingCountdownTimer(
-              targetDateTime: busBooking.departureDatetime,
-            ),
+            BookingCountdownTimer(targetDateTime: busBooking.departureDatetime),
           ],
         ],
       ),

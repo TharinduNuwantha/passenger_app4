@@ -1200,9 +1200,13 @@ class BookingResponse {
   factory BookingResponse.fromJson(Map<String, dynamic> json) {
     // API may return booking directly OR wrapped in {"booking": ...}
     // Check if 'booking' key exists, otherwise treat entire json as MasterBooking
-    final bookingJson = json.containsKey('booking') && json['booking'] != null
-        ? json['booking'] as Map<String, dynamic>
-        : json;
+    final Map<String, dynamic> bookingJson = json.containsKey('booking') && json['booking'] != null
+        ? Map<String, dynamic>.from(json['booking'] as Map<String, dynamic>)
+        : Map<String, dynamic>.from(json);
+
+    if (json.containsKey('transport_bookings') && json['transport_bookings'] != null) {
+      bookingJson['transport_bookings'] = json['transport_bookings'];
+    }
 
     ConfirmedBookingInfo? preLounge;
     ConfirmedBookingInfo? postLounge;
