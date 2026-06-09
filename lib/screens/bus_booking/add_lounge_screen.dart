@@ -1702,20 +1702,13 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       } else if (type == 'until_bus') {
         stayHours = 5;
       }
-      calculatedTime = tripDate.add(Duration(hours: stayHours));
-    }
-
-    // Off-Duty Time Handling (Only applies to Post-Trip to avoid missing the bus for Pre-Trip)
-    // Automatically move the pickup time forward to 04:00 AM 
-    // if the calculated time falls between 00:00 and 04:00 (12:00 AM - 4:00 AM).
-    if (!widget.isPreTrip && calculatedTime.hour >= 0 && calculatedTime.hour < 4) {
-      calculatedTime = DateTime(
-        calculatedTime.year,
-        calculatedTime.month,
-        calculatedTime.day,
-        4,
-        0,
-      );
+      if (loc != null) {
+        calculatedTime = tripDate.add(
+          Duration(minutes: (stayHours * 60) + _transportBufferMinutes),
+        );
+      } else {
+        calculatedTime = tripDate.add(Duration(hours: stayHours));
+      }
     }
 
     return calculatedTime;
