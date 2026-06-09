@@ -178,45 +178,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
-  void _viewTransportQr(int activeTransportIndex) {
-    final booking = _bookingResponse?.booking;
-    if (booking == null) return;
 
-    final busBooking = _bookingResponse!.busBooking;
-    final preLounge = _bookingResponse!.preLoungeBooking;
-    final postLounge = _bookingResponse!.postLoungeBooking;
-    final qrCode = _bookingResponse!.qrCode ?? busBooking?.qrCodeData ?? '';
-
-    int qrIndex = 0;
-    if (qrCode.isNotEmpty &&
-        booking.bookingStatus != MasterBookingStatus.cancelled) {
-      qrIndex++;
-    }
-    if (booking.bookingStatus != MasterBookingStatus.cancelled) {
-      if (preLounge != null) qrIndex++;
-      if (postLounge != null) qrIndex++;
-    }
-
-    qrIndex += activeTransportIndex;
-
-    // Scroll to the top to show the QR area
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
-
-    // If there are multiple QR codes, switch the PageView to the target index
-    if (_qrPageController.hasClients) {
-      _qrPageController.animateToPage(
-        qrIndex,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  Widget _buildTransportCard(TransportBooking transport, int activeTransportIndex) {
+  Widget _buildTransportCard(TransportBooking transport) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -287,53 +250,34 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             transport.driverId != null ? 'Driver Assigned' : 'Pending Driver',
           ),
 
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _viewTransportQr(activeTransportIndex),
-                  icon: const Icon(Icons.qr_code, size: 18),
-                  label: const Text('View QR'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE65100),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+          if (!transport.isCompleted) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isCancelling
+                    ? null
+                    : () => _cancelTransportBooking(transport.id),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
+                child: _isCancelling
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.red,
+                        ),
+                      )
+                    : const Text('Cancel Transport'),
               ),
-              if (!transport.isCompleted) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _isCancelling
-                        ? null
-                        : () => _cancelTransportBooking(transport.id),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: _isCancelling
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.red,
-                            ),
-                          )
-                        : const Text('Cancel Transport'),
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
@@ -451,21 +395,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         .where((t) => !t.isCancelled)
         .toList();
 
-    for (var i = 0; i < activeTransportBookings.length; i++) {
-      final transport = activeTransportBookings[i];
-      final title = activeTransportBookings.length > 1
-          ? 'Transport Booking ${i + 1}'
-          : 'Transport Booking';
-      qrCards.add(
-        _buildLoungeQRCodeCard(
-          title: title,
-          qrData: transport.bookingReference ?? transport.id,
-          subtitle: 'Show to your driver',
-          icon: Icons.local_taxi,
-          color: const Color(0xFFE65100), // Orange
-        ),
-      );
-    }
+
 
     final showTimer =
         busBooking != null &&
@@ -710,7 +640,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             // Transport Details
             if (activeTransportBookings.isNotEmpty) ...[
               _buildSectionHeader('Transport Details', Icons.local_taxi_outlined),
-              ...activeTransportBookings.asMap().entries.map((entry) => _buildTransportCard(entry.value, entry.key)),
+              ...activeTransportBookings.map((transport) => _buildTransportCard(transport)),
               const SizedBox(height: 20),
             ] else if (booking.canBeCancelled) ...[
               _buildSectionHeader('Transport Details', Icons.local_taxi_outlined),
