@@ -200,9 +200,19 @@ class _BusListScreenState extends State<BusListScreen> {
       body: Consumer<SearchProvider>(
         builder: (context, searchProvider, child) {
           final now = DateTime.now();
-          List<TripResult> trips = searchProvider.tripResults
-              .where((t) => t.departureTime.isAfter(now))
-              .toList();
+          List<TripResult> trips = searchProvider.tripResults.where((t) {
+            // Combine the search date with the bus's departure time to ensure
+            // we correctly evaluate whether the bus has expired today.
+            final searchDate = widget.date ?? now;
+            final actualDeparture = DateTime(
+              searchDate.year,
+              searchDate.month,
+              searchDate.day,
+              t.departureTime.hour,
+              t.departureTime.minute,
+            );
+            return actualDeparture.isAfter(now);
+          }).toList();
 
           // Find nearest lounges among all direct trips
           String? nearestFromLounge;
