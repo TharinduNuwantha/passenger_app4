@@ -1821,7 +1821,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             _preTripPickupLocation = list.first.id;
             // Also auto-select a default vehicle if available
             if (list.first.threeWheelerPrice > 0) {
-              _preTripTransportType = 'three_wheeler';
+              _preTripTransportType = 'tuktuk';
             } else if (list.first.carPrice > 0) {
               _preTripTransportType = 'car';
             } else if (list.first.vanPrice > 0) {
@@ -1833,7 +1833,7 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
             _postTripPickupLocation = list.first.id;
             // Also auto-select a default vehicle if available
             if (list.first.threeWheelerPrice > 0) {
-              _postTripTransportType = 'three_wheeler';
+              _postTripTransportType = 'tuktuk';
             } else if (list.first.carPrice > 0) {
               _postTripTransportType = 'car';
             } else if (list.first.vanPrice > 0) {
