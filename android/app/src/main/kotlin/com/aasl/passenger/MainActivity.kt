@@ -1,4 +1,4 @@
-package com.example.sms_auth_passenger_app
+package com.aasl.passenger
 
 import io.flutter.embedding.android.FlutterActivity
 

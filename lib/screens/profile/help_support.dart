@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
@@ -83,6 +85,13 @@ class HelpSupportScreen extends StatelessWidget {
                     title: 'Test Push Notification',
                     subtitle: 'Tap to send a test push to your device',
                     onTap: () => _testPushNotification(context),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSupportCard(
+                    icon: Icons.update_outlined,
+                    title: 'Test DB Trigger (Confirm Booking)',
+                    subtitle: 'Set a pending transport booking to confirmed',
+                    onTap: () => _testConfirmBooking(context),
                   ),
                   
                   const SizedBox(height: 40),
@@ -178,7 +187,8 @@ class HelpSupportScreen extends StatelessWidget {
   }
 
   Future<void> _testPushNotification(BuildContext context) async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.user?.id;
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not logged in!')));
       return;
@@ -215,6 +225,51 @@ class HelpSupportScreen extends StatelessWidget {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${response.body}')));
       }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _testConfirmBooking(BuildContext context) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.user?.id;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not logged in!')));
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Searching for pending booking...')));
+
+    try {
+      final supabase = Supabase.instance.client;
+      // Find a pending booking
+      final pendingBookings = await supabase
+          .from('transport_bookings')
+          .select()
+          .eq('user_id', userId)
+          .eq('status', 'pending')
+          .limit(1);
+
+      if (!context.mounted) return;
+
+      if (pendingBookings.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No pending transport bookings found to confirm.')));
+        return;
+      }
+
+      final bookingId = pendingBookings[0]['id'];
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Confirming booking: $bookingId...')));
+
+      // Update to confirmed
+      await supabase
+          .from('transport_bookings')
+          .update({'status': 'confirmed'})
+          .eq('id', bookingId);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking confirmed! Check notifications.')));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
