@@ -1721,10 +1721,4 @@ func (s *BookingOrchestratorService) buildPartialAvailabilityError(
 func (s *BookingOrchestratorService) GetIntentsByUser(userID uuid.UUID, limit, offset int) ([]*models.BookingIntent, error) {
 	return s.intentRepo.GetIntentsByUserID(userID, limit, offset)
 }
-	return err
-}
 
-// GetIntentsByUser retrieves all intents for a user with pagination
-func (s *BookingOrchestratorService) GetIntentsByUser(userID uuid.UUID, limit, offset int) ([]*models.BookingIntent, error) {
-	return s.intentRepo.GetIntentsByUserID(userID, limit, offset)
-}
