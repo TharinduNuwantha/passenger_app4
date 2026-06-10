@@ -42,9 +42,7 @@ type TransportBooking struct {
 	BookingReference         *string                `json:"booking_reference,omitempty" db:"booking_reference"`
 	Status                   TransportBookingStatus `json:"status" db:"status"`
 	PaymentStatus            TransportPaymentStatus `json:"payment_status" db:"payment_status"`
-	PaymentReference         *string                `json:"payment_reference,omitempty" db:"payment_reference"`
-	DriverID                 *string                `json:"driver_id,omitempty" db:"driver_id"`
-	DriverAssignedAt         *time.Time             `json:"driver_assigned_at,omitempty" db:"driver_assigned_at"`
+	LoungeTransportType      *string                `json:"lounge_transport_type,omitempty" db:"lounge_transport_type"`
 	CancellationReason       *string                `json:"cancellation_reason,omitempty" db:"cancellation_reason"`
 	RefundStatus             *string                `json:"refund_status,omitempty" db:"refund_status"`
 	RefundAmount             float64                `json:"refund_amount" db:"refund_amount"`
