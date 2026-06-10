@@ -3,6 +3,7 @@ import 'package:logger/logger.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/token_refresh_service.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -49,6 +50,8 @@ class AuthProvider extends ChangeNotifier {
 
           // Start auto token refresh
           _tokenRefreshService.startAutoRefresh();
+
+          OneSignal.login(_user!.id);
 
           _logger.i('User is authenticated');
         } else {
@@ -125,6 +128,8 @@ class AuthProvider extends ChangeNotifier {
         // Start auto token refresh
         _tokenRefreshService.startAutoRefresh();
 
+        OneSignal.login(_user!.id);
+
         _logger.i('OTP verified successfully - User: ${_user?.name}');
         return true;
       }
@@ -181,6 +186,7 @@ class AuthProvider extends ChangeNotifier {
 
         // Stop auto token refresh
         _tokenRefreshService.stopAutoRefresh();
+        OneSignal.logout();
 
         _logger.i('Logout successful');
         return true;

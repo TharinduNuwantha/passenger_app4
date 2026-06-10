@@ -1,4 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_style.dart';
 import '../../widgets/blue_header.dart';
@@ -72,6 +76,13 @@ class HelpSupportScreen extends StatelessWidget {
                     title: 'Report a Problem',
                     subtitle: 'Let us know if something is wrong',
                     onTap: () {},
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSupportCard(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Test Push Notification',
+                    subtitle: 'Tap to send a test push to your device',
+                    onTap: () => _testPushNotification(context),
                   ),
                   
                   const SizedBox(height: 40),
@@ -164,5 +175,49 @@ class HelpSupportScreen extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
+  }
+
+  Future<void> _testPushNotification(BuildContext context) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not logged in!')));
+      return;
+    }
+
+    final restApiKey = dotenv.env['ONESIGNAL_REST_API_KEY'];
+    if (restApiKey == null || restApiKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please add ONESIGNAL_REST_API_KEY to your Flutter .env file!')));
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending push request...')));
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://onesignal.com/api/v1/notifications'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic $restApiKey',
+        },
+        body: jsonEncode({
+          "app_id": "953f9d46-26ca-4f7d-8690-c3cefd7c583f",
+          "include_external_user_ids": [userId],
+          "target_channel": "push",
+          "headings": {"en": "Test Push Notification"},
+          "contents": {"en": "It works! Your OneSignal setup is correct."},
+        }),
+      );
+
+      if (!context.mounted) return;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Push notification sent successfully!')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${response.body}')));
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 }

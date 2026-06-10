@@ -1,7 +1,11 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -1085,7 +1089,7 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 		TransportPrice:   transportPrice,
 		TransportDate:    transportDate,
 		TransportTime:    transportTime,
-		Status:           models.TransportBookingPending,
+		Status:           models.TransportBookingConfirmed,
 		PaymentStatus:    models.TransportPaymentPaid,
 	}
 
@@ -1094,6 +1098,51 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 		s.logger.WithError(err).Error("Failed to create transport booking")
 		return err
 	}
+
+	// Trigger OneSignal Push Notification
+	go func(uid string) {
+		payload := map[string]interface{}{
+			"app_id": "953f9d46-26ca-4f7d-8690-c3cefd7c583f",
+			"include_external_user_ids": []string{uid},
+			"target_channel": "push",
+			"headings": map[string]string{"en": "Transport Confirmed"},
+			"contents": map[string]string{"en": "testing - Your transport booking is confirmed"},
+		}
+		
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			s.logger.WithError(err).Error("Failed to marshal OneSignal payload")
+			return
+		}
+		
+		req, err := http.NewRequest("POST", "https://onesignal.com/api/v1/notifications", bytes.NewBuffer(jsonData))
+		if err != nil {
+			s.logger.WithError(err).Error("Failed to create OneSignal request")
+			return
+		}
+		
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		
+		restApiKey := os.Getenv("ONESIGNAL_REST_API_KEY")
+		if restApiKey != "" {
+			req.Header.Set("Authorization", "Basic "+restApiKey)
+		}
+		
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			s.logger.WithError(err).Error("Failed to send OneSignal push")
+			return
+		}
+		defer resp.Body.Close()
+		
+		if resp.StatusCode >= 300 {
+			s.logger.Errorf("OneSignal API returned status: %d", resp.StatusCode)
+		} else {
+			s.logger.Info("OneSignal push notification sent successfully")
+		}
+	}(intent.UserID.String())
 
 	return nil
 }

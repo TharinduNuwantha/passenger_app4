@@ -1,3 +1,4 @@
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +28,11 @@ Future<void> main() async {
 
   // Load env first (needed for Supabase key)
   await dotenv.load(fileName: ".env");
+
+  // Initialize OneSignal
+  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+  OneSignal.initialize('953f9d46-26ca-4f7d-8690-c3cefd7c583f');
+  OneSignal.Notifications.requestPermission(true);
 
   // Fire Supabase init without awaiting — splash screen animation gives it time
   unawaited(Supabase.initialize(

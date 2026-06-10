@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "325210734359",
+    "project_id": "passenger-f9685",
+    "storage_bucket": "passenger-f9685.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325210734359:android:f2d28fb5509b5947354152",
+        "android_client_info": {
+          "package_name": "com.aasl.passenger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4LKydH9Pps6ZgGiGSiVFV7uhvykbzoQ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
