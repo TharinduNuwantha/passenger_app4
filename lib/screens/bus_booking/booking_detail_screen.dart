@@ -64,31 +64,33 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
         try {
           // Find driver details conditionally
-          final loungeBookingRes = await supabase
+          final loungeBookingsRes = await supabase
               .from('lounge_bookings')
               .select('id')
-              .eq('master_booking_id', bookingId)
-              .maybeSingle();
+              .eq('master_booking_id', bookingId);
 
-          if (loungeBookingRes != null) {
-            final loungeBookingId = loungeBookingRes['id'];
+          if (loungeBookingsRes != null) {
+            for (var lb in (loungeBookingsRes as List)) {
+              final loungeBookingId = lb['id'];
 
-            final assignmentRes = await supabase
-                .from('lounge_booking_driver_assignments')
-                .select('''
-                  driver_contact,
-                  driver_id,
-                  lounge_drivers (
-                    name,
-                    vehicle_no,
-                    vehicle_type
-                  )
-                ''')
-                .eq('lounge_booking_id', loungeBookingId)
-                .maybeSingle();
+              final assignmentRes = await supabase
+                  .from('lounge_booking_driver_assignments')
+                  .select('''
+                    driver_contact,
+                    driver_id,
+                    lounge_drivers (
+                      name,
+                      vehicle_no,
+                      vehicle_type
+                    )
+                  ''')
+                  .eq('lounge_booking_id', loungeBookingId)
+                  .maybeSingle();
 
-            if (assignmentRes != null) {
-              tbData['driver_assignment'] = assignmentRes;
+              if (assignmentRes != null) {
+                tbData['driver_assignment'] = assignmentRes;
+                break; // Stop looking once we find the driver assignment
+              }
             }
           }
         } catch (e) {
@@ -367,7 +369,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               child: Divider(),
             ),
             const Text(
-              'Driver Information',
+              'Assigned Driver',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -377,20 +379,26 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             const SizedBox(height: 8),
             _buildDetailRow(
               Icons.badge,
-              'Name',
+              'Driver Name',
               assignment['lounge_drivers']?['name'] ?? 'N/A',
             ),
             const SizedBox(height: 8),
             _buildDetailRow(
               Icons.phone,
-              'Contact',
+              'Driver Contact',
               assignment['driver_contact'] ?? 'N/A',
             ),
             const SizedBox(height: 8),
             _buildDetailRow(
               Icons.directions_car,
-              'Vehicle',
-              '${assignment['lounge_drivers']?['vehicle_type'] ?? ''} - ${assignment['lounge_drivers']?['vehicle_no'] ?? ''}',
+              'Vehicle No',
+              assignment['lounge_drivers']?['vehicle_no'] ?? 'N/A',
+            ),
+            const SizedBox(height: 8),
+            _buildDetailRow(
+              Icons.local_taxi,
+              'Vehicle Type',
+              assignment['lounge_drivers']?['vehicle_type'] ?? 'N/A',
             ),
           ],
 
