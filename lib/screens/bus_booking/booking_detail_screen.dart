@@ -7,6 +7,7 @@ import '../../services/booking_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/booking_countdown_timer.dart';
 import '../payment/payment_method_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Screen to display detailed booking information with QR code
 class BookingDetailScreen extends StatefulWidget {
@@ -27,6 +28,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   String? _errorMessage;
   bool _isCancelling = false;
 
+  List<Map<String, dynamic>> _transportDetails = [];
+  bool _isLoadingTransportDetails = false;
+
   final PageController _qrPageController = PageController();
   final ScrollController _scrollController = ScrollController();
   int _currentQrPage = 0;
@@ -44,6 +48,72 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     super.dispose();
   }
 
+  Future<void> _loadTransportDetails(List<TransportBooking> transports) async {
+    setState(() {
+      _isLoadingTransportDetails = true;
+    });
+
+    try {
+      final supabase = Supabase.instance.client;
+      final bookingId = widget.bookingId;
+
+      List<Map<String, dynamic>> updatedDetails = [];
+
+      for (var tb in transports) {
+        Map<String, dynamic> tbData = {'transport': tb};
+
+        try {
+          // Find driver details conditionally
+          final loungeBookingRes = await supabase
+              .from('lounge_bookings')
+              .select('id')
+              .eq('master_booking_id', bookingId)
+              .maybeSingle();
+
+          if (loungeBookingRes != null) {
+            final loungeBookingId = loungeBookingRes['id'];
+
+            final assignmentRes = await supabase
+                .from('lounge_booking_driver_assignments')
+                .select('''
+                  driver_contact,
+                  driver_id,
+                  lounge_drivers (
+                    name,
+                    vehicle_no,
+                    vehicle_type
+                  )
+                ''')
+                .eq('lounge_booking_id', loungeBookingId)
+                .maybeSingle();
+
+            if (assignmentRes != null) {
+              tbData['driver_assignment'] = assignmentRes;
+            }
+          }
+        } catch (e) {
+          _logger.w('Failed to load driver details for transport: $e');
+        }
+
+        updatedDetails.add(tbData);
+      }
+
+      if (mounted) {
+        setState(() {
+          _transportDetails = updatedDetails;
+          _isLoadingTransportDetails = false;
+        });
+      }
+    } catch (e) {
+      _logger.e('Failed to load transport details: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingTransportDetails = false;
+        });
+      }
+    }
+  }
+
   Future<void> _loadBookingDetails() async {
     setState(() {
       _isLoading = true;
@@ -56,6 +126,41 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         _bookingResponse = response;
         _isLoading = false;
       });
+
+      // Fetch transport bookings directly from Supabase
+      try {
+        final supabase = Supabase.instance.client;
+        final transportRes = await supabase
+            .from('transport_bookings')
+            .select('''
+              *,
+              lounge_transport_locations (
+                location
+              ),
+              lounges (
+                lounge_name
+              )
+            ''')
+            .eq('booking_id', widget.bookingId);
+
+        List<TransportBooking> fetchedTransports = [];
+        for (var t in transportRes) {
+          if (t['lounge_transport_locations'] != null) {
+            t['pickup_location_name'] = t['lounge_transport_locations']['location'];
+          }
+          if (t['lounges'] != null) {
+            t['lounge_name'] = t['lounges']['lounge_name'];
+          }
+          fetchedTransports.add(TransportBooking.fromJson(t));
+        }
+
+        // Load driver details if transport exists
+        await _loadTransportDetails(fetchedTransports.isNotEmpty ? fetchedTransports : response.booking.transportBookings);
+      } catch (e) {
+        _logger.e('Failed to fetch transport bookings directly: $e');
+        await _loadTransportDetails(response.booking.transportBookings);
+      }
+      
       _logger.i('Loaded booking: ${response.booking.bookingReference}');
     } catch (e) {
       _logger.e('Failed to load booking: $e');
@@ -178,8 +283,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
+  Widget _buildTransportCard(Map<String, dynamic> transportData) {
+    final transport = transportData['transport'] as TransportBooking;
+    final status = transport.status;
+    final vehicleType = transport.vehicleType;
+    final locationName = transport.pickupLocationName ?? 'N/A';
+    final transportTime = transport.transportTime;
+    final isCompleted = status == 'completed';
+    final transportId = transport.id;
 
-  Widget _buildTransportCard(TransportBooking transport) {
+    final assignment = transportData['driver_assignment'];
+    final bool hasDriver = assignment != null;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -206,7 +321,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   const Icon(Icons.local_taxi, color: Color(0xFFE65100)),
                   const SizedBox(width: 8),
                   Text(
-                    transport.vehicleType,
+                    vehicleType,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -221,7 +336,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  transport.status.toUpperCase(),
+                  status.toUpperCase(),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -232,32 +347,61 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildDetailRow(
-            Icons.location_on,
-            'Pickup Location',
-            transport.pickupLocationName ?? 'N/A',
-          ),
+          _buildDetailRow(Icons.location_on, 'Pickup Location', locationName),
           const SizedBox(height: 8),
           _buildDetailRow(
             Icons.access_time,
             'Pickup Time',
-            _formatTime(transport.transportTime),
+            transportTime != null ? _formatTime(transportTime) : 'N/A',
           ),
           const SizedBox(height: 8),
           _buildDetailRow(
             Icons.person,
             'Driver Status',
-            transport.driverId != null ? 'Driver Assigned' : 'Pending Driver',
+            hasDriver ? 'Driver Assigned' : 'Pending Driver',
           ),
 
-          if (!transport.isCompleted) ...[
+          if (hasDriver) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Divider(),
+            ),
+            const Text(
+              'Driver Information',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildDetailRow(
+              Icons.badge,
+              'Name',
+              assignment['lounge_drivers']?['name'] ?? 'N/A',
+            ),
+            const SizedBox(height: 8),
+            _buildDetailRow(
+              Icons.phone,
+              'Contact',
+              assignment['driver_contact'] ?? 'N/A',
+            ),
+            const SizedBox(height: 8),
+            _buildDetailRow(
+              Icons.directions_car,
+              'Vehicle',
+              '${assignment['lounge_drivers']?['vehicle_type'] ?? ''} - ${assignment['lounge_drivers']?['vehicle_no'] ?? ''}',
+            ),
+          ],
+
+          if (!isCompleted) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: _isCancelling
                     ? null
-                    : () => _cancelTransportBooking(transport.id),
+                    : () => _cancelTransportBooking(transportId),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
                   side: const BorderSide(color: Colors.red),
@@ -391,11 +535,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
     }
 
-    final activeTransportBookings = booking.transportBookings
-        .where((t) => !t.isCancelled)
+    final activeTransportBookings = _transportDetails
+        .where(
+          (t) => (t['transport'] as TransportBooking).status != 'cancelled',
+        )
         .toList();
-
-
 
     final showTimer =
         busBooking != null &&
@@ -480,9 +624,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                                   GestureDetector(
                                     onTap: () {
                                       Clipboard.setData(
-                                        ClipboardData(text: booking.bookingReference),
+                                        ClipboardData(
+                                          text: booking.bookingReference,
+                                        ),
                                       );
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
                                           content: Text('Reference copied'),
                                           duration: Duration(seconds: 1),
@@ -560,7 +708,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             if (busBooking != null) ...[
               _buildSectionHeader('Trip Details', Icons.route_outlined),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: _sectionCardDecoration(),
                 child: Column(
                   children: [
@@ -637,13 +788,27 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ],
             const SizedBox(height: 20),
 
-            // Transport Details
-            if (activeTransportBookings.isNotEmpty) ...[
-              _buildSectionHeader('Transport Details', Icons.local_taxi_outlined),
-              ...activeTransportBookings.map((transport) => _buildTransportCard(transport)),
+            if (_isLoadingTransportDetails) ...[
+              _buildSectionHeader(
+                'Transport Details',
+                Icons.local_taxi_outlined,
+              ),
+              const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 20),
+            ] else if (activeTransportBookings.isNotEmpty) ...[
+              _buildSectionHeader(
+                'Transport Details',
+                Icons.local_taxi_outlined,
+              ),
+              ...activeTransportBookings.map(
+                (transport) => _buildTransportCard(transport),
+              ),
               const SizedBox(height: 20),
             ] else if (booking.canBeCancelled) ...[
-              _buildSectionHeader('Transport Details', Icons.local_taxi_outlined),
+              _buildSectionHeader(
+                'Transport Details',
+                Icons.local_taxi_outlined,
+              ),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -1000,10 +1165,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: color,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
                 ),
+                decoration: BoxDecoration(color: color),
                 child: Row(
                   children: [
                     Icon(icon, color: Colors.white, size: 18),
@@ -1103,7 +1269,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   ) {
     final seatNumbers = seats.isNotEmpty
         ? seats.map((s) => s.seatNumber).join(', ')
-        : (busBooking?.numberOfSeats != null ? '${busBooking!.numberOfSeats} Seats' : 'N/A');
+        : (busBooking?.numberOfSeats != null
+              ? '${busBooking!.numberOfSeats} Seats'
+              : 'N/A');
 
     return Container(
       width: double.infinity,
@@ -1127,7 +1295,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             children: [
               // Ticket Header
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 20,
+                ),
                 decoration: const BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.only(
@@ -1137,7 +1308,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.directions_bus, color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'BOARDING PASS',
@@ -1163,7 +1338,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _getCityName(booking.searchFromLounge ?? busBooking.boardingStopName),
+                              _getCityName(
+                                booking.searchFromLounge ??
+                                    busBooking.boardingStopName,
+                              ),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -1174,7 +1352,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              booking.searchFromLounge ?? busBooking.boardingStopName,
+                              booking.searchFromLounge ??
+                                  busBooking.boardingStopName,
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -1220,7 +1399,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                               width: 6,
                               height: 6,
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.primary, width: 1.5),
+                                border: Border.all(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
@@ -1233,7 +1415,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              _getCityName(booking.searchToLounge ?? busBooking.alightingStopName),
+                              _getCityName(
+                                booking.searchToLounge ??
+                                    busBooking.alightingStopName,
+                              ),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -1244,7 +1429,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              booking.searchToLounge ?? busBooking.alightingStopName,
+                              booking.searchToLounge ??
+                                  busBooking.alightingStopName,
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -1297,7 +1483,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           width: 16,
                           height: 16,
                           decoration: const BoxDecoration(
-                            color: AppColors.background, // Match screen background color
+                            color: AppColors
+                                .background, // Match screen background color
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -1508,7 +1695,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      BookingCountdownTimer(targetDateTime: busBooking.departureDatetime),
+                      BookingCountdownTimer(
+                        targetDateTime: busBooking.departureDatetime,
+                      ),
                     ],
                   ),
                 ),
