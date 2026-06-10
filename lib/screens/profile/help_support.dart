@@ -187,22 +187,69 @@ class HelpSupportScreen extends StatelessWidget {
   }
 
   Future<void> _testPushNotification(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userId = authProvider.user?.id;
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not logged in!')));
-      return;
-    }
-
     final restApiKey = dotenv.env['ONESIGNAL_REST_API_KEY'];
     if (restApiKey == null || restApiKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please add ONESIGNAL_REST_API_KEY to your Flutter .env file!')));
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending push request...')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Processing test booking...')));
 
     try {
+      final supabase = Supabase.instance.client;
+      final bookingId = '54d55ce3-6471-4c62-b7ee-87a231352ecc';
+
+      // Change status to confirmed
+      await supabase
+          .from('transport_bookings')
+          .update({'status': 'confirmed'})
+          .eq('id', bookingId);
+
+      // Fetch booking details
+      final bookingRes = await supabase
+          .from('transport_bookings')
+          .select()
+          .eq('id', bookingId)
+          .single();
+
+      final userId = bookingRes['user_id'];
+      final vehicleType = bookingRes['vehicle_type'];
+      final transportDate = bookingRes['transport_date'];
+      final transportTime = bookingRes['transport_time'];
+      final transportType = bookingRes['lounge_transport_type'];
+      final loungeId = bookingRes['lounge_id'];
+      final pickupLocationId = bookingRes['pickup_location_id'];
+
+      // Fetch related data
+      final userRes = await supabase.from('users').select('first_name, last_name').eq('id', userId).single();
+      final firstName = userRes['first_name'] ?? 'Passenger';
+
+      String loungeName = 'Lounge';
+      if (loungeId != null) {
+        final loungeRes = await supabase.from('lounges').select('lounge_name').eq('id', loungeId).maybeSingle();
+        if (loungeRes != null) loungeName = loungeRes['lounge_name'];
+      }
+
+      String locationName = 'your pickup spot';
+      if (pickupLocationId != null) {
+        final locRes = await supabase.from('lounge_transport_locations').select('location').eq('id', pickupLocationId).maybeSingle();
+        if (locRes != null) locationName = locRes['location'];
+      }
+
+      String pushHeading = '';
+      String pushContent = '';
+
+      if (transportType == 'user_to_lounge') {
+        pushHeading = 'Transport to $loungeName Confirmed! 🚗';
+        pushContent = 'Hi $firstName, your $vehicleType transport from $locationName to $loungeName on $transportDate at $transportTime is confirmed. See you soon!';
+      } else if (transportType == 'user_to_location') {
+        pushHeading = 'Transport from $loungeName Confirmed! 🚗';
+        pushContent = 'Hi $firstName, your $vehicleType transport from $loungeName to $locationName on $transportDate at $transportTime is confirmed. Have a safe trip!';
+      } else {
+        pushHeading = 'Transport Booking Confirmed! 🚗';
+        pushContent = 'Hi $firstName, your $vehicleType transport on $transportDate at $transportTime is confirmed!';
+      }
+
       final response = await http.post(
         Uri.parse('https://onesignal.com/api/v1/notifications'),
         headers: {
@@ -213,8 +260,8 @@ class HelpSupportScreen extends StatelessWidget {
           "app_id": "953f9d46-26ca-4f7d-8690-c3cefd7c583f",
           "include_external_user_ids": [userId],
           "target_channel": "push",
-          "headings": {"en": "Test Push Notification"},
-          "contents": {"en": "It works! Your OneSignal setup is correct."},
+          "headings": {"en": pushHeading},
+          "contents": {"en": pushContent},
         }),
       );
 
