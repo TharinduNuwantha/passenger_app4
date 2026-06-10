@@ -732,7 +732,7 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 			}
 
 			// Create transport booking if requested
-			if err := s.createTransportBookingFromIntent(intent, intent.PreTripLoungeIntent, masterBookingID); err != nil {
+			if err := s.createTransportBookingFromIntent(intent, intent.PreTripLoungeIntent, masterBookingID, "user_to_lounge"); err != nil {
 				s.logger.WithError(err).Error("Failed to create transport booking for pre-trip lounge")
 			}
 		}
@@ -760,7 +760,7 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 			}
 
 			// Create transport booking if requested
-			if err := s.createTransportBookingFromIntent(intent, intent.TransitLoungeIntent, masterBookingID); err != nil {
+			if err := s.createTransportBookingFromIntent(intent, intent.TransitLoungeIntent, masterBookingID, ""); err != nil {
 				s.logger.WithError(err).Error("Failed to create transport booking for transit lounge")
 			}
 		}
@@ -783,7 +783,7 @@ func (s *BookingOrchestratorService) ConfirmBooking(
 			}
 
 			// Create transport booking if requested
-			if err := s.createTransportBookingFromIntent(intent, intent.PostTripLoungeIntent, masterBookingID); err != nil {
+			if err := s.createTransportBookingFromIntent(intent, intent.PostTripLoungeIntent, masterBookingID, "user_to_location"); err != nil {
 				s.logger.WithError(err).Error("Failed to create transport booking for post-trip lounge")
 			}
 		}
@@ -1036,6 +1036,7 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 	intent *models.BookingIntent,
 	loungeIntent *models.LoungeIntentPayload,
 	masterBookingID *uuid.UUID,
+	loungeTransportType string,
 ) error {
 	if loungeIntent.TransportType == nil || *loungeIntent.TransportType == "" {
 		return nil // No transport requested
@@ -1079,18 +1080,24 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 		loungeID = &loungeIntent.LoungeID
 	}
 
+	var transportTypePtr *string
+	if loungeTransportType != "" {
+		transportTypePtr = &loungeTransportType
+	}
+
 	transportBooking := &models.TransportBooking{
-		BookingID:        masterBookingIDStr,
-		UserID:           intent.UserID.String(),
-		LoungeID:         loungeID,
-		PickupLocationID: loungeIntent.TransportPickupLocationID,
-		VehicleType:      *loungeIntent.TransportType,
-		VehicleQuantity:  1, // Default to 1
-		TransportPrice:   transportPrice,
-		TransportDate:    transportDate,
-		TransportTime:    transportTime,
-		Status:           models.TransportBookingConfirmed,
-		PaymentStatus:    models.TransportPaymentPaid,
+		BookingID:           masterBookingIDStr,
+		UserID:              intent.UserID.String(),
+		LoungeID:            loungeID,
+		PickupLocationID:    loungeIntent.TransportPickupLocationID,
+		VehicleType:         *loungeIntent.TransportType,
+		VehicleQuantity:     1, // Default to 1
+		TransportPrice:      transportPrice,
+		TransportDate:       transportDate,
+		TransportTime:       transportTime,
+		LoungeTransportType: transportTypePtr,
+		Status:              models.TransportBookingPending,
+		PaymentStatus:       models.TransportPaymentPaid,
 	}
 
 	err := s.transportBookingRepo.CreateTransportBooking(transportBooking)

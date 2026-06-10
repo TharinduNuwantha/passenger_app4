@@ -1683,7 +1683,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
 
       if (loc != null) {
         calculatedTime = widget.busDepartureTime.subtract(
-          Duration(minutes: estDuration + _transportBufferMinutes + (loungeStayHours * 60)),
+          Duration(
+            minutes:
+                estDuration + _transportBufferMinutes + (loungeStayHours * 60),
+          ),
         );
       } else {
         calculatedTime = widget.busDepartureTime.subtract(
@@ -3500,7 +3503,8 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
                             child: Builder(
                               builder: (context) {
                                 final pickupTime =
-                                    _transportDateTime ?? _calculateDefaultTime();
+                                    _transportDateTime ??
+                                    _calculateDefaultTime();
 
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -3944,8 +3948,10 @@ class _LoungeConfigurationSheetState extends State<_LoungeConfigurationSheet> {
       defaultDateTime.day,
     );
     final firstDate = widget.isPreTrip ? today : defaultDate;
-    final lastDate = widget.isPreTrip ? defaultDate : today.add(const Duration(days: 30));
-    
+    final lastDate = widget.isPreTrip
+        ? defaultDate
+        : today.add(const Duration(days: 30));
+
     DateTime safeInitialDate = initialDate;
     if (safeInitialDate.isBefore(firstDate)) safeInitialDate = firstDate;
     if (safeInitialDate.isAfter(lastDate)) safeInitialDate = lastDate;
