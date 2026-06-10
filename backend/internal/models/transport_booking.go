@@ -40,7 +40,6 @@ type TransportBooking struct {
 	TransportTime            time.Time              `json:"transport_time" db:"transport_time"`
 	EstimatedDurationMinutes *int                   `json:"estimated_duration_minutes,omitempty" db:"estimated_duration_minutes"`
 	BookingReference         *string                `json:"booking_reference,omitempty" db:"booking_reference"`
-	LoungeTransportType      *string                `json:"lounge_transport_type,omitempty" db:"lounge_transport_type"`
 	Status                   TransportBookingStatus `json:"status" db:"status"`
 	PaymentStatus            TransportPaymentStatus `json:"payment_status" db:"payment_status"`
 	PaymentReference         *string                `json:"payment_reference,omitempty" db:"payment_reference"`
