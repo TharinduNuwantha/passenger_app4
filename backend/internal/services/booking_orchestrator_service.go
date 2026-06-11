@@ -32,12 +32,12 @@ func DefaultOrchestratorConfig() BookingOrchestratorConfig {
 
 // BookingOrchestratorService handles the Intent → Payment → Confirm booking flow
 type BookingOrchestratorService struct {
-	intentRepo        *database.BookingIntentRepository
-	tripSeatRepo      *database.TripSeatRepository
-	scheduledTripRepo *database.ScheduledTripRepository
-	appBookingRepo    *database.AppBookingRepository
-	loungeBookingRepo *database.LoungeBookingRepository
-	loungeRepo        *database.LoungeRepository
+	intentRepo           *database.BookingIntentRepository
+	tripSeatRepo         *database.TripSeatRepository
+	scheduledTripRepo    *database.ScheduledTripRepository
+	appBookingRepo       *database.AppBookingRepository
+	loungeBookingRepo    *database.LoungeBookingRepository
+	loungeRepo           *database.LoungeRepository
 	busOwnerRouteRepo    *database.BusOwnerRouteRepository
 	transportBookingRepo *database.TransportBookingRepository
 	payableService       *PAYableService
@@ -874,7 +874,7 @@ func (s *BookingOrchestratorService) createBusBookingFromIntent(intent *models.B
 		loungeTotal += intent.PostTripLoungeIntent.BasePrice
 		preOrderTotal += intent.PostTripLoungeIntent.PreOrderTotal
 	}
-	
+
 	for _, tr := range intent.TransportIntents {
 		loungeTransportTotal += tr.TransportPrice
 	}
@@ -898,7 +898,6 @@ func (s *BookingOrchestratorService) createBusBookingFromIntent(intent *models.B
 		SearchFromLounge:     busIntent.SearchFromLounge,
 		SearchToLounge:       busIntent.SearchToLounge,
 	}
-
 
 	// Build bus booking
 	busBooking := &models.BusBooking{
@@ -1087,17 +1086,17 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 	}
 
 	transportBooking := &models.TransportBooking{
-		BookingID:        masterBookingIDStr,
-		UserID:           intent.UserID.String(),
-		LoungeID:         loungeID,
-		PickupLocationID: loungeIntent.TransportPickupLocationID,
-		VehicleType:      *loungeIntent.TransportType,
-		VehicleQuantity:  1, // Default to 1
-		TransportPrice:   transportPrice,
-		TransportDate:    transportDate,
-		TransportTime:    transportTime,
-		Status:           models.TransportBookingPending,
-		PaymentStatus:    models.TransportPaymentPaid,
+		BookingID:           masterBookingIDStr,
+		UserID:              intent.UserID.String(),
+		LoungeID:            loungeID,
+		PickupLocationID:    loungeIntent.TransportPickupLocationID,
+		VehicleType:         *loungeIntent.TransportType,
+		VehicleQuantity:     1, // Default to 1
+		TransportPrice:      transportPrice,
+		TransportDate:       transportDate,
+		TransportTime:       transportTime,
+		Status:              models.TransportBookingPending,
+		PaymentStatus:       models.TransportPaymentPaid,
 		LoungeTransportType: &loungeTransportType,
 	}
 
@@ -1108,42 +1107,35 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 	}
 
 	// Trigger OneSignal Push Notification
-	go func(uid string, bookingID *string) {
+	go func(uid string) {
 		payload := map[string]interface{}{
-			"app_id": "953f9d46-26ca-4f7d-8690-c3cefd7c583f",
+			"app_id":                    "953f9d46-26ca-4f7d-8690-c3cefd7c583f",
 			"include_external_user_ids": []string{uid},
-			"target_channel": "push",
-			"headings": map[string]string{"en": "Transport Booking Pending"},
-			"contents": map[string]string{"en": "Your transport booking has been requested and is pending"},
+			"target_channel":            "push",
+			"headings":                  map[string]string{"en": "Transport Booking Pending"},
+			"contents":                  map[string]string{"en": "testing - Your transport booking has been requested and is pending"},
 		}
-		
-		if bookingID != nil {
-			payload["data"] = map[string]string{
-				"booking_id": *bookingID,
-				"type": "transport",
-			}
-		}
-		
+
 		jsonData, err := json.Marshal(payload)
 		if err != nil {
 			s.logger.WithError(err).Error("Failed to marshal OneSignal payload")
 			return
 		}
-		
+
 		req, err := http.NewRequest("POST", "https://onesignal.com/api/v1/notifications", bytes.NewBuffer(jsonData))
 		if err != nil {
 			s.logger.WithError(err).Error("Failed to create OneSignal request")
 			return
 		}
-		
+
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json")
-		
+
 		restApiKey := os.Getenv("ONESIGNAL_REST_API_KEY")
 		if restApiKey != "" {
 			req.Header.Set("Authorization", "Basic "+restApiKey)
 		}
-		
+
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -1151,13 +1143,13 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 			return
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode >= 300 {
 			s.logger.Errorf("OneSignal API returned status: %d", resp.StatusCode)
 		} else {
 			s.logger.Info("OneSignal push notification sent successfully")
 		}
-	}(intent.UserID.String(), masterBookingIDStr)
+	}(intent.UserID.String())
 
 	return nil
 }
@@ -1736,4 +1728,3 @@ func (s *BookingOrchestratorService) buildPartialAvailabilityError(
 func (s *BookingOrchestratorService) GetIntentsByUser(userID uuid.UUID, limit, offset int) ([]*models.BookingIntent, error) {
 	return s.intentRepo.GetIntentsByUserID(userID, limit, offset)
 }
-

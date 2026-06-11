@@ -130,7 +130,7 @@ class SelectedLoungeData {
       pickupLocationId: pickupLocationId,
       transportCost: transportCost,
       transportTime: transportDateTime != null
-          ? DateFormat('yyyy-MM-dd HH:mm').format(transportDateTime!)
+          ? transportDateTime!.toUtc().toIso8601String()
           : null,
     );
   }

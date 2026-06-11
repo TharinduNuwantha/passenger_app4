@@ -239,7 +239,6 @@ class BookingService {
     }
   }
 
-
   /// Get booking details by ID
   ///
   /// [bookingId] - The booking ID

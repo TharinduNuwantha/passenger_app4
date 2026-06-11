@@ -740,7 +740,8 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
           return PopScope(
             canPop: false,
             child: Dialog(
-              backgroundColor: Colors.transparent,  // Overlay dialog — transparent is correct
+              backgroundColor:
+                  Colors.transparent, // Overlay dialog — transparent is correct
               elevation: 0,
               child: Container(
                 padding: const EdgeInsets.all(24),
@@ -769,7 +770,10 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                     const SizedBox(height: 8),
                     Text(
                       'Please wait',
-                      style: TextStyle(fontSize: 13, color: context.colors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: context.colors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -878,27 +882,34 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
   }
 
   // Get current location and populate search field
-  Future<void> _useCurrentLocation({required bool isPickup, bool silent = false}) async {
+  Future<void> _useCurrentLocation({
+    required bool isPickup,
+    bool silent = false,
+  }) async {
     if (isPickup) {
       pickupController.text = 'Your Location';
       setState(() {
         _isFindingLocation = true;
       });
-      _locationFetchFuture = _doUseCurrentLocation(isPickup: true, silent: silent).whenComplete(
-        () {
-          if (mounted)
-            setState(() {
-              _isFindingLocation = false;
-            });
-        },
-      );
+      _locationFetchFuture =
+          _doUseCurrentLocation(isPickup: true, silent: silent).whenComplete(
+            () {
+              if (mounted)
+                setState(() {
+                  _isFindingLocation = false;
+                });
+            },
+          );
       return _locationFetchFuture;
     } else {
       return _doUseCurrentLocation(isPickup: false, silent: silent);
     }
   }
 
-  Future<void> _doUseCurrentLocation({required bool isPickup, bool silent = false}) async {
+  Future<void> _doUseCurrentLocation({
+    required bool isPickup,
+    bool silent = false,
+  }) async {
     try {
       // Permission and Service status is already enforced by LocationGatekeeper
 
@@ -1757,7 +1768,11 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.schedule, size: 14, color: context.colors.textSecondary),
+                    Icon(
+                      Icons.schedule,
+                      size: 14,
+                      color: context.colors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _formatBookingDate(departureDate),
@@ -1851,7 +1866,9 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                       Icon(
                         isSelected ? item.$1 : item.$2,
                         size: 22,
-                        color: isSelected ? Colors.white : context.colors.iconInactive,
+                        color: isSelected
+                            ? Colors.white
+                            : context.colors.iconInactive,
                       ),
                       if (isSelected) ...[
                         const SizedBox(width: 6),
@@ -2585,7 +2602,6 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
               child: _buildUpcomingBookingsSection(),
             ),
           */
-
           const SizedBox(height: 12),
 
           // Active Trip Notification Card

@@ -22,10 +22,6 @@ import 'screens/profile/privacy_policy.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/location_gatekeeper.dart';
-import 'screens/bus_booking/booking_detail_screen.dart';
-import 'screens/bus_booking/my_bookings_screen.dart';
-
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,37 +34,13 @@ Future<void> main() async {
   OneSignal.initialize('953f9d46-26ca-4f7d-8690-c3cefd7c583f');
   OneSignal.Notifications.requestPermission(true);
 
-  OneSignal.Notifications.addClickListener((event) {
-    final data = event.notification.additionalData;
-    if (data != null && data['booking_id'] != null) {
-      final bookingId = data['booking_id'] as String;
-      // Push MyBookingsScreen first so the back button has a place to go
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (_) => const MyBookingsScreen(),
-        ),
-      );
-      
-      // Then push BookingDetailScreen
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (_) => BookingDetailScreen(bookingId: bookingId),
-        ),
-      );
-    } else {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (_) => const MyBookingsScreen(),
-        ),
-      );
-    }
-  });
-
   // Fire Supabase init without awaiting — splash screen animation gives it time
-  unawaited(Supabase.initialize(
-    url: 'https://pttatcukzpceljcrwehk.supabase.co',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
-  ));
+  unawaited(
+    Supabase.initialize(
+      url: 'https://pttatcukzpceljcrwehk.supabase.co',
+      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    ),
+  );
 
   runApp(const MyApp());
 }
@@ -90,7 +62,6 @@ class MyApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
-            navigatorKey: navigatorKey,
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
@@ -158,5 +129,5 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
-  } 
+  }
 }
