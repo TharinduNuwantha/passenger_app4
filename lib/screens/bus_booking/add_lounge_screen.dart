@@ -139,6 +139,7 @@ class SelectedLoungeData {
 /// Pre-order item with product details for display
 class PreOrderItemData {
   final String productId;
+
   final String productName;
   final double unitPrice;
   final int quantity;
