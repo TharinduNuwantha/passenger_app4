@@ -1086,6 +1086,12 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 		loungeID = &loungeIntent.LoungeID
 	}
 
+	ref, refErr := s.transportBookingRepo.GenerateTransportBookingReference()
+	if refErr != nil {
+		s.logger.WithError(refErr).Error("Failed to generate transport booking reference")
+		return refErr
+	}
+
 	transportBooking := &models.TransportBooking{
 		BookingID:        masterBookingIDStr,
 		UserID:           intent.UserID.String(),
@@ -1096,6 +1102,7 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 		TransportPrice:   transportPrice,
 		TransportDate:    transportDate,
 		TransportTime:    transportTime,
+		BookingReference: &ref,
 		Status:           models.TransportBookingPending,
 		PaymentStatus:    models.TransportPaymentPaid,
 		LoungeTransportType: &loungeTransportType,
