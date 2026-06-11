@@ -42,6 +42,14 @@ Future<void> main() async {
     final data = event.notification.additionalData;
     if (data != null && data['booking_id'] != null) {
       final bookingId = data['booking_id'] as String;
+      // Push MyBookingsScreen first so the back button has a place to go
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (_) => const MyBookingsScreen(),
+        ),
+      );
+      
+      // Then push BookingDetailScreen
       navigatorKey.currentState?.push(
         MaterialPageRoute(
           builder: (_) => BookingDetailScreen(bookingId: bookingId),

@@ -166,10 +166,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       _logger.i('Loaded booking: ${response.booking.bookingReference}');
     } catch (e) {
       _logger.e('Failed to load booking: $e');
-      setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-        _isLoading = false;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Booking not found or unavailable'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context); // Redirect to previous screen
+      }
     }
   }
 
