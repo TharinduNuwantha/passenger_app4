@@ -1059,10 +1059,16 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 			transportDate = parsedTime
 			transportTime = parsedTime
 		} else {
-			// Fallback if it's not full ISO8601
-			s.logger.WithError(err).Warn("Failed to parse transport time")
-			transportDate = time.Now()
-			transportTime = time.Now()
+			// Fallback if it's not full ISO8601, but flutter's 'yyyy-MM-dd HH:mm'
+			parsedTime, err = time.ParseInLocation("2006-01-02 15:04", *loungeIntent.TransportTime, time.Local)
+			if err == nil {
+				transportDate = parsedTime
+				transportTime = parsedTime
+			} else {
+				s.logger.WithError(err).Warn("Failed to parse transport time")
+				transportDate = time.Now()
+				transportTime = time.Now()
+			}
 		}
 	} else {
 		transportDate = time.Now()
