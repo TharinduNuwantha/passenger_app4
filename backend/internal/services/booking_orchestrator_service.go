@@ -1108,13 +1108,20 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 	}
 
 	// Trigger OneSignal Push Notification
-	go func(uid string) {
+	go func(uid string, bookingID *string) {
 		payload := map[string]interface{}{
 			"app_id": "953f9d46-26ca-4f7d-8690-c3cefd7c583f",
 			"include_external_user_ids": []string{uid},
 			"target_channel": "push",
 			"headings": map[string]string{"en": "Transport Booking Pending"},
-			"contents": map[string]string{"en": "testing - Your transport booking has been requested and is pending"},
+			"contents": map[string]string{"en": "Your transport booking has been requested and is pending"},
+		}
+		
+		if bookingID != nil {
+			payload["data"] = map[string]string{
+				"booking_id": *bookingID,
+				"type": "transport",
+			}
 		}
 		
 		jsonData, err := json.Marshal(payload)
@@ -1150,7 +1157,7 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 		} else {
 			s.logger.Info("OneSignal push notification sent successfully")
 		}
-	}(intent.UserID.String())
+	}(intent.UserID.String(), masterBookingIDStr)
 
 	return nil
 }
