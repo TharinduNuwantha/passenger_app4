@@ -240,14 +240,17 @@ class HelpSupportScreen extends StatelessWidget {
       String pushContent = '';
 
       if (transportType == 'user_to_lounge') {
-        pushHeading = 'Transport to $loungeName Confirmed! 🚗';
-        pushContent = 'Hi $firstName, your $vehicleType transport from $locationName to $loungeName on $transportDate at $transportTime is confirmed. See you soon!';
+        pushHeading = 'Transport Confirmed — $loungeName';
+        pushContent =
+            'Hi $firstName, your $vehicleType from $locationName to $loungeName is confirmed for $transportDate at $transportTime. Your driver will be assigned shortly. Tap to view details.';
       } else if (transportType == 'user_to_location') {
-        pushHeading = 'Transport from $loungeName Confirmed! 🚗';
-        pushContent = 'Hi $firstName, your $vehicleType transport from $loungeName to $locationName on $transportDate at $transportTime is confirmed. Have a safe trip!';
+        pushHeading = 'Transport Confirmed — $locationName';
+        pushContent =
+            'Hi $firstName, your $vehicleType from $loungeName to $locationName is confirmed for $transportDate at $transportTime. Have a comfortable journey. Tap to view details.';
       } else {
-        pushHeading = 'Transport Booking Confirmed! 🚗';
-        pushContent = 'Hi $firstName, your $vehicleType transport on $transportDate at $transportTime is confirmed!';
+        pushHeading = 'Transport Booking Confirmed';
+        pushContent =
+            'Hi $firstName, your $vehicleType transport on $transportDate at $transportTime has been confirmed. Your driver details will be shared soon.';
       }
 
       final response = await http.post(
@@ -262,6 +265,11 @@ class HelpSupportScreen extends StatelessWidget {
           "target_channel": "push",
           "headings": {"en": pushHeading},
           "contents": {"en": pushContent},
+          "small_icon": "ic_stat_notification",
+          "data": {
+            "type": "booking",
+            "user_id": userId,
+          },
         }),
       );
 

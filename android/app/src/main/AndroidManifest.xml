@@ -62,6 +62,16 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAuA_RMUaOuqKOasnd5GU8MdYvrDmToXPg" />
+        <!-- OneSignal: custom notification icon (white vector, shown in status bar) -->
+        <meta-data
+            android:name="com.onesignal.NotificationServiceExtension"
+            android:value="com.onesignal.NotificationServiceExtension" />
+        <meta-data
+            android:name="com.onesignal.DefaultNotificationIcon"
+            android:resource="@drawable/ic_stat_notification" />
+        <meta-data
+            android:name="com.onesignal.DefaultNotificationIconColor"
+            android:resource="@color/colorPrimary" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
