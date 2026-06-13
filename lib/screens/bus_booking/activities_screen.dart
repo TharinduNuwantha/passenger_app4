@@ -1107,7 +1107,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                   ),
                 ),
 
-                if (booking.hasTransport) ...[
+                if (booking.hasTransport && !['confirmed', 'completed'].contains(booking.transportStatus.toLowerCase())) ...[
                   const SizedBox(height: 12),
                   Builder(builder: (context) {
                     final status = booking.transportStatus;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logger/logger.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/booking_models.dart';
 import '../../services/booking_service.dart';
 import '../../theme/app_colors.dart';
@@ -60,40 +61,45 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       List<Map<String, dynamic>> updatedDetails = [];
 
       try {
+        // Step 1: Get lounge bookings for this master booking
         final loungeBookingsRes = await supabase
             .from('lounge_bookings')
             .select('id')
             .eq('master_booking_id', bookingId);
 
+        _logger.i('Lounge bookings found: ${loungeBookingsRes.length}');
+
         List<Map<String, dynamic>> driverAssignments = [];
-        if (loungeBookingsRes != null) {
-          for (var lb in (loungeBookingsRes as List)) {
-            final loungeBookingId = lb['id'];
+        for (var lb in loungeBookingsRes) {
+          final loungeBookingId = lb['id'];
 
-            final assignmentRes = await supabase
-                .from('lounge_booking_driver_assignments')
-                .select('''
-                  driver_contact,
-                  driver_id,
-                  status,
-                  guest_name,
-                  guest_contact,
-                  created_at,
-                  lounge_drivers (
-                    name,
-                    contact_no,
-                    vehicle_no,
-                    vehicle_type
-                  )
-                ''')
-                .eq('lounge_booking_id', loungeBookingId)
-                .maybeSingle();
+          // Step 2: Get driver assignment (without embedded join)
+          final assignmentRes = await supabase
+              .from('lounge_booking_driver_assignments')
+              .select('id, driver_contact, driver_id, status, guest_name, guest_contact, created_at')
+              .eq('lounge_booking_id', loungeBookingId)
+              .maybeSingle();
 
-            if (assignmentRes != null) {
-              driverAssignments.add(assignmentRes);
+          _logger.i('Driver assignment for lounge $loungeBookingId: $assignmentRes');
+
+          if (assignmentRes != null) {
+            // Step 3: Get driver details separately by driver_id
+            final driverId = assignmentRes['driver_id'];
+            if (driverId != null) {
+              final driverRes = await supabase
+                  .from('lounge_drivers')
+                  .select('name, contact_no, vehicle_no, vehicle_type')
+                  .eq('id', driverId)
+                  .maybeSingle();
+
+              _logger.i('Driver details for $driverId: $driverRes');
+              assignmentRes['lounge_drivers'] = driverRes;
             }
+            driverAssignments.add(assignmentRes);
           }
         }
+
+        _logger.i('Total driver assignments fetched: ${driverAssignments.length}');
 
         // Merge logic
         for (var i = 0; i < transports.length; i++) {
@@ -111,7 +117,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           });
         }
       } catch (e) {
-        _logger.w('Failed to load driver details for booking: $e');
+        _logger.e('Failed to load driver details for booking: $e');
         if (updatedDetails.isEmpty && transports.isNotEmpty) {
            for (var tb in transports) {
              updatedDetails.add({'transport': tb});
@@ -314,6 +320,62 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
+  Future<void> _callDriver(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    }
+  }
+
+  Widget _buildDriverContactRow(String contactNo) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: GestureDetector(
+        onTap: contactNo.isNotEmpty ? () => _callDriver(contactNo) : null,
+        child: Row(
+          children: [
+            Icon(Icons.phone, size: 20, color: AppColors.textSecondary.withOpacity(0.8)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Driver Contact',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    contactNo.isNotEmpty ? contactNo : 'N/A',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: contactNo.isNotEmpty ? Colors.blue : AppColors.textPrimary,
+                      decoration: contactNo.isNotEmpty ? TextDecoration.underline : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (contactNo.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.call, size: 18, color: Colors.green),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTransportCard(Map<String, dynamic> transportData) {
     final transport = transportData['transport'] as TransportBooking?;
     final assignment = transportData['driver_assignment'];
@@ -325,11 +387,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     // Parse assignment fields
     final String assignmentStatus = assignment?['status'] as String? ?? '';
-    final String guestName = assignment?['guest_name'] as String? ?? '';
-    final String guestContact = assignment?['guest_contact'] as String? ?? '';
     final String? assignmentCreatedAt = assignment?['created_at'] as String?;
     final String driverContactNo =
         assignment?['lounge_drivers']?['contact_no'] as String? ?? '';
+    final String resolvedContact = driverContactNo.isNotEmpty
+        ? driverContactNo
+        : (assignment?['driver_contact'] as String? ?? '');
 
     if (transport == null && hasDriver) {
       final String vehicleType = assignment['lounge_drivers']?['vehicle_type'] ?? 'Transport';
@@ -340,11 +403,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
@@ -357,13 +420,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.local_taxi, color: Color(0xFFE65100)),
-                    const SizedBox(width: 8),
-                    Text(
-                      vehicleType,
-                      style: const TextStyle(
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE65100).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.local_taxi, color: Color(0xFFE65100), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Driver Assigned',
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -372,61 +443,75 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   _buildAssignmentStatusBadge(assignmentStatus),
               ],
             ),
-            const SizedBox(height: 12),
-            _buildDetailRow(
-              Icons.badge,
-              'Driver Name',
-              assignment['lounge_drivers']?['name'] ?? 'N/A',
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(),
             ),
-            const SizedBox(height: 8),
-            _buildDetailRow(
-              Icons.phone,
-              'Driver Contact',
-              driverContactNo.isNotEmpty
-                  ? driverContactNo
-                  : (assignment['driver_contact'] ?? 'N/A'),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  child: const Icon(Icons.person, color: AppColors.primary, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        assignment['lounge_drivers']?['name'] ?? 'N/A',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Assigned Driver',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (resolvedContact.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => _callDriver(resolvedContact),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.call, color: Colors.green.shade600, size: 22),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             _buildDetailRow(
               Icons.directions_car,
               'Vehicle No',
               assignment['lounge_drivers']?['vehicle_no'] ?? 'N/A',
             ),
-            if (guestName.isNotEmpty || guestContact.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Divider(),
-              ),
-              const Text(
-                'Guest Information',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (guestName.isNotEmpty)
-                _buildDetailRow(
-                  Icons.person_outline,
-                  'Guest Name',
-                  guestName,
-                ),
-              if (guestName.isNotEmpty && guestContact.isNotEmpty)
-                const SizedBox(height: 8),
-              if (guestContact.isNotEmpty)
-                _buildDetailRow(
-                  Icons.phone_outlined,
-                  'Guest Contact',
-                  guestContact,
-                ),
-            ],
             if (assignmentCreatedAt != null) ...[
-              const SizedBox(height: 8),
-              _buildDetailRow(
-                Icons.schedule,
-                'Assigned At',
-                _formatAssignmentDateTime(assignmentCreatedAt),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(Icons.schedule, size: 14, color: AppColors.textSecondary.withOpacity(0.7)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Assigned at ${_formatAssignmentDateTime(assignmentCreatedAt)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary.withOpacity(0.8),
+                    ),
+                  ),
+                ],
               ),
             ],
           ],
@@ -509,7 +594,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
           if (hasDriver) ...[
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.symmetric(vertical: 12),
               child: Divider(),
             ),
             Row(
@@ -518,8 +603,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 const Text(
                   'Assigned Driver',
                   style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -527,67 +612,81 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   _buildAssignmentStatusBadge(assignmentStatus),
               ],
             ),
-            const SizedBox(height: 8),
-            _buildDetailRow(
-              Icons.badge,
-              'Driver Name',
-              assignment['lounge_drivers']?['name'] ?? 'N/A',
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: const Icon(Icons.person, color: AppColors.primary, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          assignment['lounge_drivers']?['name'] ?? 'N/A',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Assigned Driver',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (resolvedContact.isNotEmpty)
+                    GestureDetector(
+                      onTap: () => _callDriver(resolvedContact),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.call, color: Colors.green.shade600, size: 20),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            _buildDetailRow(
-              Icons.phone,
-              'Driver Contact',
-              driverContactNo.isNotEmpty
-                  ? driverContactNo
-                  : (assignment['driver_contact'] ?? 'N/A'),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _buildDetailRow(
               Icons.directions_car,
               'Vehicle No',
               assignment['lounge_drivers']?['vehicle_no'] ?? 'N/A',
             ),
-            const SizedBox(height: 8),
-            _buildDetailRow(
-              Icons.local_taxi,
-              'Vehicle Type',
-              assignment['lounge_drivers']?['vehicle_type'] ?? 'N/A',
-            ),
-            if (guestName.isNotEmpty || guestContact.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Divider(),
-              ),
-              const Text(
-                'Guest Information',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (guestName.isNotEmpty)
-                _buildDetailRow(
-                  Icons.person_outline,
-                  'Guest Name',
-                  guestName,
-                ),
-              if (guestName.isNotEmpty && guestContact.isNotEmpty)
-                const SizedBox(height: 8),
-              if (guestContact.isNotEmpty)
-                _buildDetailRow(
-                  Icons.phone_outlined,
-                  'Guest Contact',
-                  guestContact,
-                ),
-            ],
             if (assignmentCreatedAt != null) ...[
               const SizedBox(height: 8),
-              _buildDetailRow(
-                Icons.schedule,
-                'Assigned At',
-                _formatAssignmentDateTime(assignmentCreatedAt),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(Icons.schedule, size: 12, color: AppColors.textSecondary.withOpacity(0.7)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Assigned ${_formatAssignmentDateTime(assignmentCreatedAt)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary.withOpacity(0.8),
+                    ),
+                  ),
+                ],
               ),
             ],
           ],
