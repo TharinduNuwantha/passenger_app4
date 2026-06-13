@@ -155,8 +155,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
   void _onUpcomingScroll() {
     if (_upcomingController.position.pixels >=
-            _upcomingController.position.maxScrollExtent -
-                200 &&
+            _upcomingController.position.maxScrollExtent - 200 &&
         _canLoadMoreUpcoming()) {
       _loadUpcomingBookings(loadMore: true);
     }
@@ -164,8 +163,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
   void _onNotCompletedScroll() {
     if (_notCompletedController.position.pixels >=
-            _notCompletedController.position.maxScrollExtent -
-                200 &&
+            _notCompletedController.position.maxScrollExtent - 200 &&
         _canLoadMoreNotCompleted()) {
       _loadNotCompletedBookings(loadMore: true);
     }
@@ -173,8 +171,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
   void _onCompletedScroll() {
     if (_completedController.position.pixels >=
-            _completedController.position.maxScrollExtent -
-                200 &&
+            _completedController.position.maxScrollExtent - 200 &&
         _canLoadMoreCompleted()) {
       _loadCompletedBookings(loadMore: true);
     }
@@ -182,8 +179,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
   void _onCancelledScroll() {
     if (_cancelledController.position.pixels >=
-            _cancelledController.position.maxScrollExtent -
-                200 &&
+            _cancelledController.position.maxScrollExtent - 200 &&
         _canLoadMoreCancelled()) {
       _loadCancelledBookings(loadMore: true);
     }
@@ -217,10 +213,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         limit: _pageSize,
       );
 
-      final merged = [
-        ..._upcomingBookings,
-        ...result.bookings,
-      ];
+      final merged = [..._upcomingBookings, ...result.bookings];
       _sortBookings(merged, 'upcoming');
 
       setState(() {
@@ -273,10 +266,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         limit: _pageSize,
       );
 
-      final merged = [
-        ..._notCompletedBookings,
-        ...result.bookings,
-      ];
+      final merged = [..._notCompletedBookings, ...result.bookings];
       _sortBookings(merged, 'not_completed');
 
       setState(() {
@@ -329,10 +319,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         limit: _pageSize,
       );
 
-      final merged = [
-        ..._completedBookings,
-        ...result.bookings,
-      ];
+      final merged = [..._completedBookings, ...result.bookings];
       _sortBookings(merged, 'completed');
 
       setState(() {
@@ -385,10 +372,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         limit: _pageSize,
       );
 
-      final merged = [
-        ..._cancelledBookings,
-        ...result.bookings,
-      ];
+      final merged = [..._cancelledBookings, ...result.bookings];
       _sortBookings(merged, 'cancelled');
 
       setState(() {
@@ -430,13 +414,16 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
     if (coordRegExp.hasMatch(location.trim())) {
       return 'Map Location';
     }
-    
+
     // Clean up long addresses by taking the first significant part
     List<String> parts = location.split(',');
     if (parts.isNotEmpty) {
       String mainPart = parts[0].trim();
       mainPart = mainPart
-          .replaceAll(RegExp(r'\s+(Railway|Bus|Train)\s+Station', caseSensitive: false), '')
+          .replaceAll(
+            RegExp(r'\s+(Railway|Bus|Train)\s+Station', caseSensitive: false),
+            '',
+          )
           .replaceAll(RegExp(r'\s+Bus\s+Stand', caseSensitive: false), '')
           .replaceAll(RegExp(r'\s+Terminal', caseSensitive: false), '')
           .trim();
@@ -496,8 +483,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                       indicatorSize: TabBarIndicatorSize.tab,
                       indicatorPadding: const EdgeInsets.all(4),
                       labelColor: AppColors.primary,
-                      unselectedLabelColor:
-                          AppColors.textLight.withOpacity(0.85),
+                      unselectedLabelColor: AppColors.textLight.withOpacity(
+                        0.85,
+                      ),
                       labelStyle: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
@@ -656,7 +644,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
             const SizedBox(height: 16),
             Text(
               'Loading bookings...',
-              style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
+              style: TextStyle(
+                color: context.colors.textSecondary,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -673,7 +664,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50.withOpacity(context.isDarkMode ? 0.15 : 1),
+                  color: Colors.red.shade50.withOpacity(
+                    context.isDarkMode ? 0.15 : 1,
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -694,7 +687,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               const SizedBox(height: 8),
               Text(
                 error,
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
+                style: TextStyle(
+                  color: context.colors.textSecondary,
+                  fontSize: 14,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -730,7 +726,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(context.isDarkMode ? 0.15 : 0.1),
+                  color: AppColors.primary.withOpacity(
+                    context.isDarkMode ? 0.15 : 0.1,
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -751,7 +749,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
               const SizedBox(height: 8),
               Text(
                 emptySubtitle,
-                style: TextStyle(color: context.colors.textTertiary, fontSize: 14),
+                style: TextStyle(
+                  color: context.colors.textTertiary,
+                  fontSize: 14,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -798,41 +799,42 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
     final Color typeBgColor = isCombined
         ? const Color(0xFF0D9488).withOpacity(0.1)
         : (isBus
-            ? AppColors.primary.withOpacity(0.1)
-            : const Color(0xFF7C3AED).withOpacity(0.1));
+              ? AppColors.primary.withOpacity(0.1)
+              : const Color(0xFF7C3AED).withOpacity(0.1));
     final IconData typeIcon = isCombined
         ? Icons.commute
         : (isBus ? Icons.directions_bus : Icons.weekend);
 
     String fromLoc = 'Unknown';
     String toLoc = '';
-    
-    if (booking.type == UnifiedBookingType.bus || booking.type == UnifiedBookingType.combined) {
+
+    if (booking.type == UnifiedBookingType.bus ||
+        booking.type == UnifiedBookingType.combined) {
       if (booking.busBooking != null) {
-        fromLoc = booking.busBooking!.searchFromLounge?.isNotEmpty == true 
-            ? booking.busBooking!.searchFromLounge! 
+        fromLoc = booking.busBooking!.searchFromLounge?.isNotEmpty == true
+            ? booking.busBooking!.searchFromLounge!
             : '';
-        toLoc = booking.busBooking!.searchToLounge?.isNotEmpty == true 
-            ? booking.busBooking!.searchToLounge! 
+        toLoc = booking.busBooking!.searchToLounge?.isNotEmpty == true
+            ? booking.busBooking!.searchToLounge!
             : '';
-        
+
         if (fromLoc == 'Unknown' || fromLoc.isEmpty) {
-           final parts = booking.title.split(' - ');
-           if (parts.length >= 2) {
-             fromLoc = parts[0];
-             toLoc = parts[1];
-           } else {
-             fromLoc = booking.title;
-           }
+          final parts = booking.title.split(' - ');
+          if (parts.length >= 2) {
+            fromLoc = parts[0];
+            toLoc = parts[1];
+          } else {
+            fromLoc = booking.title;
+          }
         }
       } else {
-         final parts = booking.title.split(' - ');
-         if (parts.length >= 2) {
-           fromLoc = parts[0];
-           toLoc = parts[1];
-         } else {
-           fromLoc = booking.title;
-         }
+        final parts = booking.title.split(' - ');
+        if (parts.length >= 2) {
+          fromLoc = parts[0];
+          toLoc = parts[1];
+        } else {
+          fromLoc = booking.title;
+        }
       }
     } else {
       fromLoc = booking.title;
@@ -892,7 +894,10 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                     const Spacer(),
                     _buildStatusBadge(booking.status),
                     const SizedBox(width: 8),
-                    Icon(Icons.chevron_right, color: context.colors.iconInactive),
+                    Icon(
+                      Icons.chevron_right,
+                      color: context.colors.iconInactive,
+                    ),
                   ],
                 ),
 
@@ -937,7 +942,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           ],
                         ),
                       ),
-                      
+
                       // ARROW
                       Expanded(
                         flex: 1,
@@ -947,7 +952,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                           size: 24,
                         ),
                       ),
-                      
+
                       // TO
                       Expanded(
                         flex: 4,
@@ -969,7 +974,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Icon(Icons.location_on, size: 10, color: context.colors.textTertiary),
+                                Icon(
+                                  Icons.location_on,
+                                  size: 10,
+                                  color: context.colors.textTertiary,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Drop-off',
@@ -1024,11 +1033,16 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
 
                 // ── Date, Reference and Amount row ──
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: context.colors.inputBackground,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: context.colors.dividerColor.withOpacity(0.5)),
+                    border: Border.all(
+                      color: context.colors.dividerColor.withOpacity(0.5),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -1107,76 +1121,90 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                   ),
                 ),
 
-                if (booking.hasTransport && !['confirmed', 'completed'].contains(booking.transportStatus.toLowerCase())) ...[
+                if (booking.hasTransport &&
+                    ![
+                      'confirmed',
+                      'completed',
+                    ].contains(booking.transportStatus.toLowerCase())) ...[
                   const SizedBox(height: 12),
-                  Builder(builder: (context) {
-                    final status = booking.transportStatus;
-                    Color badgeColor;
-                    Color badgeBg;
-                    switch (status) {
-                      case 'confirmed':
-                        badgeColor = const Color(0xFF059669);
-                        badgeBg = const Color(0xFF059669).withOpacity(0.1);
-                        break;
-                      case 'in_progress':
-                        badgeColor = const Color(0xFF2563EB);
-                        badgeBg = const Color(0xFF2563EB).withOpacity(0.1);
-                        break;
-                      case 'completed':
-                        badgeColor = const Color(0xFF6B7280);
-                        badgeBg = const Color(0xFF6B7280).withOpacity(0.1);
-                        break;
-                      case 'cancelled':
-                        badgeColor = const Color(0xFFDC2626);
-                        badgeBg = const Color(0xFFDC2626).withOpacity(0.1);
-                        break;
-                      case 'pending':
-                      default:
-                        badgeColor = const Color(0xFFD97706);
-                        badgeBg = const Color(0xFFF59E0B).withOpacity(0.1);
-                        break;
-                    }
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: badgeColor.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.local_taxi, size: 16, color: badgeColor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Transport Booked',
-                              style: TextStyle(
+                  Builder(
+                    builder: (context) {
+                      final status = booking.transportStatus;
+                      Color badgeColor;
+                      Color badgeBg;
+                      switch (status) {
+                        case 'confirmed':
+                          badgeColor = const Color(0xFF059669);
+                          badgeBg = const Color(0xFF059669).withOpacity(0.1);
+                          break;
+                        case 'in_progress':
+                          badgeColor = const Color(0xFF2563EB);
+                          badgeBg = const Color(0xFF2563EB).withOpacity(0.1);
+                          break;
+                        case 'completed':
+                          badgeColor = const Color(0xFF6B7280);
+                          badgeBg = const Color(0xFF6B7280).withOpacity(0.1);
+                          break;
+                        case 'cancelled':
+                          badgeColor = const Color(0xFFDC2626);
+                          badgeBg = const Color(0xFFDC2626).withOpacity(0.1);
+                          break;
+                        case 'pending':
+                        default:
+                          badgeColor = const Color(0xFFD97706);
+                          badgeBg = const Color(0xFFF59E0B).withOpacity(0.1);
+                          break;
+                      }
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: badgeColor.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.local_taxi, size: 16, color: badgeColor),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Transport Booked',
+                                style: TextStyle(
+                                  color: badgeColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
                                 color: badgeColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                booking.transportStatusDisplay,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: badgeColor,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              booking.transportStatusDisplay,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ] else ...[
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ] else if (!booking.hasTransport) ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
@@ -1185,10 +1213,15 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
                         // Action not needed right now
                       },
                       icon: const Icon(Icons.local_taxi, size: 18),
-                      label: const Text('Book Transport', style: TextStyle(fontWeight: FontWeight.w600)),
+                      label: const Text(
+                        'Book Transport',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                        side: BorderSide(
+                          color: AppColors.primary.withOpacity(0.3),
+                        ),
                         backgroundColor: AppColors.primary.withOpacity(0.05),
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
@@ -1233,7 +1266,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
         text = 'Cancelled';
         break;
       case UnifiedBookingStatus.notCompleted:
-        bgColor = const Color(0xFFFEF3C7); // Amber background (similar to inProgress/warning)
+        bgColor = const Color(
+          0xFFFEF3C7,
+        ); // Amber background (similar to inProgress/warning)
         textColor = const Color(0xFFB45309); // Dark amber text
         text = 'Not Completed';
         break;
@@ -1257,7 +1292,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen>
   }
 
   void _navigateToDetail(UnifiedBooking booking) {
-    if ((booking.type == UnifiedBookingType.bus || booking.type == UnifiedBookingType.combined) && booking.busBooking != null) {
+    if ((booking.type == UnifiedBookingType.bus ||
+            booking.type == UnifiedBookingType.combined) &&
+        booking.busBooking != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
