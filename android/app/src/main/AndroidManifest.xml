@@ -62,10 +62,7 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAuA_RMUaOuqKOasnd5GU8MdYvrDmToXPg" />
-        <!-- OneSignal: custom notification icon (white vector, shown in status bar) -->
-        <meta-data
-            android:name="com.onesignal.NotificationServiceExtension"
-            android:value="com.onesignal.NotificationServiceExtension" />
+        <!-- OneSignal: custom notification icon (white LIORA bus PNG, shown in status bar) -->
         <meta-data
             android:name="com.onesignal.DefaultNotificationIcon"
             android:resource="@drawable/ic_stat_notification" />

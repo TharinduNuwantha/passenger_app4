@@ -1108,12 +1108,22 @@ func (s *BookingOrchestratorService) createTransportBookingFromIntent(
 
 	// Trigger OneSignal Push Notification
 	go func(uid string) {
+		// Supabase Storage public URLs for notification assets
+		bigPictureURL := "https://pttatcukzpceljcrwehk.supabase.co/storage/v1/object/public/app-assets/notification/notification_big_picture.png"
+		busIconURL := "https://pttatcukzpceljcrwehk.supabase.co/storage/v1/object/public/app-assets/notification/only_bus_icon.png"
+
 		payload := map[string]interface{}{
 			"app_id":                    "953f9d46-26ca-4f7d-8690-c3cefd7c583f",
 			"include_external_user_ids": []string{uid},
 			"target_channel":            "push",
 			"headings":                  map[string]string{"en": "Transport Booking Pending"},
-			"contents":                  map[string]string{"en": "testing - Your transport booking has been requested and is pending"},
+			"contents":                  map[string]string{"en": "Your transport booking has been requested and is pending"},
+			// Android notification icons & image
+			"small_icon":  "ic_stat_onesignal_default", // Uses the Android drawable resource
+			"large_icon":  busIconURL,                  // Bus icon shown in notification tray
+			"big_picture": bigPictureURL,               // 1024x512 image shown when notification is expanded
+			// iOS rich notification image
+			"ios_attachments": map[string]string{"image": bigPictureURL},
 		}
 
 		jsonData, err := json.Marshal(payload)

@@ -2742,7 +2742,7 @@ class _DashBoardState extends State<DashBoard> with WidgetsBindingObserver {
                         color: _currentAdIndex == i
                             ? AppColors.primary
                             : context.colors.iconInactive,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
                       ),
                     ),
                   ),
