@@ -656,6 +656,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingsByUserID(userID uuid.UUID, li
 	query := `
 		SELECT 
 			lb.id, lb.booking_reference, lb.lounge_id, l.lounge_name,
+			lb.master_booking_id, lb.bus_booking_id,
 			lb.booking_type, lb.scheduled_arrival, lb.number_of_guests,
 			lb.total_amount, lb.status, lb.payment_status, lb.created_at
 		FROM lounge_bookings lb
@@ -674,6 +675,7 @@ func (r *LoungeBookingRepository) GetUpcomingLoungeBookingsByUserID(userID uuid.
 	query := `
 		SELECT 
 			lb.id, lb.booking_reference, lb.lounge_id, l.lounge_name,
+			lb.master_booking_id, lb.bus_booking_id,
 			lb.booking_type, lb.scheduled_arrival, lb.number_of_guests,
 			lb.total_amount, lb.status, lb.payment_status, lb.created_at
 		FROM lounge_bookings lb
@@ -693,6 +695,7 @@ func (r *LoungeBookingRepository) GetNotCompletedLoungeBookingsByUserID(userID u
 	query := `
 		SELECT 
 			lb.id, lb.booking_reference, lb.lounge_id, l.lounge_name,
+			lb.master_booking_id, lb.bus_booking_id,
 			lb.booking_type, lb.scheduled_arrival, lb.number_of_guests,
 			lb.total_amount, lb.status, lb.payment_status, lb.created_at
 		FROM lounge_bookings lb
@@ -713,6 +716,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingsByUserIDAndStatus(userID uuid
 	query := `
 		SELECT 
 			lb.id, lb.booking_reference, lb.lounge_id, l.lounge_name,
+			lb.master_booking_id, lb.bus_booking_id,
 			lb.booking_type, lb.scheduled_arrival, lb.number_of_guests,
 			lb.total_amount, lb.status, lb.payment_status, lb.created_at
 		FROM lounge_bookings lb
@@ -732,6 +736,7 @@ func (r *LoungeBookingRepository) GetLoungeBookingsByLoungeID(loungeID uuid.UUID
 	query := `
 		SELECT 
 			lb.id, lb.booking_reference, lb.lounge_id, l.lounge_name,
+			lb.master_booking_id, lb.bus_booking_id,
 			lb.booking_type, lb.scheduled_arrival, lb.number_of_guests,
 			lb.total_amount, lb.status, lb.payment_status, lb.created_at
 		FROM lounge_bookings lb
@@ -750,6 +755,7 @@ func (r *LoungeBookingRepository) GetTodaysLoungeBookings(loungeID uuid.UUID) ([
 	query := `
 		SELECT 
 			lb.id, lb.booking_reference, lb.lounge_id, l.lounge_name,
+			lb.master_booking_id, lb.bus_booking_id,
 			lb.booking_type, lb.scheduled_arrival, lb.number_of_guests,
 			lb.total_amount, lb.status, lb.payment_status, lb.created_at
 		FROM lounge_bookings lb

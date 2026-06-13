@@ -579,6 +579,8 @@ type LoungeBookingListItem struct {
 	BookingReference string              `json:"booking_reference" db:"booking_reference"`
 	LoungeID         uuid.UUID           `json:"lounge_id" db:"lounge_id"`
 	LoungeName       string              `json:"lounge_name" db:"lounge_name"`
+	MasterBookingID  *uuid.UUID          `json:"master_booking_id,omitempty" db:"master_booking_id"`
+	BusBookingID     *uuid.UUID          `json:"bus_booking_id,omitempty" db:"bus_booking_id"`
 	BookingType      LoungeBookingType   `json:"booking_type" db:"booking_type"`
 	ScheduledArrival time.Time           `json:"scheduled_arrival" db:"scheduled_arrival"`
 	NumberOfGuests   int                 `json:"number_of_guests" db:"number_of_guests"`
