@@ -498,6 +498,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               'Vehicle No',
               assignment['lounge_drivers']?['vehicle_no'] ?? 'N/A',
             ),
+            if (assignmentStatus.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildDetailRow(
+                Icons.info_outline,
+                'Transport Status',
+                assignmentStatus[0].toUpperCase() + assignmentStatus.substring(1).replaceAll('_', ' '),
+              ),
+            ],
             if (assignmentCreatedAt != null) ...[
               const SizedBox(height: 16),
               Row(
@@ -672,6 +680,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               'Vehicle No',
               assignment['lounge_drivers']?['vehicle_no'] ?? 'N/A',
             ),
+            if (assignmentStatus.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _buildDetailRow(
+                Icons.info_outline,
+                'Transport Status',
+                assignmentStatus[0].toUpperCase() + assignmentStatus.substring(1).replaceAll('_', ' '),
+              ),
+            ],
             if (assignmentCreatedAt != null) ...[
               const SizedBox(height: 8),
               Row(
